@@ -1,0 +1,59 @@
+import type { EnclosureProject } from './types';
+
+export const defaultProject: EnclosureProject = {
+  name: 'ESP32 Control Board Enclosure',
+  pcb: {
+    width: 58,
+    height: 32,
+    thickness: 1.6,
+    cornerRadius: 2,
+    mountingHoles: [
+      { id: 'mh-1', x: 4, y: 4, diameter: 3 },
+      { id: 'mh-2', x: 54, y: 4, diameter: 3 },
+      { id: 'mh-3', x: 4, y: 28, diameter: 3 },
+      { id: 'mh-4', x: 54, y: 28, diameter: 3 },
+    ],
+    connectorCutouts: [
+      {
+        id: 'cutout-usb-c',
+        label: 'USB-C',
+        side: 'front',
+        offset: 29,
+        z: 7,
+        width: 10,
+        height: 4,
+      },
+    ],
+  },
+  enclosure: {
+    type: 'two_piece_screw_case',
+    material: 'pla',
+    fastenerProfileId: 'm2_5_self_tapping',
+    wallThickness: 1.8,
+    floorThickness: 1.6,
+    lidThickness: 1.8,
+    baseInternalHeight: 12,
+    boardClearance: 1,
+    lidGap: 0.3,
+    cornerRadius: 5,
+    standoffDiameter: 6,
+    standoffHoleDiameter: 2.7,
+    standoffHeight: 4,
+    screwBossDiameter: 6,
+    screwHoleDiameter: 2.7,
+    chamfer: 0.5,
+    ventilationRegions: [
+      {
+        id: 'vent-lid-1',
+        label: 'Lid vents',
+        x: 25,
+        y: 12,
+        width: 20,
+        height: 8,
+        slotWidth: 3,
+        slotHeight: 6,
+        spacing: 3,
+      },
+    ],
+  },
+};

@@ -176,10 +176,11 @@ holes, antenna holes, speaker grilles, fan grilles, label recesses, QR recesses,
 logo badges, cable slots, and zip-tie anchors. Each feature is stored as structured
 parameters with operation, shape, position, size, depth, radius, spacing, rows,
 columns, and optional label text. Through-cuts and recesses remove lid material;
-embosses add raised geometry. QR recesses with text generate true QR module geometry
-in OpenCascade production exports. Plain text and logo values are currently retained
-as editable manufacturing annotations rather than converted into font-outline or logo
-outline geometry.
+embosses add raised geometry. Text engraving features use an offline 5x7 vector-module
+alphabet for real recessed or raised text geometry. QR recesses with text generate
+true QR module geometry in OpenCascade production exports. Logo values are currently
+retained as editable manufacturing annotations rather than converted into imported
+logo-outline geometry.
 
 Validation checks lid feature placement against wall boundaries, ventilation regions,
 other design features, and screw boss footprints using the selected material

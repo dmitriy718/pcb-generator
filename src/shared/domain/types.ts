@@ -53,6 +53,7 @@ export type DesignFeatureKind =
   | 'speaker_grill'
   | 'fan_grill'
   | 'label_recess'
+  | 'text_engraving'
   | 'logo_badge'
   | 'cable_slot'
   | 'zip_tie_anchor'

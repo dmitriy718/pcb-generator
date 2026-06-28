@@ -35,11 +35,12 @@ tested, documented, and usable before moving on.
     regions, screw boss footprints, and lid wall boundaries.
 26. QR recess features with true generated QR module geometry in preview footprints
     and OpenCascade production exports.
+27. Text engraving features with a built-in offline 5x7 vector-module alphabet and
+    OpenCascade production export support.
 
 ## Next Milestones
 
-1. Convert text and logo annotations into true font-outline and logo-outline
-   engraving geometry.
+1. Convert logo annotations/imports into true logo-outline engraving geometry.
 2. Expand KiCad importer with component-height and connector detection.
 3. Add richer mechanical reference geometry detection for imported STL/STEP assemblies.
 4. Add material-aware heat-set insert lead-in chamfers and vendor preset libraries.

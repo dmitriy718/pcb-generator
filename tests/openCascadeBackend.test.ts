@@ -156,6 +156,43 @@ describe('OpenCascade backend', () => {
     expect(topology.isEdgeManifold).toBe(true);
   }, 60_000);
 
+  it('generates valid OpenCascade text engraving module geometry', async () => {
+    const mesh = await generateTwoPieceScrewCaseKernelMesh({
+      ...defaultProject,
+      enclosure: {
+        ...defaultProject.enclosure,
+        chamfer: 0,
+        ventilationRegions: [],
+        designFeatures: [
+          {
+            id: 'feature-text',
+            label: 'Serial text',
+            kind: 'text_engraving',
+            shape: 'rectangle',
+            operation: 'recess',
+            x: 32,
+            y: 18,
+            width: 16,
+            height: 5,
+            diameter: 5,
+            depth: 0.3,
+            cornerRadius: 0,
+            spacing: 2,
+            rows: 1,
+            columns: 1,
+            text: 'A1',
+          },
+        ],
+      },
+    });
+    const topology = analyzeMeshTopology(mesh);
+
+    expect(validateMesh(mesh, { checkTopology: true })).toEqual({ ok: true, issues: [] });
+    expect(mesh.indices.length / 3).toBeGreaterThan(300);
+    expect(topology.isClosed).toBe(true);
+    expect(topology.isEdgeManifold).toBe(true);
+  }, 30_000);
+
   it('imports STEP reference geometry bounds through OpenCascade', async () => {
     const step = await exportTwoPieceScrewCaseStep(defaultProject);
     const imported = await importStepPcbReference(step);

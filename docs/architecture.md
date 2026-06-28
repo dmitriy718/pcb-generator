@@ -52,6 +52,10 @@ QR lid features use a shared deterministic footprint generator backed by the
 `qrcode-generator` library. The kernel fuses QR module-run tools per feature before
 cutting or embossing the lid to avoid edge-touching boolean artifacts.
 
+Text engraving features use the same shared footprint path with a built-in ASCII 5x7
+vector-module alphabet. This keeps text geometry deterministic and offline across
+preview, STEP, and mesh exports without depending on system fonts.
+
 Mesh file exports for STL, OBJ, GLTF, and 3MF are tessellated from the same validated
 OpenCascade solids. The backend runs OpenCascade incremental meshing, extracts face
 triangulations, flips reversed face orientations, and rejects invalid topology before

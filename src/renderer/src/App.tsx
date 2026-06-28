@@ -240,7 +240,7 @@ const shapePalette: ShapePaletteItem[] = [
     action: 'feature',
     feature: {
       label: 'Text engraving',
-      kind: 'label_recess',
+      kind: 'text_engraving',
       shape: 'rectangle',
       operation: 'recess',
       xRatio: 0.5,

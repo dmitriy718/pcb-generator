@@ -14,7 +14,7 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         projectService: {
-          allowDefaultProject: ['eslint.config.js'],
+          allowDefaultProject: ['eslint.config.js', 'scripts/*.mjs'],
         },
         tsconfigRootDir: import.meta.dirname,
       },
@@ -33,6 +33,13 @@ export default tseslint.config(
         'error',
         { ignoreArrowShorthand: true },
       ],
+    },
+  },
+  {
+    files: ['scripts/*.mjs'],
+    rules: {
+      ...tseslint.configs.disableTypeChecked.rules,
+      'no-undef': 'off',
     },
   },
   prettier,

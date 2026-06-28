@@ -2,13 +2,25 @@
   "name": "pcb-enclosure-generator",
   "version": "0.1.0",
   "description": "Desktop application for generating parametric, 3D-printable PCB enclosures.",
+  "desktopName": "PCB Enclosure Generator",
+  "author": "PCB Enclosure Generator contributors",
   "license": "MIT",
+  "homepage": "https://github.com/dmitriy718/pcb-generator#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dmitriy718/pcb-generator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dmitriy718/pcb-generator/issues"
+  },
   "type": "module",
   "main": "out/main/index.js",
   "scripts": {
+    "postinstall": "node scripts/ensure-electron.mjs",
     "dev": "electron-vite dev",
     "build": "npm run typecheck && electron-vite build",
     "preview": "electron-vite preview",
+    "smoke:electron": "node scripts/smoke-electron.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint .",
     "format": "prettier --write .",
@@ -50,6 +62,8 @@
   "build": {
     "appId": "com.pcb-enclosure-generator.app",
     "productName": "PCB Enclosure Generator",
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "icon": "resources/icon.png",
     "files": [
       "out/**/*",
       "package.json"
@@ -60,7 +74,10 @@
     },
     "linux": {
       "target": "AppImage",
-      "category": "Graphics"
+      "category": "Graphics",
+      "syncDesktopName": true,
+      "synopsis": "Parametric PCB enclosure generator for FDM printing",
+      "description": "Generate editable, 3D-printable PCB enclosures with manufacturing metadata."
     },
     "win": {
       "target": "nsis"

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generateTwoPieceScrewCase, validateMesh } from '../src/shared/cad';
+import { MeshBuilder, analyzeMeshTopology, generateTwoPieceScrewCase, validateMesh } from '../src/shared/cad';
 import { defaultProject, type TriangleMesh } from '../src/shared/domain';
 
 describe('generateTwoPieceScrewCase', () => {
@@ -84,6 +84,26 @@ describe('generateTwoPieceScrewCase', () => {
     });
 
     expect(trianglesInSlot).toBe(0);
+  });
+
+  it('reports mesh topology for export validation', () => {
+    const generated = generateTwoPieceScrewCase(defaultProject);
+    const topology = analyzeMeshTopology(generated.mesh);
+
+    expect(topology.vertexCount).toBe(generated.mesh.vertices.length / 3);
+    expect(topology.triangleCount).toBe(generated.mesh.indices.length / 3);
+    expect(topology.edgeCount).toBeGreaterThan(0);
+    expect(topology.boundaryEdges).toBeGreaterThanOrEqual(0);
+    expect(topology.nonManifoldEdges).toBeGreaterThanOrEqual(0);
+  });
+
+  it('can run strict topology validation on a closed manifold solid', () => {
+    const builder = new MeshBuilder();
+    builder.addBox({ x: 0, y: 0, z: 0 }, { x: 10, y: 10, z: 10 });
+
+    const validation = validateMesh(builder.build(), { checkTopology: true });
+
+    expect(validation.ok).toBe(true);
   });
 });
 

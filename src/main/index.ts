@@ -22,7 +22,21 @@ import { parseBoardProfileFile, serializeBoardProfileFile, slugify } from '../sh
 
 log.initialize();
 
-function createWindow(): void {
+const isSmokeTest = process.env.PCB_EG_SMOKE_TEST === '1';
+const shouldDisableGpu = process.env.PCB_EG_DISABLE_GPU === '1' || process.env.CI === 'true';
+const shouldUseHeadlessSwitches = process.env.PCB_EG_HEADLESS === '1';
+
+if (shouldDisableGpu) {
+  app.disableHardwareAcceleration();
+  app.commandLine.appendSwitch('disable-gpu');
+}
+
+if (shouldUseHeadlessSwitches) {
+  app.commandLine.appendSwitch('headless');
+  app.commandLine.appendSwitch('ozone-platform', 'headless');
+}
+
+function createWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({
     width: 1440,
     height: 920,
@@ -47,6 +61,21 @@ function createWindow(): void {
   } else {
     void mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
   }
+
+  if (isSmokeTest) {
+    mainWindow.webContents.once('did-finish-load', () => {
+      log.info('Electron smoke test loaded renderer successfully.');
+      setTimeout(() => app.quit(), 250);
+    });
+
+    mainWindow.webContents.once('did-fail-load', (_event, errorCode, errorDescription, validatedUrl) => {
+      log.error(`Electron smoke test failed to load ${validatedUrl}: ${errorCode} ${errorDescription}`);
+      process.exitCode = 1;
+      app.quit();
+    });
+  }
+
+  return mainWindow;
 }
 
 void app.whenReady().then(() => {

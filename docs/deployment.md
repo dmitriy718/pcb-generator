@@ -8,7 +8,13 @@ npm run typecheck
 npm run lint
 npm test
 npm run build
+npm run smoke:electron
 ```
+
+`npm run smoke:electron` builds the app, starts Electron in a smoke-test mode, verifies
+that the production renderer loads, and exits automatically. On Linux it runs headlessly
+with Electron headless/GPU-disabled switches; if your local Electron version or display
+stack requires an X server, install `xvfb` or run from a desktop session.
 
 ## Platform Packages
 
@@ -27,7 +33,13 @@ Outputs are written to `release/`.
 - macOS: DMG
 
 These default packages are unsigned. Public distribution should configure code signing
-before release.
+before release. Windows packages require a Windows runner or a Linux environment with
+Wine installed. macOS packages require a macOS runner because Electron Builder uses Apple
+tooling such as `sips`.
+
+If `electron-vite dev` reports `Error: Electron uninstall`, run `npm ci` or
+`npm run postinstall` to force verification/download of the Electron runtime before
+starting the app.
 
 ## GitHub Release Workflow
 

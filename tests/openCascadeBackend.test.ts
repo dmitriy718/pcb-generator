@@ -9,6 +9,7 @@ describe('OpenCascade backend', () => {
     expect(step.startsWith('ISO-10303-21;')).toBe(true);
     expect(step).toContain('FILE_SCHEMA');
     expect(step).toContain('MANIFOLD_SOLID_BREP');
+    expect(step).toContain('CYLINDRICAL_SURFACE');
     expect(step.length).toBeGreaterThan(10_000);
   });
 });

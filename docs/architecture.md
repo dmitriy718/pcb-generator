@@ -38,15 +38,16 @@ The mesh path creates:
 - Hollow screw bosses.
 
 The OpenCascade backend lives in `src/shared/cad/kernel`. It currently generates the
-base shell, interior cavity, rectangular connector cutouts, lid plate, and rectangular
-lid vent cutouts as validated B-rep solids. It writes STEP through OpenCascade's STEP
-writer and validates each transferred solid with `BRepCheck_Analyzer` before export.
+base shell, interior cavity, rectangular connector cutouts, cylindrical standoffs,
+cylindrical screw bosses, lid plate, and rectangular lid vent cutouts as validated
+B-rep solids. It writes STEP through OpenCascade's STEP writer and validates each
+transferred solid with `BRepCheck_Analyzer` before export.
 
 The kernel path intentionally remains isolated from the renderer. The Electron main
 process invokes it for STEP export, while the renderer continues to receive lightweight
-triangle meshes for interactive preview. Future kernel work should add standoffs,
-screw bosses, heat-set insert geometry, fillets, chamfers, and eventually mesh
-tessellation from the B-rep source so STL/3MF/OBJ are derived from the same solid model.
+triangle meshes for interactive preview. Future kernel work should add heat-set insert
+seat details, fillets, chamfers, and eventually mesh tessellation from the B-rep source
+so STL/3MF/OBJ are derived from the same solid model.
 
 ## Drawing Exporters
 

@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 
 import type { ConnectorCutout, EnclosureProject, VentilationRegion } from '../../domain';
+import { getMaterialProfile } from '../../domain/materials';
 
 interface OcShape {
   ShapeType(): unknown;
@@ -38,7 +39,9 @@ interface OcFileSystem {
 
 interface OpenCascadeModule {
   BRepAlgoAPI_Cut_3: new (base: OcShape, tool: OcShape) => OcMakeShape;
+  BRepAlgoAPI_Fuse_3: new (base: OcShape, tool: OcShape) => OcMakeShape;
   BRepCheck_Analyzer: new (shape: OcShape, geomControls: boolean) => OcAnalyzer;
+  BRepPrimAPI_MakeCylinder_3: new (axis: unknown, radius: number, height: number) => OcMakeShape;
   BRepPrimAPI_MakeBox_1: new (dx: number, dy: number, dz: number) => OcMakeShape;
   BRepPrimAPI_MakeBox_2: new (point: unknown, dx: number, dy: number, dz: number) => OcMakeShape;
   STEPControl_StepModelType: {
@@ -55,6 +58,8 @@ interface OpenCascadeModule {
     TopAbs_SOLID: unknown;
   };
   TopExp_Explorer_2: new (shape: OcShape, target: unknown, avoid: unknown) => OcExplorer;
+  gp_Ax2_3: new (point: unknown, direction: unknown) => unknown;
+  gp_Dir_4: new (x: number, y: number, z: number) => unknown;
   gp_Pnt_3: new (x: number, y: number, z: number) => unknown;
 }
 
@@ -146,6 +151,7 @@ function buildTwoPieceScrewCaseStepModel(
   project: EnclosureProject,
 ): KernelStepModel {
   const { pcb, enclosure } = project;
+  const material = getMaterialProfile(enclosure.material);
   const internalWidth = pcb.width + enclosure.boardClearance * 2;
   const internalHeight = pcb.height + enclosure.boardClearance * 2;
   const outerWidth = internalWidth + enclosure.wallThickness * 2;
@@ -178,6 +184,25 @@ function buildTwoPieceScrewCaseStepModel(
   for (const cutout of pcb.connectorCutouts) {
     base = cut(oc, base, box(oc, connectorCutoutTool(cutout, enclosure.wallThickness, outerWidth, outerHeight)));
   }
+  const basePcbOrigin = {
+    x: enclosure.wallThickness + enclosure.boardClearance,
+    y: enclosure.wallThickness + enclosure.boardClearance,
+  };
+  for (const hole of pcb.mountingHoles) {
+    base = fuse(
+      oc,
+      base,
+      tube(
+        oc,
+        basePcbOrigin.x + hole.x,
+        basePcbOrigin.y + hole.y,
+        enclosure.floorThickness,
+        enclosure.standoffDiameter / 2,
+        (enclosure.standoffHoleDiameter + material.holeCompensation) / 2,
+        enclosure.standoffHeight,
+      ),
+    );
+  }
 
   let lid = box(oc, {
     x: outerWidth + partSpacing,
@@ -193,6 +218,25 @@ function buildTwoPieceScrewCaseStepModel(
     enclosure.lidThickness,
   )) {
     lid = cut(oc, lid, box(oc, slot));
+  }
+  const lidPcbOrigin = {
+    x: outerWidth + partSpacing + enclosure.wallThickness + enclosure.boardClearance,
+    y: enclosure.wallThickness + enclosure.boardClearance,
+  };
+  for (const hole of pcb.mountingHoles) {
+    lid = fuse(
+      oc,
+      lid,
+      tube(
+        oc,
+        lidPcbOrigin.x + hole.x,
+        lidPcbOrigin.y + hole.y,
+        enclosure.lidThickness,
+        enclosure.screwBossDiameter / 2,
+        (enclosure.screwHoleDiameter + material.holeCompensation) / 2,
+        enclosure.standoffHeight,
+      ),
+    );
   }
 
   return { shapes: [base, lid] };
@@ -290,6 +334,41 @@ function box(oc: OpenCascadeModule, dimensions: Box): OcShape {
 
 function cut(oc: OpenCascadeModule, base: OcShape, tool: OcShape): OcShape {
   return new oc.BRepAlgoAPI_Cut_3(base, tool).Shape();
+}
+
+function fuse(oc: OpenCascadeModule, base: OcShape, tool: OcShape): OcShape {
+  return new oc.BRepAlgoAPI_Fuse_3(base, tool).Shape();
+}
+
+function tube(
+  oc: OpenCascadeModule,
+  x: number,
+  y: number,
+  z: number,
+  outerRadius: number,
+  innerRadius: number,
+  height: number,
+): OcShape {
+  return cut(
+    oc,
+    cylinder(oc, x, y, z, outerRadius, height),
+    cylinder(oc, x, y, z - 0.5, innerRadius, height + 1),
+  );
+}
+
+function cylinder(
+  oc: OpenCascadeModule,
+  x: number,
+  y: number,
+  z: number,
+  radius: number,
+  height: number,
+): OcShape {
+  return new oc.BRepPrimAPI_MakeCylinder_3(
+    new oc.gp_Ax2_3(new oc.gp_Pnt_3(x, y, z), new oc.gp_Dir_4(0, 0, 1)),
+    radius,
+    height,
+  ).Shape();
 }
 
 function solidsIn(oc: OpenCascadeModule, shape: OcShape): OcShape[] {

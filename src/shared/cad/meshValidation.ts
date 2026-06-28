@@ -1,20 +1,8 @@
-import type { TriangleMesh, ValidationResult } from '../domain/types';
+import type { MeshTopologyReport, TriangleMesh, ValidationResult } from '../domain/types';
 import { triangleArea } from './meshBuilder';
 
 export interface MeshValidationOptions {
   checkTopology?: boolean;
-}
-
-export interface MeshTopologyReport {
-  vertexCount: number;
-  triangleCount: number;
-  edgeCount: number;
-  boundaryEdges: number;
-  nonManifoldEdges: number;
-  duplicateTriangles: number;
-  reversedDuplicateTriangles: number;
-  isClosed: boolean;
-  isEdgeManifold: boolean;
 }
 
 export function validateMesh(mesh: TriangleMesh, options: MeshValidationOptions = {}): ValidationResult {

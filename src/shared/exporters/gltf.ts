@@ -89,6 +89,7 @@ export function exportGltf(mesh: TriangleMesh, metadata: ManufacturingMetadata):
         printOrientation: metadata.printOrientation,
         material: metadata.material.name,
         layout: metadata.layout,
+        meshTopology: metadata.meshTopology,
         printability: metadata.printability,
       },
     },

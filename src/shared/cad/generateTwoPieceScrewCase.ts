@@ -6,11 +6,13 @@ import type {
   CutoutSide,
   EnclosureProject,
   GeneratedEnclosure,
+  MeshTopologyReport,
+  PrintabilityReport,
   VentilationRegion,
 } from '../domain/types';
 import { validateProject } from '../domain/validation';
 import { MeshBuilder } from './meshBuilder';
-import { validateMesh } from './meshValidation';
+import { analyzeMeshTopology, validateMesh } from './meshValidation';
 
 export function generateTwoPieceScrewCase(project: EnclosureProject): GeneratedEnclosure {
   const validation = validateProject(project);
@@ -96,7 +98,8 @@ export function generateTwoPieceScrewCase(project: EnclosureProject): GeneratedE
   }
 
   const roughVolumeMm3 = estimateMeshVolume(mesh);
-  const printability = analyzePrintability(project);
+  const meshTopology = analyzeMeshTopology(mesh);
+  const printability = addTopologyToPrintability(analyzePrintability(project), meshTopology);
   return {
     mesh,
     metadata: {
@@ -124,6 +127,7 @@ export function generateTwoPieceScrewCase(project: EnclosureProject): GeneratedE
           'Build-plate layout with base and lid separated. Base is open-side up; lid outer face is on the build plate with bosses upward.',
         printableParts: ['base-shell', 'base-standoffs', 'lid-panel', 'lid-screw-bosses'],
       },
+      meshTopology,
       printability,
     },
   };
@@ -332,6 +336,37 @@ function insideAnySlot(cell: SlotRect, slots: SlotRect[]): boolean {
     (slot) =>
       xCenter > slot.xMin && xCenter < slot.xMax && yCenter > slot.yMin && yCenter < slot.yMax,
   );
+}
+
+function addTopologyToPrintability(
+  report: PrintabilityReport,
+  topology: MeshTopologyReport,
+): PrintabilityReport {
+  const issues = [...report.issues];
+  if (topology.boundaryEdges > 0) {
+    issues.push({
+      severity: 'error',
+      code: 'mesh_not_watertight',
+      message: `Generated mesh has ${topology.boundaryEdges} boundary edge(s).`,
+      recommendation: 'Adjust geometry or regenerate before exporting production files.',
+    });
+  }
+  if (topology.nonManifoldEdges > 0) {
+    issues.push({
+      severity: 'warning',
+      code: 'mesh_non_manifold_edges',
+      message: `Generated mesh has ${topology.nonManifoldEdges} non-manifold edge(s).`,
+      recommendation:
+        'Review the exported model in the slicer and prioritize CAD-kernel generation before production use.',
+    });
+  }
+  const hasError = issues.some((issue) => issue.severity === 'error');
+  const hasWarning = issues.some((issue) => issue.severity === 'warning');
+  return {
+    ...report,
+    overall: hasError ? 'blocked' : hasWarning ? 'review' : 'ready',
+    issues,
+  };
 }
 
 function estimateMeshVolume(mesh: { vertices: number[]; indices: number[] }): number {

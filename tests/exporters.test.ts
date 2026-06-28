@@ -45,6 +45,7 @@ describe('exporters', () => {
     expect(metadata.supportRequired).toBe(false);
     expect(metadata.recommendedLayerHeightMm).toBeGreaterThan(0);
     expect(JSON.parse(exportMakerWorldMetadata(generated.metadata))).toHaveProperty('printability');
+    expect(JSON.parse(exportMakerWorldMetadata(generated.metadata))).toHaveProperty('meshTopology');
   });
 
   it('exports a valid 3MF package with model geometry and embedded metadata', async () => {
@@ -67,6 +68,7 @@ describe('exporters', () => {
 
     const metadataJson = await metadataFile?.async('string');
     expect(metadataJson).toContain('"supportRequired": false');
+    expect(metadataJson).toContain('"meshTopology"');
   });
 
   it('exports an SVG drawing with top view and connector cutout elevation', () => {
@@ -99,7 +101,13 @@ describe('exporters', () => {
       meshes: { primitives: { attributes: { POSITION: number }; indices: number; mode: number }[] }[];
       buffers: { byteLength: number; uri: string }[];
       accessors: { componentType: number; count: number; type: string }[];
-      extras: { units: string; material: string; supportRequired: boolean; printability: unknown };
+      extras: {
+        units: string;
+        material: string;
+        supportRequired: boolean;
+        meshTopology: unknown;
+        printability: unknown;
+      };
     };
 
     expect(gltf.asset.version).toBe('2.0');
@@ -121,6 +129,7 @@ describe('exporters', () => {
       type: 'SCALAR',
     });
     expect(gltf.extras).toMatchObject({ units: 'mm', material: 'PLA', supportRequired: false });
+    expect(gltf.extras.meshTopology).toBeDefined();
     expect(gltf.extras.printability).toBeDefined();
   });
 

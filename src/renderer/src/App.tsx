@@ -856,6 +856,13 @@ export function App(): ReactElement {
                   <dd>{generated.metadata.printability.overall}</dd>
                 </div>
                 <div>
+                  <dt>Mesh topology</dt>
+                  <dd>
+                    {generated.metadata.meshTopology.isClosed ? 'Watertight' : 'Open'} /{' '}
+                    {generated.metadata.meshTopology.isEdgeManifold ? 'manifold' : 'needs review'}
+                  </dd>
+                </div>
+                <div>
                   <dt>Outer size</dt>
                   <dd>
                     {generated.metadata.printability.outerDimensions.width} x{' '}

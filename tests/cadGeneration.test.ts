@@ -18,6 +18,10 @@ describe('generateTwoPieceScrewCase', () => {
     ]);
     expect(generated.metadata.supportRequired).toBe(false);
     expect(generated.metadata.makerWorld.tags).toContain('pcb-enclosure');
+    expect(generated.metadata.meshTopology.triangleCount).toBe(generated.mesh.indices.length / 3);
+    expect(generated.metadata.printability.issues.map((issue) => issue.code)).toContain(
+      'mesh_non_manifold_edges',
+    );
   });
 
   it('throws before generation when parameters are invalid', () => {

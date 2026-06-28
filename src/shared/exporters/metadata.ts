@@ -16,6 +16,7 @@ export function exportMakerWorldMetadata(metadata: ManufacturingMetadata): strin
       bambuProfileHint: metadata.material.bambuProfileHint,
       assemblyInstructions: metadata.assemblyInstructions,
       layout: metadata.layout,
+      meshTopology: metadata.meshTopology,
       printability: metadata.printability,
     },
     null,

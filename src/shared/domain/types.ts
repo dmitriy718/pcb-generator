@@ -116,6 +116,18 @@ export interface TriangleMesh {
   units: 'mm';
 }
 
+export interface MeshTopologyReport {
+  vertexCount: number;
+  triangleCount: number;
+  edgeCount: number;
+  boundaryEdges: number;
+  nonManifoldEdges: number;
+  duplicateTriangles: number;
+  reversedDuplicateTriangles: number;
+  isClosed: boolean;
+  isEdgeManifold: boolean;
+}
+
 export interface GeneratedEnclosure {
   mesh: TriangleMesh;
   metadata: ManufacturingMetadata;
@@ -140,6 +152,7 @@ export interface ManufacturingMetadata {
     modelArrangement: string;
     printableParts: string[];
   };
+  meshTopology: MeshTopologyReport;
   printability: PrintabilityReport;
 }
 

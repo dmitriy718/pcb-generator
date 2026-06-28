@@ -83,6 +83,7 @@ function metadataForPackage(metadata: ManufacturingMetadata): Record<string, unk
     supportRequired: metadata.supportRequired,
     printOrientation: metadata.printOrientation,
     layout: metadata.layout,
+    meshTopology: metadata.meshTopology,
     printability: metadata.printability,
   };
 }

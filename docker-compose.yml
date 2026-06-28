@@ -1,0 +1,15 @@
+services:
+  app:
+    build: .
+    working_dir: /workspace
+    environment:
+      DISPLAY: ${DISPLAY:-:0}
+      ELECTRON_DISABLE_SANDBOX: '1'
+    volumes:
+      - .:/workspace
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - node_modules:/workspace/node_modules
+    command: npm run dev
+
+volumes:
+  node_modules:

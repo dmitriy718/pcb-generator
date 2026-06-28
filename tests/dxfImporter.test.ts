@@ -136,9 +136,108 @@ outline
     expect(result.pcb.height).toBe(25.4);
   });
 
+  it('includes LWPOLYLINE bulge arcs when measuring rounded board outlines', () => {
+    const result = importDxfPcb(`
+0
+LWPOLYLINE
+8
+Edge.Cuts
+70
+1
+10
+10
+20
+0
+10
+90
+20
+0
+42
+0.41421356237309503
+10
+100
+20
+10
+10
+100
+20
+50
+42
+0.41421356237309503
+10
+90
+20
+60
+10
+10
+20
+60
+42
+0.41421356237309503
+10
+0
+20
+50
+10
+0
+20
+10
+42
+0.41421356237309503
+0
+CIRCLE
+8
+MountingHoles
+10
+10
+20
+10
+40
+1.5
+`);
+
+    expect(result.pcb.width).toBe(100);
+    expect(result.pcb.height).toBe(60);
+    expect(result.pcb.mountingHoles).toEqual([{ id: 'mh-1', x: 10, y: 10, diameter: 3 }]);
+  });
+
+  it('uses ARC outline entities when computing board bounds', () => {
+    const result = importDxfPcb(`
+0
+LINE
+8
+Edge.Cuts
+10
+-10
+20
+0
+11
+10
+21
+0
+0
+ARC
+8
+Edge.Cuts
+10
+0
+20
+0
+40
+10
+50
+0
+51
+180
+`);
+
+    expect(result.pcb.width).toBe(20);
+    expect(result.pcb.height).toBe(10);
+  });
+
   it('throws when no outline geometry is present', () => {
     expect(() => importDxfPcb('0\nCIRCLE\n8\nholes\n10\n1\n20\n1\n40\n0.5\n')).toThrow(
-      'no LINE or LWPOLYLINE',
+      'no LINE, LWPOLYLINE, or ARC',
     );
   });
 });

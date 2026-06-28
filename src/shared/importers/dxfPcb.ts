@@ -10,6 +10,10 @@ interface Point {
   y: number;
 }
 
+interface PolylineVertex extends Point {
+  bulge: number;
+}
+
 interface LineEntity {
   type: 'LINE';
   layer: string;
@@ -31,7 +35,16 @@ interface CircleEntity {
   radius: number;
 }
 
-type DxfEntity = CircleEntity | LineEntity | PolylineEntity;
+interface ArcEntity {
+  type: 'ARC';
+  layer: string;
+  center: Point;
+  radius: number;
+  startAngleDegrees: number;
+  endAngleDegrees: number;
+}
+
+type DxfEntity = ArcEntity | CircleEntity | LineEntity | PolylineEntity;
 
 export interface DxfImportResult {
   pcb: PcbSpecification;
@@ -44,12 +57,10 @@ export function importDxfPcb(contents: string): DxfImportResult {
   const entities = parseEntities(pairs);
   const warnings: string[] = [];
   const outlineEntities = preferredOutlineEntities(entities);
-  const outlinePoints = outlineEntities.flatMap((entity) =>
-    entity.type === 'LINE' ? [entity.start, entity.end] : entity.points,
-  );
+  const outlinePoints = outlineEntities.flatMap(outlineEntityPoints);
 
   if (outlinePoints.length === 0) {
-    throw new Error('DXF PCB outline import found no LINE or LWPOLYLINE outline geometry.');
+    throw new Error('DXF PCB outline import found no LINE, LWPOLYLINE, or ARC outline geometry.');
   }
 
   const bounds = boundsFor(outlinePoints);
@@ -136,8 +147,9 @@ function parseEntity(type: string, pairs: DxfPair[]): DxfEntity | undefined {
     return start && end ? { type, layer, start, end } : undefined;
   }
   if (type === 'LWPOLYLINE') {
-    const points = polylinePoints(pairs);
     const flags = firstNumber(pairs, 70) ?? 0;
+    const closed = (flags & 1) === 1;
+    const points = polylinePoints(pairs, closed);
     return points.length >= 2 ? { type, layer, points, closed: (flags & 1) === 1 } : undefined;
   }
   if (type === 'CIRCLE') {
@@ -145,35 +157,100 @@ function parseEntity(type: string, pairs: DxfPair[]): DxfEntity | undefined {
     const radius = firstNumber(pairs, 40);
     return center && radius !== undefined && radius > 0 ? { type, layer, center, radius } : undefined;
   }
+  if (type === 'ARC') {
+    const center = pointFromCodes(pairs, 10, 20);
+    const radius = firstNumber(pairs, 40);
+    const startAngleDegrees = firstNumber(pairs, 50);
+    const endAngleDegrees = firstNumber(pairs, 51);
+    return center &&
+      radius !== undefined &&
+      radius > 0 &&
+      startAngleDegrees !== undefined &&
+      endAngleDegrees !== undefined
+      ? { type, layer, center, radius, startAngleDegrees, endAngleDegrees }
+      : undefined;
+  }
   return undefined;
 }
 
-function polylinePoints(pairs: DxfPair[]): Point[] {
+function polylinePoints(pairs: DxfPair[], closed: boolean): Point[] {
+  const vertices = polylineVertices(pairs);
+  if (vertices.length < 2) {
+    return vertices;
+  }
+
   const points: Point[] = [];
-  let pendingX: number | undefined;
-  for (const pair of pairs) {
-    if (pair.code === 10) {
-      pendingX = Number(pair.value);
-    } else if (pair.code === 20 && pendingX !== undefined) {
-      const y = Number(pair.value);
-      if (Number.isFinite(pendingX) && Number.isFinite(y)) {
-        points.push({ x: pendingX, y });
-      }
-      pendingX = undefined;
+  const segmentCount = closed ? vertices.length : vertices.length - 1;
+  for (let index = 0; index < segmentCount; index += 1) {
+    const start = vertices[index];
+    const end = vertices[(index + 1) % vertices.length];
+    if (!start || !end) {
+      continue;
     }
+    points.push(...bulgeSegmentPoints(start, end));
   }
   return points;
 }
 
-function preferredOutlineEntities(entities: DxfEntity[]): (LineEntity | PolylineEntity)[] {
+function polylineVertices(pairs: DxfPair[]): PolylineVertex[] {
+  const vertices: PolylineVertex[] = [];
+  let pendingX: number | undefined;
+  let pendingY: number | undefined;
+  let pendingBulge = 0;
+
+  const pushPending = (): void => {
+    if (
+      pendingX !== undefined &&
+      pendingY !== undefined &&
+      Number.isFinite(pendingX) &&
+      Number.isFinite(pendingY)
+    ) {
+      vertices.push({ x: pendingX, y: pendingY, bulge: pendingBulge });
+    }
+    pendingX = undefined;
+    pendingY = undefined;
+    pendingBulge = 0;
+  };
+
+  for (const pair of pairs) {
+    if (pair.code === 10) {
+      pushPending();
+      pendingX = Number(pair.value);
+    } else if (pair.code === 20 && pendingX !== undefined) {
+      const y = Number(pair.value);
+      if (Number.isFinite(y)) {
+        pendingY = y;
+      }
+    } else if (pair.code === 42) {
+      const bulge = Number(pair.value);
+      if (Number.isFinite(bulge)) {
+        pendingBulge = bulge;
+      }
+    }
+  }
+  pushPending();
+  return vertices;
+}
+
+function preferredOutlineEntities(entities: DxfEntity[]): (ArcEntity | LineEntity | PolylineEntity)[] {
   const outlines = entities.filter(
-    (entity): entity is LineEntity | PolylineEntity =>
+    (entity): entity is ArcEntity | LineEntity | PolylineEntity =>
       entity.type !== 'CIRCLE' && isOutlineLayer(entity.layer),
   );
   if (outlines.length > 0) {
     return outlines;
   }
-  return entities.filter((entity): entity is LineEntity | PolylineEntity => entity.type !== 'CIRCLE');
+  return entities.filter((entity): entity is ArcEntity | LineEntity | PolylineEntity => entity.type !== 'CIRCLE');
+}
+
+function outlineEntityPoints(entity: ArcEntity | LineEntity | PolylineEntity): Point[] {
+  if (entity.type === 'LINE') {
+    return [entity.start, entity.end];
+  }
+  if (entity.type === 'ARC') {
+    return arcEntityPoints(entity);
+  }
+  return entity.points;
 }
 
 function extractMountingHoles(
@@ -260,7 +337,86 @@ function pointInsideBounds(
 }
 
 function isSupportedEntity(type: string): boolean {
-  return type === 'LINE' || type === 'LWPOLYLINE' || type === 'CIRCLE';
+  return type === 'LINE' || type === 'LWPOLYLINE' || type === 'CIRCLE' || type === 'ARC';
+}
+
+function bulgeSegmentPoints(start: PolylineVertex, end: PolylineVertex): Point[] {
+  if (Math.abs(start.bulge) < 0.000001) {
+    return [start, end];
+  }
+
+  const chordLength = distance(start, end);
+  if (chordLength <= 0) {
+    return [start];
+  }
+
+  const radius = (chordLength * (1 + start.bulge ** 2)) / (4 * Math.abs(start.bulge));
+  const midpoint = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
+  const leftNormal = { x: -(end.y - start.y) / chordLength, y: (end.x - start.x) / chordLength };
+  const centerOffset = (chordLength * (1 - start.bulge ** 2)) / (4 * start.bulge);
+  const center = {
+    x: midpoint.x + leftNormal.x * centerOffset,
+    y: midpoint.y + leftNormal.y * centerOffset,
+  };
+  const startAngle = Math.atan2(start.y - center.y, start.x - center.x);
+  const sweep = 4 * Math.atan(start.bulge);
+  return arcPoints(center, radius, startAngle, sweep);
+}
+
+function arcEntityPoints(entity: ArcEntity): Point[] {
+  const startAngle = degreesToRadians(entity.startAngleDegrees);
+  let endAngle = degreesToRadians(entity.endAngleDegrees);
+  while (endAngle < startAngle) {
+    endAngle += Math.PI * 2;
+  }
+  return arcPoints(entity.center, entity.radius, startAngle, endAngle - startAngle);
+}
+
+function arcPoints(center: Point, radius: number, startAngle: number, sweep: number): Point[] {
+  const angles = [startAngle, startAngle + sweep];
+  const direction = sweep >= 0 ? 1 : -1;
+  const absoluteSweep = Math.abs(sweep);
+  for (const cardinal of [0, Math.PI / 2, Math.PI, (Math.PI * 3) / 2]) {
+    if (angleOnSweep(cardinal, startAngle, sweep)) {
+      angles.push(startAngle + direction * normalizedPositive(direction * (cardinal - startAngle)));
+    }
+  }
+
+  const segmentCount = Math.max(4, Math.ceil((absoluteSweep / (Math.PI / 12))));
+  for (let index = 1; index < segmentCount; index += 1) {
+    angles.push(startAngle + (sweep * index) / segmentCount);
+  }
+
+  const uniqueAngles = new Map(angles.map((angle) => [round(angle), angle]));
+  return [...uniqueAngles.values()].map((angle) => ({
+    x: center.x + Math.cos(angle) * radius,
+    y: center.y + Math.sin(angle) * radius,
+  }));
+}
+
+function angleOnSweep(angle: number, startAngle: number, sweep: number): boolean {
+  const epsilon = 0.000001;
+  if (sweep >= 0) {
+    return normalizedPositive(angle - startAngle) <= sweep + epsilon;
+  }
+  return normalizedPositive(startAngle - angle) <= Math.abs(sweep) + epsilon;
+}
+
+function normalizedPositive(angle: number): number {
+  const tau = Math.PI * 2;
+  let normalized = angle % tau;
+  if (normalized < 0) {
+    normalized += tau;
+  }
+  return normalized;
+}
+
+function degreesToRadians(degrees: number): number {
+  return (degrees * Math.PI) / 180;
+}
+
+function distance(a: Point, b: Point): number {
+  return Math.hypot(b.x - a.x, b.y - a.y);
 }
 
 function isOutlineLayer(layer: string): boolean {

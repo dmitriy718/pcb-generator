@@ -69,10 +69,12 @@ tested, documented, and usable before moving on.
 42. Runtime-verified selective OpenCascade outer fillets for blank base/lid bodies when
     chamfers are disabled, with degenerate tessellation artifacts filtered before mesh
     topology validation.
+43. DXF importer support for `ARC` outline entities and `LWPOLYLINE` bulge arcs, with
+    rounded board bounds covered by importer regression tests.
 
 ## Next Milestones
 
 1. Broaden runtime-verified fillet selection to additional enclosure templates as those
    templates graduate from presets into independent validated generators.
-2. Add deeper importer feature extraction for complex SVG paths, DXF arcs/splines, and
+2. Add deeper importer feature extraction for complex SVG paths, DXF splines, and
    semantic STEP connector recognition.

@@ -66,9 +66,13 @@ tested, documented, and usable before moving on.
     structured intent output that still generates editable validated parameters.
 41. Release signing gate for tagged Windows/macOS builds, passing Electron Builder
     signing and Apple notarization credentials from GitHub Actions secrets.
+42. Runtime-verified selective OpenCascade outer fillets for blank base/lid bodies when
+    chamfers are disabled, with degenerate tessellation artifacts filtered before mesh
+    topology validation.
 
 ## Next Milestones
 
-1. Add selective fillets where they improve ergonomics without hurting printability.
-2. Add runtime-verified selective fillets where OpenCascade.js exposes the required
-   fillet builder reliably.
+1. Broaden runtime-verified fillet selection to additional enclosure templates as those
+   templates graduate from presets into independent validated generators.
+2. Add deeper importer feature extraction for complex SVG paths, DXF arcs/splines, and
+   semantic STEP connector recognition.

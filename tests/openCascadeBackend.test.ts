@@ -38,12 +38,29 @@ describe('OpenCascade backend', () => {
   it('applies the editable chamfer parameter in the OpenCascade tessellation', async () => {
     const squareEdgeMesh = await generateTwoPieceScrewCaseKernelMesh({
       ...defaultProject,
-      enclosure: { ...defaultProject.enclosure, chamfer: 0 },
+      enclosure: { ...defaultProject.enclosure, chamfer: 0, cornerRadius: 0 },
     });
     const chamferedMesh = await generateTwoPieceScrewCaseKernelMesh(defaultProject);
 
     expect(chamferedMesh.indices.length).toBeGreaterThan(squareEdgeMesh.indices.length);
   });
+
+  it('applies selective outer fillets when chamfer is disabled', async () => {
+    const squareEdgeMesh = await generateTwoPieceScrewCaseKernelMesh({
+      ...defaultProject,
+      enclosure: { ...defaultProject.enclosure, chamfer: 0, cornerRadius: 0 },
+    });
+    const filletedMesh = await generateTwoPieceScrewCaseKernelMesh({
+      ...defaultProject,
+      enclosure: { ...defaultProject.enclosure, chamfer: 0, cornerRadius: 8 },
+    });
+    const topology = analyzeMeshTopology(filletedMesh);
+
+    expect(validateMesh(filletedMesh, { checkTopology: true })).toEqual({ ok: true, issues: [] });
+    expect(filletedMesh.indices.length).toBeGreaterThan(squareEdgeMesh.indices.length);
+    expect(topology.isClosed).toBe(true);
+    expect(topology.isEdgeManifold).toBe(true);
+  }, 30_000);
 
   it('generates valid OpenCascade heat-set insert socket geometry', async () => {
     const profile = fastenerProfileById('m3_heat_set_insert');

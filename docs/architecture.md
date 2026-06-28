@@ -45,8 +45,10 @@ The OpenCascade backend lives in `src/shared/cad/kernel`. It currently generates
 base shell, interior cavity, rectangular connector cutouts, cylindrical standoffs,
 cylindrical screw bosses, heat-set insert sockets, lid plate, rectangular lid vent
 cutouts, repeated circular grille/button/antenna tools, rectangular and rounded
-rectangular lid cut/recess/emboss tools, and editable edge chamfers as validated
-B-rep solids. It writes STEP through OpenCascade's STEP writer and validates each
+rectangular lid cut/recess/emboss tools, editable edge chamfers, and selective outer
+fillets as validated B-rep solids. Outer fillets are applied only to blank base/lid
+bodies before cutouts and feature booleans, so functional openings and generated grille
+features stay dimensionally sharp. It writes STEP through OpenCascade's STEP writer and validates each
 transferred solid with
 `BRepCheck_Analyzer` before export.
 
@@ -65,13 +67,14 @@ structured representation. Complex path import remains a future SVG importer ext
 
 Mesh file exports for STL, OBJ, GLTF, and 3MF are tessellated from the same validated
 OpenCascade solids. The backend runs OpenCascade incremental meshing, extracts face
-triangulations, flips reversed face orientations, and rejects invalid topology before
-writing mesh-based manufacturing files.
+triangulations, skips zero-area tessellation artifacts, flips reversed face
+orientations, and rejects invalid topology before writing mesh-based manufacturing
+files.
 
 The kernel path intentionally remains isolated from the renderer. The Electron main
 process invokes it for STEP export, while the renderer continues to receive lightweight
-triangle meshes for interactive preview. Future kernel work should add selective
-fillets and richer enclosure templates.
+triangle meshes for interactive preview. Future kernel work should broaden
+runtime-verified fillets and richer enclosure templates.
 
 STEP text fallback import includes a conservative mounting-hole detector. It only
 creates mounting holes from circular curve topology when matching circles share the

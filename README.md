@@ -26,7 +26,8 @@ documentation, and CI foundation with a usable manual PCB workflow.
 - Three.js real-time preview.
 - Validation with actionable user-facing errors.
 - OpenCascade.js-backed STEP, STL, OBJ, GLTF, and 3MF export for base shell, lid,
-  standoffs, screw bosses, connector cutouts, rectangular vents, and editable chamfers.
+  standoffs, screw bosses, connector cutouts, rectangular vents, editable chamfers,
+  and selective outer fillets when chamfers are disabled.
 - SVG drawing, DXF drawing, and BOM CSV export plus MakerWorld metadata JSON.
 - Strict TypeScript, ESLint, Prettier, Vitest, Docker development environment, and GitHub Actions CI/release workflows.
 - Versioned plugin manifest API plus declarative JSON package loading for approved
@@ -227,8 +228,10 @@ export.
 STEP export uses OpenCascade.js to generate validated B-rep solids for the base shell,
 interior cavity, cylindrical standoffs, cylindrical screw bosses, rectangular connector
 openings, lid plate, rectangular lid vent cutouts, lid design feature cut/recess/emboss
-geometry, heat-set insert sockets with material-compensated lead-in reliefs, and
-editable chamfers. Selective ergonomic fillets remain a future kernel increment.
+geometry, heat-set insert sockets with material-compensated lead-in reliefs, editable
+chamfers, and selective outer fillets. Fillets are applied only to blank outer base/lid
+bodies before cutouts and feature booleans, keeping functional openings sharp and easier
+to print.
 
 OpenCascade.js is bundled as an offline WebAssembly dependency under LGPL-2.1-only.
 Generated user models are not licensed by the dependency.

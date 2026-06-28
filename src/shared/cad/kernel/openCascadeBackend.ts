@@ -8,12 +8,14 @@ import type {
   EnclosureProject,
   PcbSpecification,
   TriangleMesh,
+  TwoPieceScrewCaseParameters,
   VentilationRegion,
 } from '../../domain';
 import { getMaterialProfile } from '../../domain/materials';
 import { fastenerProfileById, type FastenerProfile } from '../../fasteners';
 import { inferPcbFromMechanicalReference } from '../../importers/mechanicalReference';
 import { designFeatureFootprints } from '../designFeatureGeometry';
+import { triangleArea } from '../meshBuilder';
 import { validateMesh } from '../meshValidation';
 
 interface OcShape {
@@ -108,6 +110,15 @@ interface OpenCascadeModule {
     Build(): void;
     Shape(): OcShape;
     delete?(): void;
+  };
+  BRepFilletAPI_MakeFillet: new (shape: OcShape, filletShape: unknown) => {
+    Add_2(distance: number, edge: OcShape): void;
+    Build(): void;
+    Shape(): OcShape;
+    delete?(): void;
+  };
+  ChFi3d_FilletShape: {
+    ChFi3d_Rational: unknown;
   };
   BRepPrimAPI_MakeCylinder_3: new (axis: unknown, radius: number, height: number) => OcMakeShape;
   BRepPrimAPI_MakeBox_1: new (dx: number, dy: number, dz: number) => OcMakeShape;
@@ -463,6 +474,7 @@ function buildTwoPieceScrewCaseStepModel(
     depth: outerHeight,
     height: baseOuterHeight,
   });
+  base = filletOuterBlank(oc, base, outerFilletDistance(enclosure), 'base');
   base = cut(
     oc,
     base,
@@ -508,6 +520,7 @@ function buildTwoPieceScrewCaseStepModel(
     depth: outerHeight,
     height: enclosure.lidThickness,
   });
+  lid = filletOuterBlank(oc, lid, outerFilletDistance(enclosure), 'lid');
   for (const slot of ventilationSlotTools(
     enclosure.ventilationRegions,
     outerWidth + partSpacing,
@@ -670,6 +683,10 @@ function appendFaceTriangles(
     const a = vertexOffset + triangle.Value(1) - 1;
     const b = vertexOffset + triangle.Value(2) - 1;
     const c = vertexOffset + triangle.Value(3) - 1;
+    if (isDegenerateTriangle(vertices, a, b, c)) {
+      triangle.delete?.();
+      continue;
+    }
     if (isReversed) {
       indices.push(a, c, b);
     } else {
@@ -677,6 +694,22 @@ function appendFaceTriangles(
     }
     triangle.delete?.();
   }
+}
+
+function isDegenerateTriangle(vertices: number[], a: number, b: number, c: number): boolean {
+  if (a === b || b === c || c === a) {
+    return true;
+  }
+  return triangleArea(vertexAt(vertices, a), vertexAt(vertices, b), vertexAt(vertices, c)) < 0.000001;
+}
+
+function vertexAt(vertices: number[], index: number): { x: number; y: number; z: number } {
+  const offset = index * 3;
+  return {
+    x: vertices[offset] ?? 0,
+    y: vertices[offset + 1] ?? 0,
+    z: vertices[offset + 2] ?? 0,
+  };
 }
 
 function connectorCutoutTool(
@@ -943,6 +976,68 @@ function chamfer(
   } finally {
     chamferBuilder.delete?.();
   }
+}
+
+function filletOuterBlank(
+  oc: OpenCascadeModule,
+  shape: OcShape,
+  distance: number,
+  partName: string,
+): OcShape {
+  if (distance <= 0) {
+    return shape;
+  }
+
+  const filletBuilder = new oc.BRepFilletAPI_MakeFillet(shape, oc.ChFi3d_FilletShape.ChFi3d_Rational);
+  const explorer = new oc.TopExp_Explorer_2(
+    shape,
+    oc.TopAbs_ShapeEnum.TopAbs_EDGE,
+    oc.TopAbs_ShapeEnum.TopAbs_SHAPE,
+  );
+  const edges: OcShape[] = [];
+  while (explorer.More()) {
+    const edge = oc.TopoDS.Edge_1(explorer.Current());
+    if (!edges.some((existingEdge) => existingEdge.IsSame(edge))) {
+      edges.push(edge);
+    }
+    explorer.Next();
+  }
+  explorer.delete?.();
+
+  if (edges.length === 0) {
+    filletBuilder.delete?.();
+    throw new Error(`OpenCascade could not find outer blank edges to fillet on the ${partName}.`);
+  }
+
+  try {
+    for (const edge of edges) {
+      filletBuilder.Add_2(distance, edge);
+    }
+    filletBuilder.Build();
+    const result = filletBuilder.Shape();
+    const analyzer = new oc.BRepCheck_Analyzer(result, true);
+    const isValid = analyzer.IsValid_2();
+    analyzer.delete?.();
+    if (!isValid) {
+      throw new Error('resulting solid failed B-rep validation');
+    }
+    return result;
+  } catch (error) {
+    throw new Error(
+      `OpenCascade could not apply a ${distance} mm selective outer fillet to the ${partName}. Reduce case radius or use chamfer instead. Cause: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  } finally {
+    filletBuilder.delete?.();
+  }
+}
+
+function outerFilletDistance(enclosure: TwoPieceScrewCaseParameters): number {
+  if (enclosure.chamfer > 0 || enclosure.cornerRadius <= 0) {
+    return 0;
+  }
+  return Math.min(enclosure.cornerRadius * 0.08, enclosure.wallThickness * 0.2, enclosure.floorThickness * 0.2, 0.35);
 }
 
 function tube(

@@ -126,14 +126,19 @@ STL import supports offline ASCII and binary STL files as PCB/reference geometry
 does not contain PCB semantics, units, layers, holes, or connector metadata, so the
 importer infers board width, height, and thickness from mesh bounds in millimeters and
 adds warnings for users to verify or manually define mounting holes, connectors, and
-component clearances.
+component clearances. Tall mechanical references are treated as populated assemblies:
+the importer keeps PCB thickness near the detected board slab or 1.6 mm default and
+stores the remaining height as component clearance instead of making the PCB itself
+unrealistically thick.
 
 ## STEP Import Scope
 
 STEP import uses OpenCascade.js offline to read `.step` and `.stp` geometry and infer
 board width, height, and thickness from model bounds. Generic STEP files do not provide
 reliable PCB semantic labels for holes, connectors, or components, so those features
-must be verified or added manually after import.
+must be verified or added manually after import. Tall STEP references use the same
+populated-assembly inference as STL imports so enclosure internal height can be raised
+without corrupting PCB board thickness.
 
 ## Board Library
 

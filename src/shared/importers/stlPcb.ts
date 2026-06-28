@@ -1,4 +1,5 @@
 import type { PcbSpecification } from '../domain';
+import { inferPcbFromMechanicalReference } from './mechanicalReference';
 
 interface Point3 {
   x: number;
@@ -27,41 +28,13 @@ export function importStlPcb(contents: Uint8Array | string): StlImportResult {
     { axis: 'x' as const, size: bounds.max.x - bounds.min.x },
     { axis: 'y' as const, size: bounds.max.y - bounds.min.y },
     { axis: 'z' as const, size: bounds.max.z - bounds.min.z },
-  ].sort((a, b) => b.size - a.size);
-
-  const width = round(extents[0]?.size ?? 0);
-  const height = round(extents[1]?.size ?? 0);
-  const measuredThickness = round(extents[2]?.size ?? 0);
-  if (width <= 0 || height <= 0) {
-    throw new Error('STL PCB import could not determine positive board width and height.');
-  }
-
-  const warnings = [
-    'STL has no PCB semantics; board dimensions were inferred from mesh bounds.',
-    'Mounting holes, connector cutouts, components, and ports must be verified or added manually.',
   ];
-  let thickness = measuredThickness;
-  if (thickness <= 0.05) {
-    thickness = 1.6;
-    warnings.push('STL thickness was flat or missing; defaulted board thickness to 1.6 mm.');
-  } else if (thickness > 4) {
-    warnings.push(
-      'STL thickness is larger than a typical bare PCB; imported mesh may include components or a full assembly.',
-    );
-  }
-
-  return {
-    pcb: {
-      width,
-      height,
-      thickness,
-      componentHeight: Math.max(0, round(thickness - 1.6)),
-      cornerRadius: 0,
-      mountingHoles: [],
-      connectorCutouts: [],
-    },
-    warnings,
-  };
+  const thinAxis = [...extents].sort((a, b) => a.size - b.size)[0]?.axis;
+  return inferPcbFromMechanicalReference({
+    source: 'STL',
+    extents,
+    candidateBoardThickness: thinAxis ? inferBoardSlabThickness(vertices, thinAxis) : undefined,
+  });
 }
 
 function parseStlBytes(bytes: Uint8Array): Point3[] {
@@ -130,6 +103,18 @@ function boundsFor(points: Point3[]): Bounds {
 
 function isFinitePoint(point: Point3): boolean {
   return Number.isFinite(point.x) && Number.isFinite(point.y) && Number.isFinite(point.z);
+}
+
+function inferBoardSlabThickness(points: Point3[], axis: keyof Point3): number | undefined {
+  const levels = Array.from(new Set(points.map((point) => round(point[axis])))).sort((a, b) => a - b);
+  const bottom = levels[0];
+  if (bottom === undefined) {
+    return undefined;
+  }
+  return levels.find((level) => {
+    const thickness = round(level - bottom);
+    return thickness >= 0.6 && thickness <= 3.2;
+  });
 }
 
 function round(value: number): number {

@@ -43,14 +43,18 @@ tested, documented, and usable before moving on.
     preset profiles in preview, BOM, validation, and OpenCascade exports.
 30. Built-in logo badge geometry catalog for editable OSHW, PCB, RF, and Bambu-style
     logo marks in preview and OpenCascade exports.
+31. Shared STL/STEP mechanical-reference inference that separates tall populated
+    assemblies into board thickness and component-height clearance with orientation
+    and unit-confidence warnings.
 
 ## Next Milestones
 
 1. Add arbitrary SVG/logo outline import for logo badge features.
-2. Add richer mechanical reference geometry detection for imported STL/STEP assemblies.
-3. Add selective fillets where they improve ergonomics without hurting printability.
-4. Add additional enclosure templates one at a time.
-5. Expand board profile library coverage.
-6. Add plugin API.
-7. Add AI-assisted parameter generation with inspectable output.
-8. Add release signing, notarization, and publishing automation.
+2. Add high-confidence mounting-hole detection for STEP references.
+3. Preserve STL triangle topology for future high-confidence hole detection.
+4. Add selective fillets where they improve ergonomics without hurting printability.
+5. Add additional enclosure templates one at a time.
+6. Expand board profile library coverage.
+7. Add plugin API.
+8. Add AI-assisted parameter generation with inspectable output.
+9. Add release signing, notarization, and publishing automation.

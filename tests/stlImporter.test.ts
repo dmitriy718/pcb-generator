@@ -72,6 +72,60 @@ endsolid flat
     expect(result.warnings).toContain('STL thickness was flat or missing; defaulted board thickness to 1.6 mm.');
   });
 
+  it('splits populated assembly height into board thickness and component height', () => {
+    const result = importStlPcb(
+      binaryStl([
+        [
+          [0, 0, 0],
+          [80, 0, 0],
+          [80, 40, 1.6],
+        ],
+        [
+          [0, 0, 0],
+          [80, 40, 1.6],
+          [0, 40, 1.6],
+        ],
+        [
+          [10, 10, 1.6],
+          [20, 10, 10],
+          [20, 20, 10],
+        ],
+      ]),
+    );
+
+    expect(result.pcb.width).toBe(80);
+    expect(result.pcb.height).toBe(40);
+    expect(result.pcb.thickness).toBe(1.6);
+    expect(result.pcb.componentHeight).toBe(8.4);
+    expect(result.warnings).toContain(
+      'STL reference height (10 mm) looks like a populated assembly; board thickness was set to 1.6 mm and component height to 8.4 mm.',
+    );
+  });
+
+  it('warns when a reference board is not modeled with Z as the thin axis', () => {
+    const result = importStlPcb(
+      binaryStl([
+        [
+          [0, 0, 0],
+          [1.6, 0, 0],
+          [1.6, 40, 80],
+        ],
+        [
+          [0, 0, 0],
+          [1.6, 40, 80],
+          [0, 40, 80],
+        ],
+      ]),
+    );
+
+    expect(result.pcb.width).toBe(80);
+    expect(result.pcb.height).toBe(40);
+    expect(result.pcb.thickness).toBe(1.6);
+    expect(result.warnings).toContain(
+      'STL thin axis was X, so dimensions were reoriented from model extents; verify PCB orientation.',
+    );
+  });
+
   it('rejects STL files without vertices', () => {
     expect(() => importStlPcb('solid empty\nendsolid empty\n')).toThrow('no triangle vertices');
   });

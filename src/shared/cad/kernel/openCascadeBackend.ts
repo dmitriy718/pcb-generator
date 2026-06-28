@@ -12,6 +12,7 @@ import type {
 } from '../../domain';
 import { getMaterialProfile } from '../../domain/materials';
 import { fastenerProfileById, type FastenerProfile } from '../../fasteners';
+import { inferPcbFromMechanicalReference } from '../../importers/mechanicalReference';
 import { designFeatureFootprints } from '../designFeatureGeometry';
 import { validateMesh } from '../meshValidation';
 
@@ -323,44 +324,14 @@ function pcbFromStepTextBounds(contents: string, readerError: unknown): StepImpo
 }
 
 function pcbFromBounds(extents: { x: number; y: number; z: number }): StepImportResult {
-  const sortedExtents = [
-    { axis: 'x' as const, size: extents.x },
-    { axis: 'y' as const, size: extents.y },
-    { axis: 'z' as const, size: extents.z },
-  ].sort((a, b) => b.size - a.size);
-  const width = round(sortedExtents[0]?.size ?? 0);
-  const height = round(sortedExtents[1]?.size ?? 0);
-  const measuredThickness = round(sortedExtents[2]?.size ?? 0);
-  if (width <= 0 || height <= 0) {
-    throw new Error('STEP PCB import could not determine positive board width and height.');
-  }
-
-  const warnings = [
-    'STEP geometry was imported from model bounds; verify PCB orientation and dimensions.',
-    'Mounting holes, connector cutouts, and components must be verified or added manually when STEP metadata is unavailable.',
-  ];
-  let thickness = measuredThickness;
-  if (thickness <= 0.05) {
-    thickness = 1.6;
-    warnings.push('STEP thickness was flat or missing; defaulted board thickness to 1.6 mm.');
-  } else if (thickness > 4) {
-    warnings.push(
-      'STEP thickness is larger than a typical bare PCB; imported model may include components or a full assembly.',
-    );
-  }
-
-  return {
-    pcb: {
-      width,
-      height,
-      thickness,
-      componentHeight: Math.max(0, round(thickness - 1.6)),
-      cornerRadius: 0,
-      mountingHoles: [],
-      connectorCutouts: [],
-    },
-    warnings,
-  };
+  return inferPcbFromMechanicalReference({
+    source: 'STEP',
+    extents: [
+      { axis: 'x', size: extents.x },
+      { axis: 'y', size: extents.y },
+      { axis: 'z', size: extents.z },
+    ],
+  });
 }
 
 async function loadOpenCascade(): Promise<OpenCascadeModule> {
@@ -1040,8 +1011,4 @@ function restoreGlobal(name: '__dirname' | '__filename' | 'require', value: unkn
     return;
   }
   Reflect.set(globalThis, name, value);
-}
-
-function round(value: number): number {
-  return Math.round(value * 1000) / 1000;
 }

@@ -240,4 +240,28 @@ describe('OpenCascade backend', () => {
     expect(imported.pcb.mountingHoles).toEqual([]);
     expect(imported.warnings).toContain('STEP geometry was imported from model bounds; verify PCB orientation and dimensions.');
   });
+
+  it('splits tall STEP text fallback bounds into board thickness and component height', async () => {
+    const imported = await importStepPcbReference(`
+ISO-10303-21;
+DATA;
+#1=CARTESIAN_POINT('',(0,0,0));
+#2=CARTESIAN_POINT('',(90,0,0));
+#3=CARTESIAN_POINT('',(90,55,10));
+#4=CARTESIAN_POINT('',(0,55,1.6));
+ENDSEC;
+END-ISO-10303-21;
+`);
+
+    expect(imported.pcb.width).toBe(90);
+    expect(imported.pcb.height).toBe(55);
+    expect(imported.pcb.thickness).toBe(1.6);
+    expect(imported.pcb.componentHeight).toBe(8.4);
+    expect(imported.warnings).toContain(
+      'STEP reference height (10 mm) looks like a populated assembly; board thickness was set to 1.6 mm and component height to 8.4 mm.',
+    );
+    expect(imported.warnings).toContain(
+      'OpenCascade could not transfer STEP topology; dimensions were recovered from STEP point coordinates.',
+    );
+  });
 });

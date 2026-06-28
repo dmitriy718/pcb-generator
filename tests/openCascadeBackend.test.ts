@@ -65,6 +65,60 @@ describe('OpenCascade backend', () => {
     expect(topology.isEdgeManifold).toBe(true);
   });
 
+  it('generates valid OpenCascade lid design feature geometry', async () => {
+    const mesh = await generateTwoPieceScrewCaseKernelMesh({
+      ...defaultProject,
+      enclosure: {
+        ...defaultProject.enclosure,
+        chamfer: 0,
+        ventilationRegions: [],
+        designFeatures: [
+          {
+            id: 'feature-button',
+            label: 'Reset button',
+            kind: 'button_opening',
+            shape: 'circle',
+            operation: 'through_cut',
+            x: 24,
+            y: 18,
+            width: 5,
+            height: 5,
+            diameter: 5,
+            depth: defaultProject.enclosure.lidThickness,
+            cornerRadius: 0,
+            spacing: 4,
+            rows: 1,
+            columns: 1,
+            text: '',
+          },
+          {
+            id: 'feature-label',
+            label: 'Label recess',
+            kind: 'label_recess',
+            shape: 'rectangle',
+            operation: 'recess',
+            x: 43,
+            y: 18,
+            width: 12,
+            height: 5,
+            diameter: 5,
+            depth: 0.4,
+            cornerRadius: 0,
+            spacing: 4,
+            rows: 1,
+            columns: 1,
+            text: 'ID',
+          },
+        ],
+      },
+    });
+    const topology = analyzeMeshTopology(mesh);
+
+    expect(validateMesh(mesh, { checkTopology: true })).toEqual({ ok: true, issues: [] });
+    expect(topology.isClosed).toBe(true);
+    expect(topology.isEdgeManifold).toBe(true);
+  });
+
   it('imports STEP reference geometry bounds through OpenCascade', async () => {
     const step = await exportTwoPieceScrewCaseStep(defaultProject);
     const imported = await importStepPcbReference(step);

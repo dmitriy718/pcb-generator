@@ -1,15 +1,28 @@
 import {
   AlertTriangle,
+  Anchor,
   Box,
+  Cable,
   CheckCircle2,
+  CircleDot,
   Download,
   Eye,
+  Fan,
   FileType,
   FolderOpen,
+  Hexagon,
+  Monitor,
+  QrCode,
+  RadioTower,
+  ScanLine,
   RotateCcw,
   Save,
+  Speaker,
+  Tag,
+  Type,
   Upload,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import type { ReactElement } from 'react';
 import { useMemo, useState } from 'react';
 import { generateTwoPieceScrewCase } from '../../shared/cad';
@@ -20,6 +33,7 @@ import type {
   ConnectorCutout,
   CutoutSide,
   BoardProfile,
+  DesignFeature,
   EnclosureProject,
   ExportFormat,
   MaterialId,
@@ -46,6 +60,297 @@ type NumericProjectPath =
   | 'enclosure.screwBossDiameter'
   | 'enclosure.screwHoleDiameter'
   | 'enclosure.chamfer';
+
+type ShapePaletteItem =
+  | {
+      id: string;
+      label: string;
+      Icon: LucideIcon;
+      action: 'feature';
+      feature: Omit<DesignFeature, 'id' | 'x' | 'y'> & {
+        xRatio: number;
+        yRatio: number;
+      };
+    }
+  | {
+      id: string;
+      label: string;
+      Icon: LucideIcon;
+      action: 'vent';
+      vent: Omit<VentilationRegion, 'id' | 'x' | 'y'>;
+    };
+
+const shapePalette: ShapePaletteItem[] = [
+  {
+    id: 'display-opening',
+    label: 'Display',
+    Icon: Monitor,
+    action: 'feature',
+    feature: {
+      label: 'Display window',
+      kind: 'display_opening',
+      shape: 'rounded_rectangle',
+      operation: 'through_cut',
+      xRatio: 0.5,
+      yRatio: 0.36,
+      width: 24,
+      height: 12,
+      diameter: 12,
+      depth: 1.8,
+      cornerRadius: 2,
+      spacing: 3,
+      rows: 1,
+      columns: 1,
+      text: '',
+    },
+  },
+  {
+    id: 'button-opening',
+    label: 'Button',
+    Icon: CircleDot,
+    action: 'feature',
+    feature: {
+      label: 'Button opening',
+      kind: 'button_opening',
+      shape: 'circle',
+      operation: 'through_cut',
+      xRatio: 0.32,
+      yRatio: 0.68,
+      width: 7,
+      height: 7,
+      diameter: 7,
+      depth: 1.8,
+      cornerRadius: 0,
+      spacing: 3,
+      rows: 1,
+      columns: 1,
+      text: '',
+    },
+  },
+  {
+    id: 'sma-hole',
+    label: 'SMA',
+    Icon: RadioTower,
+    action: 'feature',
+    feature: {
+      label: 'Antenna hole',
+      kind: 'antenna_hole',
+      shape: 'circle',
+      operation: 'through_cut',
+      xRatio: 0.74,
+      yRatio: 0.68,
+      width: 6,
+      height: 6,
+      diameter: 6,
+      depth: 1.8,
+      cornerRadius: 0,
+      spacing: 3,
+      rows: 1,
+      columns: 1,
+      text: '',
+    },
+  },
+  {
+    id: 'honeycomb-vent',
+    label: 'Honeycomb',
+    Icon: Hexagon,
+    action: 'vent',
+    vent: {
+      label: 'Honeycomb vent',
+      width: 30,
+      height: 18,
+      slotWidth: 2,
+      slotHeight: 3,
+      spacing: 2,
+    },
+  },
+  {
+    id: 'speaker-grill',
+    label: 'Speaker',
+    Icon: Speaker,
+    action: 'feature',
+    feature: {
+      label: 'Speaker grill',
+      kind: 'speaker_grill',
+      shape: 'circle',
+      operation: 'through_cut',
+      xRatio: 0.5,
+      yRatio: 0.58,
+      width: 2,
+      height: 2,
+      diameter: 2,
+      depth: 1.8,
+      cornerRadius: 0,
+      spacing: 3,
+      rows: 3,
+      columns: 6,
+      text: '',
+    },
+  },
+  {
+    id: 'fan-grill',
+    label: 'Fan',
+    Icon: Fan,
+    action: 'feature',
+    feature: {
+      label: 'Fan grill',
+      kind: 'fan_grill',
+      shape: 'circle',
+      operation: 'through_cut',
+      xRatio: 0.5,
+      yRatio: 0.5,
+      width: 3,
+      height: 3,
+      diameter: 3,
+      depth: 1.8,
+      cornerRadius: 0,
+      spacing: 4,
+      rows: 5,
+      columns: 5,
+      text: '',
+    },
+  },
+  {
+    id: 'label-recess',
+    label: 'Label',
+    Icon: Tag,
+    action: 'feature',
+    feature: {
+      label: 'Label recess',
+      kind: 'label_recess',
+      shape: 'rounded_rectangle',
+      operation: 'recess',
+      xRatio: 0.5,
+      yRatio: 0.72,
+      width: 22,
+      height: 8,
+      diameter: 8,
+      depth: 0.4,
+      cornerRadius: 1.5,
+      spacing: 3,
+      rows: 1,
+      columns: 1,
+      text: 'LABEL',
+    },
+  },
+  {
+    id: 'text-engraving',
+    label: 'Text',
+    Icon: Type,
+    action: 'feature',
+    feature: {
+      label: 'Text engraving',
+      kind: 'label_recess',
+      shape: 'rectangle',
+      operation: 'recess',
+      xRatio: 0.5,
+      yRatio: 0.28,
+      width: 24,
+      height: 6,
+      diameter: 6,
+      depth: 0.35,
+      cornerRadius: 0,
+      spacing: 3,
+      rows: 1,
+      columns: 1,
+      text: 'TEXT',
+    },
+  },
+  {
+    id: 'qr-recess',
+    label: 'QR',
+    Icon: QrCode,
+    action: 'feature',
+    feature: {
+      label: 'QR recess',
+      kind: 'qr_recess',
+      shape: 'rectangle',
+      operation: 'recess',
+      xRatio: 0.78,
+      yRatio: 0.36,
+      width: 12,
+      height: 12,
+      diameter: 12,
+      depth: 0.45,
+      cornerRadius: 0,
+      spacing: 2,
+      rows: 1,
+      columns: 1,
+      text: '',
+    },
+  },
+  {
+    id: 'logo-badge',
+    label: 'Logo',
+    Icon: ScanLine,
+    action: 'feature',
+    feature: {
+      label: 'Logo badge',
+      kind: 'logo_badge',
+      shape: 'rounded_rectangle',
+      operation: 'emboss',
+      xRatio: 0.28,
+      yRatio: 0.36,
+      width: 16,
+      height: 10,
+      diameter: 10,
+      depth: 0.5,
+      cornerRadius: 2,
+      spacing: 3,
+      rows: 1,
+      columns: 1,
+      text: '',
+    },
+  },
+  {
+    id: 'cable-slot',
+    label: 'Cable slot',
+    Icon: Cable,
+    action: 'feature',
+    feature: {
+      label: 'Cable slot',
+      kind: 'cable_slot',
+      shape: 'rounded_rectangle',
+      operation: 'through_cut',
+      xRatio: 0.5,
+      yRatio: 0.84,
+      width: 18,
+      height: 5,
+      diameter: 5,
+      depth: 1.8,
+      cornerRadius: 1.5,
+      spacing: 3,
+      rows: 1,
+      columns: 1,
+      text: '',
+    },
+  },
+  {
+    id: 'zip-tie-anchor',
+    label: 'Zip tie',
+    Icon: Anchor,
+    action: 'feature',
+    feature: {
+      label: 'Zip tie anchor',
+      kind: 'zip_tie_anchor',
+      shape: 'rounded_rectangle',
+      operation: 'emboss',
+      xRatio: 0.5,
+      yRatio: 0.82,
+      width: 18,
+      height: 7,
+      diameter: 7,
+      depth: 1,
+      cornerRadius: 1.5,
+      spacing: 4,
+      rows: 1,
+      columns: 2,
+      text: '',
+    },
+  },
+];
+
+const featurePaletteCount = shapePalette.filter((item) => item.action === 'feature').length;
 
 export function App(): ReactElement {
   const [project, setProject] = useState<EnclosureProject>(defaultProject);
@@ -117,7 +422,9 @@ export function App(): ReactElement {
     setExportMessage('');
     const api = pcbApi();
     if (!api) {
-      setExportMessage('Desktop integration is unavailable. Launch the Electron app instead of the browser preview.');
+      setExportMessage(
+        'Desktop integration is unavailable. Launch the Electron app instead of the browser preview.',
+      );
       return;
     }
     try {
@@ -138,15 +445,15 @@ export function App(): ReactElement {
     setExportMessage('');
     const api = pcbApi();
     if (!api) {
-      setExportMessage('Desktop integration is unavailable. Launch the Electron app instead of the browser preview.');
+      setExportMessage(
+        'Desktop integration is unavailable. Launch the Electron app instead of the browser preview.',
+      );
       return;
     }
     try {
       const result = await api.saveCurrentBoardProfile(project);
       setExportMessage(
-        result.saved
-          ? `Saved board profile ${result.filePath}.`
-          : 'Board profile save cancelled.',
+        result.saved ? `Saved board profile ${result.filePath}.` : 'Board profile save cancelled.',
       );
     } catch (error) {
       setExportMessage(formatActionError('Board profile save', error));
@@ -257,7 +564,64 @@ export function App(): ReactElement {
     }));
   }
 
-  function updateVentilationRegion(id: string, patch: Partial<Omit<VentilationRegion, 'id'>>): void {
+  function updateDesignFeature(id: string, patch: Partial<Omit<DesignFeature, 'id'>>): void {
+    setProject((current) => ({
+      ...current,
+      enclosure: {
+        ...current.enclosure,
+        designFeatures: current.enclosure.designFeatures.map((feature) =>
+          feature.id === id ? { ...feature, ...patch } : feature,
+        ),
+      },
+    }));
+  }
+
+  function addDesignFeaturePreset(
+    preset: Extract<ShapePaletteItem, { action: 'feature' }>['feature'],
+  ): void {
+    setProject((current) => {
+      const outerWidth =
+        current.pcb.width +
+        current.enclosure.boardClearance * 2 +
+        current.enclosure.wallThickness * 2;
+      const outerHeight =
+        current.pcb.height +
+        current.enclosure.boardClearance * 2 +
+        current.enclosure.wallThickness * 2;
+      const { xRatio, yRatio, ...feature } = preset;
+      return {
+        ...current,
+        enclosure: {
+          ...current.enclosure,
+          designFeatures: [
+            ...current.enclosure.designFeatures,
+            {
+              id: `feature-${crypto.randomUUID().slice(0, 8)}`,
+              ...feature,
+              x: Number((outerWidth * xRatio).toFixed(1)),
+              y: Number((outerHeight * yRatio).toFixed(1)),
+            },
+          ],
+        },
+      };
+    });
+    setExportMessage(`Added ${preset.label}.`);
+  }
+
+  function removeDesignFeature(id: string): void {
+    setProject((current) => ({
+      ...current,
+      enclosure: {
+        ...current.enclosure,
+        designFeatures: current.enclosure.designFeatures.filter((feature) => feature.id !== id),
+      },
+    }));
+  }
+
+  function updateVentilationRegion(
+    id: string,
+    patch: Partial<Omit<VentilationRegion, 'id'>>,
+  ): void {
     setProject((current) => ({
       ...current,
       enclosure: {
@@ -296,12 +660,52 @@ export function App(): ReactElement {
     });
   }
 
+  function addVentilationRegionPreset(
+    preset: Extract<ShapePaletteItem, { action: 'vent' }>['vent'],
+  ): void {
+    setProject((current) => {
+      const internalWidth = current.pcb.width + current.enclosure.boardClearance * 2;
+      const internalHeight = current.pcb.height + current.enclosure.boardClearance * 2;
+      return {
+        ...current,
+        enclosure: {
+          ...current.enclosure,
+          ventilationRegions: [
+            ...current.enclosure.ventilationRegions,
+            {
+              id: `vent-${crypto.randomUUID().slice(0, 8)}`,
+              label: preset.label,
+              x: Math.round((internalWidth + current.enclosure.wallThickness * 2) / 2),
+              y: Math.round((internalHeight + current.enclosure.wallThickness * 2) / 2),
+              width: preset.width,
+              height: preset.height,
+              slotWidth: preset.slotWidth,
+              slotHeight: preset.slotHeight,
+              spacing: preset.spacing,
+            },
+          ],
+        },
+      };
+    });
+    setExportMessage(`Added ${preset.label}.`);
+  }
+
+  function addShapePaletteItem(item: ShapePaletteItem): void {
+    if (item.action === 'feature') {
+      addDesignFeaturePreset(item.feature);
+      return;
+    }
+    addVentilationRegionPreset(item.vent);
+  }
+
   function removeVentilationRegion(id: string): void {
     setProject((current) => ({
       ...current,
       enclosure: {
         ...current.enclosure,
-        ventilationRegions: current.enclosure.ventilationRegions.filter((region) => region.id !== id),
+        ventilationRegions: current.enclosure.ventilationRegions.filter(
+          (region) => region.id !== id,
+        ),
       },
     }));
   }
@@ -310,15 +714,15 @@ export function App(): ReactElement {
     setExportMessage('');
     const api = pcbApi();
     if (!api) {
-      setExportMessage('Desktop integration is unavailable. Launch the Electron app instead of the browser preview.');
+      setExportMessage(
+        'Desktop integration is unavailable. Launch the Electron app instead of the browser preview.',
+      );
       return;
     }
     try {
       const result = await api.exportProject(project, format);
       setExportMessage(
-        result.saved
-          ? `Saved ${result.filePath} and MakerWorld metadata.`
-          : 'Export cancelled.',
+        result.saved ? `Saved ${result.filePath} and MakerWorld metadata.` : 'Export cancelled.',
       );
     } catch (error) {
       setExportMessage(formatActionError(`${format.toUpperCase()} export`, error));
@@ -329,7 +733,9 @@ export function App(): ReactElement {
     setExportMessage('');
     const api = pcbApi();
     if (!api) {
-      setExportMessage('Desktop integration is unavailable. Launch the Electron app instead of the browser preview.');
+      setExportMessage(
+        'Desktop integration is unavailable. Launch the Electron app instead of the browser preview.',
+      );
       return;
     }
     try {
@@ -344,7 +750,9 @@ export function App(): ReactElement {
     setExportMessage('');
     const api = pcbApi();
     if (!api) {
-      setExportMessage('Desktop integration is unavailable. Launch the Electron app instead of the browser preview.');
+      setExportMessage(
+        'Desktop integration is unavailable. Launch the Electron app instead of the browser preview.',
+      );
       return;
     }
     try {
@@ -365,7 +773,9 @@ export function App(): ReactElement {
     setExportMessage('');
     const api = pcbApi();
     if (!api) {
-      setExportMessage('Desktop integration is unavailable. Launch the Electron app instead of the browser preview.');
+      setExportMessage(
+        'Desktop integration is unavailable. Launch the Electron app instead of the browser preview.',
+      );
       return;
     }
     try {
@@ -391,7 +801,9 @@ export function App(): ReactElement {
     setExportMessage('');
     const api = pcbApi();
     if (!api) {
-      setExportMessage('Desktop integration is unavailable. Launch the Electron app instead of the browser preview.');
+      setExportMessage(
+        'Desktop integration is unavailable. Launch the Electron app instead of the browser preview.',
+      );
       return;
     }
     try {
@@ -417,7 +829,9 @@ export function App(): ReactElement {
     setExportMessage('');
     const api = pcbApi();
     if (!api) {
-      setExportMessage('Desktop integration is unavailable. Launch the Electron app instead of the browser preview.');
+      setExportMessage(
+        'Desktop integration is unavailable. Launch the Electron app instead of the browser preview.',
+      );
       return;
     }
     try {
@@ -443,7 +857,9 @@ export function App(): ReactElement {
     setExportMessage('');
     const api = pcbApi();
     if (!api) {
-      setExportMessage('Desktop integration is unavailable. Launch the Electron app instead of the browser preview.');
+      setExportMessage(
+        'Desktop integration is unavailable. Launch the Electron app instead of the browser preview.',
+      );
       return;
     }
     try {
@@ -469,7 +885,9 @@ export function App(): ReactElement {
     setExportMessage('');
     const api = pcbApi();
     if (!api) {
-      setExportMessage('Desktop integration is unavailable. Launch the Electron app instead of the browser preview.');
+      setExportMessage(
+        'Desktop integration is unavailable. Launch the Electron app instead of the browser preview.',
+      );
       return;
     }
     try {
@@ -524,7 +942,11 @@ export function App(): ReactElement {
           >
             <Save size={16} aria-hidden="true" /> Save
           </button>
-          <button className="toolbar-button" type="button" onClick={() => void importKiCadProject()}>
+          <button
+            className="toolbar-button"
+            type="button"
+            onClick={() => void importKiCadProject()}
+          >
             <Upload size={16} aria-hidden="true" /> KiCad
           </button>
           <button className="toolbar-button" type="button" onClick={() => void importSvgProject()}>
@@ -599,7 +1021,11 @@ export function App(): ReactElement {
                 ))}
               </select>
             </label>
-            <button type="button" className="secondary-button" onClick={() => void importBoardProfile()}>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => void importBoardProfile()}
+            >
               Import board profile
             </button>
             <button
@@ -614,8 +1040,16 @@ export function App(): ReactElement {
 
           <fieldset>
             <legend>PCB Dimensions</legend>
-            <NumberField label="Width" value={project.pcb.width} onChange={(value) => updateNumber('pcb.width', value)} />
-            <NumberField label="Height" value={project.pcb.height} onChange={(value) => updateNumber('pcb.height', value)} />
+            <NumberField
+              label="Width"
+              value={project.pcb.width}
+              onChange={(value) => updateNumber('pcb.width', value)}
+            />
+            <NumberField
+              label="Height"
+              value={project.pcb.height}
+              onChange={(value) => updateNumber('pcb.height', value)}
+            />
             <NumberField
               label="Thickness"
               value={project.pcb.thickness}
@@ -645,13 +1079,17 @@ export function App(): ReactElement {
                     aria-label={`${hole.id} x position`}
                     type="number"
                     value={hole.x}
-                    onChange={(event) => updateMountingHole(hole.id, { x: event.currentTarget.valueAsNumber })}
+                    onChange={(event) =>
+                      updateMountingHole(hole.id, { x: event.currentTarget.valueAsNumber })
+                    }
                   />
                   <input
                     aria-label={`${hole.id} y position`}
                     type="number"
                     value={hole.y}
-                    onChange={(event) => updateMountingHole(hole.id, { y: event.currentTarget.valueAsNumber })}
+                    onChange={(event) =>
+                      updateMountingHole(hole.id, { y: event.currentTarget.valueAsNumber })
+                    }
                   />
                   <input
                     aria-label={`${hole.id} diameter`}
@@ -662,7 +1100,11 @@ export function App(): ReactElement {
                       updateMountingHole(hole.id, { diameter: event.currentTarget.valueAsNumber })
                     }
                   />
-                  <button type="button" className="icon-button" onClick={() => removeMountingHole(hole.id)}>
+                  <button
+                    type="button"
+                    className="icon-button"
+                    onClick={() => removeMountingHole(hole.id)}
+                  >
                     x
                   </button>
                 </div>
@@ -682,7 +1124,9 @@ export function App(): ReactElement {
                     <span>Label</span>
                     <input
                       value={cutout.label}
-                      onChange={(event) => updateConnectorCutout(cutout.id, { label: event.target.value })}
+                      onChange={(event) =>
+                        updateConnectorCutout(cutout.id, { label: event.target.value })
+                      }
                     />
                   </label>
                   <label className="field">
@@ -736,6 +1180,157 @@ export function App(): ReactElement {
             <button type="button" className="secondary-button" onClick={addConnectorCutout}>
               Add cutout
             </button>
+          </fieldset>
+
+          <fieldset className="shape-palette-fieldset">
+            <legend>Design Features</legend>
+            <div className="palette-status" aria-label="Available design feature actions">
+              <span>{featurePaletteCount} design features</span>
+              <span>{shapePalette.length - featurePaletteCount} vent preset</span>
+            </div>
+            <div className="shape-palette" role="list" aria-label="Shape palette">
+              {shapePalette.map((item) => {
+                const Icon = item.Icon;
+                return (
+                  <button
+                    type="button"
+                    className="shape-tile"
+                    title={`Add ${item.label}`}
+                    aria-label={`Add ${item.label}`}
+                    onClick={() => addShapePaletteItem(item)}
+                    key={item.id}
+                  >
+                    <Icon size={17} strokeWidth={1.9} aria-hidden="true" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {project.enclosure.designFeatures.length > 0 ? (
+              <div className="feature-list">
+                {project.enclosure.designFeatures.map((feature) => (
+                  <div className="feature-editor" key={feature.id}>
+                    <div className="feature-heading">
+                      <strong>{feature.label}</strong>
+                      <small>{feature.kind.replaceAll('_', ' ')}</small>
+                    </div>
+                    <label className="field">
+                      <span>Label</span>
+                      <input
+                        value={feature.label}
+                        onChange={(event) =>
+                          updateDesignFeature(feature.id, { label: event.target.value })
+                        }
+                      />
+                    </label>
+                    <label className="field">
+                      <span>Operation</span>
+                      <select
+                        value={feature.operation}
+                        onChange={(event) =>
+                          updateDesignFeature(feature.id, {
+                            operation: event.target.value as DesignFeature['operation'],
+                          })
+                        }
+                      >
+                        <option value="through_cut">Through cut</option>
+                        <option value="recess">Recess</option>
+                        <option value="emboss">Emboss</option>
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>Shape</span>
+                      <select
+                        value={feature.shape}
+                        onChange={(event) =>
+                          updateDesignFeature(feature.id, {
+                            shape: event.target.value as DesignFeature['shape'],
+                          })
+                        }
+                      >
+                        <option value="rectangle">Rectangle</option>
+                        <option value="rounded_rectangle">Rounded rect</option>
+                        <option value="circle">Circle</option>
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>Text</span>
+                      <input
+                        value={feature.text}
+                        onChange={(event) =>
+                          updateDesignFeature(feature.id, { text: event.target.value })
+                        }
+                      />
+                    </label>
+                    <NumberField
+                      label="X center"
+                      value={feature.x}
+                      step={0.1}
+                      onChange={(value) => updateDesignFeature(feature.id, { x: value })}
+                    />
+                    <NumberField
+                      label="Y center"
+                      value={feature.y}
+                      step={0.1}
+                      onChange={(value) => updateDesignFeature(feature.id, { y: value })}
+                    />
+                    <NumberField
+                      label="Width"
+                      value={feature.width}
+                      step={0.1}
+                      onChange={(value) => updateDesignFeature(feature.id, { width: value })}
+                    />
+                    <NumberField
+                      label="Height"
+                      value={feature.height}
+                      step={0.1}
+                      onChange={(value) => updateDesignFeature(feature.id, { height: value })}
+                    />
+                    <NumberField
+                      label="Diameter"
+                      value={feature.diameter}
+                      step={0.1}
+                      onChange={(value) => updateDesignFeature(feature.id, { diameter: value })}
+                    />
+                    <NumberField
+                      label="Depth"
+                      value={feature.depth}
+                      step={0.05}
+                      onChange={(value) => updateDesignFeature(feature.id, { depth: value })}
+                    />
+                    <NumberField
+                      label="Radius"
+                      value={feature.cornerRadius}
+                      step={0.1}
+                      onChange={(value) => updateDesignFeature(feature.id, { cornerRadius: value })}
+                    />
+                    <NumberField
+                      label="Spacing"
+                      value={feature.spacing}
+                      step={0.1}
+                      onChange={(value) => updateDesignFeature(feature.id, { spacing: value })}
+                    />
+                    <NumberField
+                      label="Rows"
+                      value={feature.rows}
+                      onChange={(value) => updateDesignFeature(feature.id, { rows: value })}
+                    />
+                    <NumberField
+                      label="Columns"
+                      value={feature.columns}
+                      onChange={(value) => updateDesignFeature(feature.id, { columns: value })}
+                    />
+                    <button
+                      type="button"
+                      className="secondary-button danger"
+                      onClick={() => removeDesignFeature(feature.id)}
+                    >
+                      Remove feature
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </fieldset>
 
           <fieldset>
@@ -799,7 +1394,9 @@ export function App(): ReactElement {
                     <span>Label</span>
                     <input
                       value={region.label}
-                      onChange={(event) => updateVentilationRegion(region.id, { label: event.target.value })}
+                      onChange={(event) =>
+                        updateVentilationRegion(region.id, { label: event.target.value })
+                      }
                     />
                   </label>
                   <NumberField
@@ -954,9 +1551,15 @@ export function App(): ReactElement {
             </button>
           </div>
           <div className="dimension-readout">
-            <span>{outerDimensions.width.toFixed(1)} x {outerDimensions.height.toFixed(1)} mm</span>
+            <span>
+              {outerDimensions.width.toFixed(1)} x {outerDimensions.height.toFixed(1)} mm
+            </span>
             <span>Base height {outerDimensions.baseHeight.toFixed(1)} mm</span>
-            <span>{generated ? `${generated.metadata.estimatedFilamentGrams} g estimated` : 'Preview paused'}</span>
+            <span>
+              {generated
+                ? `${generated.metadata.estimatedFilamentGrams} g estimated`
+                : 'Preview paused'}
+            </span>
           </div>
         </section>
 
@@ -1035,7 +1638,9 @@ export function App(): ReactElement {
                 </div>
               </dl>
             ) : (
-              <p className="empty-state">Resolve validation issues to generate manufacturing data.</p>
+              <p className="empty-state">
+                Resolve validation issues to generate manufacturing data.
+              </p>
             )}
             {generated && generated.metadata.printability.issues.length > 0 ? (
               <ul className="printability-list">
@@ -1055,28 +1660,60 @@ export function App(): ReactElement {
           <section className="inspector-section">
             <h2>Export</h2>
             <div className="export-actions">
-              <button type="button" disabled={!validation.ok} onClick={() => void exportProject('3mf')}>
+              <button
+                type="button"
+                disabled={!validation.ok}
+                onClick={() => void exportProject('3mf')}
+              >
                 <FileType size={16} aria-hidden="true" /> Export 3MF
               </button>
-              <button type="button" disabled={!validation.ok} onClick={() => void exportProject('step')}>
+              <button
+                type="button"
+                disabled={!validation.ok}
+                onClick={() => void exportProject('step')}
+              >
                 <FileType size={16} aria-hidden="true" /> Export STEP
               </button>
-              <button type="button" disabled={!validation.ok} onClick={() => void exportProject('stl')}>
+              <button
+                type="button"
+                disabled={!validation.ok}
+                onClick={() => void exportProject('stl')}
+              >
                 <FileType size={16} aria-hidden="true" /> Export STL
               </button>
-              <button type="button" disabled={!validation.ok} onClick={() => void exportProject('obj')}>
+              <button
+                type="button"
+                disabled={!validation.ok}
+                onClick={() => void exportProject('obj')}
+              >
                 <FileType size={16} aria-hidden="true" /> Export OBJ
               </button>
-              <button type="button" disabled={!validation.ok} onClick={() => void exportProject('gltf')}>
+              <button
+                type="button"
+                disabled={!validation.ok}
+                onClick={() => void exportProject('gltf')}
+              >
                 <FileType size={16} aria-hidden="true" /> Export GLTF
               </button>
-              <button type="button" disabled={!validation.ok} onClick={() => void exportProject('svg')}>
+              <button
+                type="button"
+                disabled={!validation.ok}
+                onClick={() => void exportProject('svg')}
+              >
                 <FileType size={16} aria-hidden="true" /> Export SVG drawing
               </button>
-              <button type="button" disabled={!validation.ok} onClick={() => void exportProject('dxf')}>
+              <button
+                type="button"
+                disabled={!validation.ok}
+                onClick={() => void exportProject('dxf')}
+              >
                 <FileType size={16} aria-hidden="true" /> Export DXF drawing
               </button>
-              <button type="button" disabled={!validation.ok} onClick={() => void exportProject('bom')}>
+              <button
+                type="button"
+                disabled={!validation.ok}
+                onClick={() => void exportProject('bom')}
+              >
                 <FileType size={16} aria-hidden="true" /> Export BOM CSV
               </button>
             </div>

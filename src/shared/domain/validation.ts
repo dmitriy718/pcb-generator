@@ -267,5 +267,79 @@ export function validateProject(project: EnclosureProject): ValidationResult {
     }
   }
 
+  for (const [index, feature] of enclosure.designFeatures.entries()) {
+    const path = `enclosure.designFeatures.${index}`;
+    if (!feature.label.trim()) {
+      issues.push(issue('design_feature_label_required', `${path}.label`, 'Design feature label is required.'));
+    }
+    requireNonNegative(issues, feature.x, `${path}.x`, 'Design feature X center');
+    requireNonNegative(issues, feature.y, `${path}.y`, 'Design feature Y center');
+    requirePositive(issues, feature.width, `${path}.width`, 'Design feature width');
+    requirePositive(issues, feature.height, `${path}.height`, 'Design feature height');
+    requirePositive(issues, feature.diameter, `${path}.diameter`, 'Design feature diameter');
+    requireNonNegative(issues, feature.depth, `${path}.depth`, 'Design feature depth');
+    requireNonNegative(issues, feature.cornerRadius, `${path}.cornerRadius`, 'Design feature corner radius');
+    requirePositive(issues, feature.spacing, `${path}.spacing`, 'Design feature spacing');
+
+    if (!Number.isInteger(feature.rows) || feature.rows < 1) {
+      issues.push(issue('design_feature_rows_required', `${path}.rows`, 'Design feature rows must be a positive integer.'));
+    }
+    if (!Number.isInteger(feature.columns) || feature.columns < 1) {
+      issues.push(
+        issue('design_feature_columns_required', `${path}.columns`, 'Design feature columns must be a positive integer.'),
+      );
+    }
+
+    const footprintWidth = feature.shape === 'circle' ? feature.diameter : feature.width;
+    const footprintHeight = feature.shape === 'circle' ? feature.diameter : feature.height;
+    const patternWidth = feature.columns * footprintWidth + (feature.columns - 1) * feature.spacing;
+    const patternHeight = feature.rows * footprintHeight + (feature.rows - 1) * feature.spacing;
+
+    if (
+      feature.x - patternWidth / 2 < enclosure.wallThickness ||
+      feature.x + patternWidth / 2 > outerWidth - enclosure.wallThickness ||
+      feature.y - patternHeight / 2 < enclosure.wallThickness ||
+      feature.y + patternHeight / 2 > outerHeight - enclosure.wallThickness
+    ) {
+      issues.push(
+        issue(
+          'design_feature_outside_lid',
+          path,
+          `${feature.label} must fit inside the lid wall boundary.`,
+        ),
+      );
+    }
+
+    if (feature.shape === 'rounded_rectangle' && feature.cornerRadius * 2 > Math.min(feature.width, feature.height)) {
+      issues.push(
+        issue(
+          'design_feature_corner_radius_too_large',
+          `${path}.cornerRadius`,
+          `${feature.label} corner radius exceeds the feature footprint.`,
+        ),
+      );
+    }
+
+    if (feature.operation === 'recess' && feature.depth >= enclosure.lidThickness) {
+      issues.push(
+        issue(
+          'design_feature_recess_too_deep',
+          `${path}.depth`,
+          `${feature.label} recess depth must be less than lid thickness.`,
+        ),
+      );
+    }
+
+    if (material && feature.operation === 'emboss' && feature.depth < material.minimumFeatureSize / 2) {
+      issues.push(
+        issue(
+          'design_feature_emboss_too_shallow',
+          `${path}.depth`,
+          `${feature.label} emboss height is too small for the selected material.`,
+        ),
+      );
+    }
+  }
+
   return { ok: issues.length === 0, issues };
 }

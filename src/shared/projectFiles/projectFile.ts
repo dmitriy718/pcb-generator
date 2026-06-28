@@ -34,6 +34,36 @@ const ventilationRegionSchema = z.object({
   spacing: z.number(),
 });
 
+const designFeatureSchema = z.object({
+  id: z.string().min(1),
+  label: z.string(),
+  kind: z.enum([
+    'display_opening',
+    'button_opening',
+    'antenna_hole',
+    'speaker_grill',
+    'fan_grill',
+    'label_recess',
+    'logo_badge',
+    'cable_slot',
+    'zip_tie_anchor',
+    'qr_recess',
+  ]),
+  shape: z.enum(['rectangle', 'rounded_rectangle', 'circle']),
+  operation: z.enum(['through_cut', 'recess', 'emboss']),
+  x: z.number(),
+  y: z.number(),
+  width: z.number(),
+  height: z.number(),
+  diameter: z.number(),
+  depth: z.number(),
+  cornerRadius: z.number(),
+  spacing: z.number(),
+  rows: z.number(),
+  columns: z.number(),
+  text: z.string().default(''),
+});
+
 const pcbSchema = z.object({
   width: z.number(),
   height: z.number(),
@@ -61,6 +91,7 @@ const enclosureSchema = z.object({
   screwHoleDiameter: z.number(),
   chamfer: z.number(),
   ventilationRegions: z.array(ventilationRegionSchema).default([]),
+  designFeatures: z.array(designFeatureSchema).default([]),
 });
 
 const projectSchema = z.object({

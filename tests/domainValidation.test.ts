@@ -109,4 +109,62 @@ describe('validateProject', () => {
     expect(result.issues.map((issue) => issue.code)).toContain('vent_slot_larger_than_region');
     expect(result.issues.map((issue) => issue.code)).toContain('vent_region_outside_lid');
   });
+
+  it('rejects design features that do not fit on the lid', () => {
+    const project = structuredClone(defaultProject);
+    project.enclosure.designFeatures = [
+      {
+        id: 'feature-bad',
+        label: 'Oversize speaker grille',
+        kind: 'speaker_grill',
+        shape: 'circle',
+        operation: 'through_cut',
+        x: 2,
+        y: 2,
+        width: 3,
+        height: 3,
+        diameter: 3,
+        depth: project.enclosure.lidThickness,
+        cornerRadius: 0,
+        spacing: 3,
+        rows: 4,
+        columns: 4,
+        text: '',
+      },
+    ];
+
+    const result = validateProject(project);
+
+    expect(result.ok).toBe(false);
+    expect(result.issues.map((issue) => issue.code)).toContain('design_feature_outside_lid');
+  });
+
+  it('rejects recess design features deeper than the lid', () => {
+    const project = structuredClone(defaultProject);
+    project.enclosure.designFeatures = [
+      {
+        id: 'feature-bad-recess',
+        label: 'Deep label pocket',
+        kind: 'label_recess',
+        shape: 'rectangle',
+        operation: 'recess',
+        x: 30,
+        y: 18,
+        width: 12,
+        height: 5,
+        diameter: 5,
+        depth: project.enclosure.lidThickness,
+        cornerRadius: 0,
+        spacing: 4,
+        rows: 1,
+        columns: 1,
+        text: 'ID',
+      },
+    ];
+
+    const result = validateProject(project);
+
+    expect(result.ok).toBe(false);
+    expect(result.issues.map((issue) => issue.code)).toContain('design_feature_recess_too_deep');
+  });
 });

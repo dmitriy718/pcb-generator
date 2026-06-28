@@ -55,5 +55,6 @@ export const defaultProject: EnclosureProject = {
         spacing: 3,
       },
     ],
+    designFeatures: [],
   },
 };

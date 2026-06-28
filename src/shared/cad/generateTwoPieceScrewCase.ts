@@ -4,6 +4,7 @@ import { analyzePrintability } from '../printability';
 import type {
   ConnectorCutout,
   CutoutSide,
+  DesignFeature,
   EnclosureProject,
   GeneratedEnclosure,
   MeshTopologyReport,
@@ -73,6 +74,14 @@ export function generateTwoPieceScrewCase(project: EnclosureProject): GeneratedE
       origin: { x: lidOffsetX, y: lidOffsetY, z: 0 },
       size: { x: outerWidth, y: outerHeight, z: enclosure.lidThickness },
       regions: enclosure.ventilationRegions,
+      designFeatures: enclosure.designFeatures,
+    });
+  });
+
+  builder.addGroup('lid-design-features', () => {
+    addPreviewDesignFeatures(builder, {
+      lidOrigin: { x: lidOffsetX, y: lidOffsetY, z: enclosure.lidThickness },
+      designFeatures: enclosure.designFeatures,
     });
   });
 
@@ -200,6 +209,7 @@ interface LidVentOptions {
   origin: { x: number; y: number; z: number };
   size: { x: number; y: number; z: number };
   regions: VentilationRegion[];
+  designFeatures: DesignFeature[];
 }
 
 interface SlotRect {
@@ -313,7 +323,7 @@ function uniqueSorted(values: number[]): number[] {
 }
 
 function addLidPanelWithVentSlots(builder: MeshBuilder, options: LidVentOptions): void {
-  const slots = ventilationSlots(options.regions);
+  const slots = [...ventilationSlots(options.regions), ...designFeaturePreviewCutSlots(options.designFeatures)];
   if (slots.length === 0) {
     builder.addBox(options.origin, {
       x: options.origin.x + options.size.x,
@@ -344,6 +354,76 @@ function addLidPanelWithVentSlots(builder: MeshBuilder, options: LidVentOptions)
       );
     }
   }
+}
+
+function addPreviewDesignFeatures(
+  builder: MeshBuilder,
+  options: {
+    lidOrigin: { x: number; y: number; z: number };
+    designFeatures: DesignFeature[];
+  },
+): void {
+  for (const feature of options.designFeatures) {
+    if (feature.operation !== 'emboss') {
+      continue;
+    }
+    const x = options.lidOrigin.x + feature.x;
+    const y = options.lidOrigin.y + feature.y;
+    const height = Math.max(0.2, feature.depth);
+    if (feature.shape === 'circle') {
+      builder.addCylinder({ x, y, z: options.lidOrigin.z }, feature.diameter / 2, height, 40);
+      continue;
+    }
+    builder.addBox(
+      {
+        x: x - feature.width / 2,
+        y: y - feature.height / 2,
+        z: options.lidOrigin.z,
+      },
+      {
+        x: x + feature.width / 2,
+        y: y + feature.height / 2,
+        z: options.lidOrigin.z + height,
+      },
+    );
+  }
+}
+
+function designFeaturePreviewCutSlots(features: DesignFeature[]): SlotRect[] {
+  return features.flatMap((feature) => {
+    if (feature.operation !== 'through_cut') {
+      return [];
+    }
+    return designFeatureFootprints(feature).map((footprint) => ({
+      xMin: footprint.x - footprint.width / 2,
+      xMax: footprint.x + footprint.width / 2,
+      yMin: footprint.y - footprint.height / 2,
+      yMax: footprint.y + footprint.height / 2,
+    }));
+  });
+}
+
+function designFeatureFootprints(feature: DesignFeature): { x: number; y: number; width: number; height: number }[] {
+  const width = feature.shape === 'circle' ? feature.diameter : feature.width;
+  const height = feature.shape === 'circle' ? feature.diameter : feature.height;
+  const totalWidth = feature.columns * width + (feature.columns - 1) * feature.spacing;
+  const totalHeight = feature.rows * height + (feature.rows - 1) * feature.spacing;
+  const startX = feature.x - totalWidth / 2 + width / 2;
+  const startY = feature.y - totalHeight / 2 + height / 2;
+  const footprints: { x: number; y: number; width: number; height: number }[] = [];
+
+  for (let column = 0; column < feature.columns; column += 1) {
+    for (let row = 0; row < feature.rows; row += 1) {
+      footprints.push({
+        x: startX + column * (width + feature.spacing),
+        y: startY + row * (height + feature.spacing),
+        width,
+        height,
+      });
+    }
+  }
+
+  return footprints;
 }
 
 function ventilationSlots(regions: VentilationRegion[]): SlotRect[] {

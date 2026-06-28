@@ -28,14 +28,19 @@ tested, documented, and usable before moving on.
 21. Heat-set insert socket geometry in preview and OpenCascade production exports.
 22. ASCII and binary STL PCB/reference import from mesh bounds.
 23. OpenCascade STEP PCB/reference import from model bounds.
+24. Palette-driven lid design features for display/button/antenna openings, speaker
+    and fan grille patterns, label/QR recesses, logo badges, cable slots, and
+    zip-tie anchors with preview and OpenCascade export support.
 
 ## Next Milestones
 
-1. Add rounded/display/button cutout variants and collision checks.
-2. Expand KiCad importer with component-height and connector detection.
-3. Add richer mechanical reference geometry detection for imported STL/STEP assemblies.
-4. Add material-aware heat-set insert lead-in chamfers and vendor preset libraries.
-5. Add honeycomb vents, fan grills, and speaker grills.
+1. Add collision/interference checks between lid design features, vents, bosses, and
+   wall boundaries.
+2. Convert text/QR/logo annotations into true font-outline and QR-code engraving
+   geometry.
+3. Expand KiCad importer with component-height and connector detection.
+4. Add richer mechanical reference geometry detection for imported STL/STEP assemblies.
+5. Add material-aware heat-set insert lead-in chamfers and vendor preset libraries.
 6. Add selective fillets where they improve ergonomics without hurting printability.
 7. Add additional enclosure templates one at a time.
 8. Expand board profile library coverage.

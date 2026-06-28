@@ -2,7 +2,14 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 
-import type { ConnectorCutout, EnclosureProject, PcbSpecification, TriangleMesh, VentilationRegion } from '../../domain';
+import type {
+  ConnectorCutout,
+  DesignFeature,
+  EnclosureProject,
+  PcbSpecification,
+  TriangleMesh,
+  VentilationRegion,
+} from '../../domain';
 import { getMaterialProfile } from '../../domain/materials';
 import { fastenerProfileById, type FastenerProfile } from '../../fasteners';
 import { validateMesh } from '../meshValidation';
@@ -154,6 +161,19 @@ interface Box {
   width: number;
   depth: number;
   height: number;
+}
+
+interface FeatureTool {
+  operation: DesignFeature['operation'];
+  shape: DesignFeature['shape'];
+  x: number;
+  y: number;
+  z: number;
+  width: number;
+  depth: number;
+  height: number;
+  diameter: number;
+  cornerRadius: number;
 }
 
 interface KernelStepModel {
@@ -447,6 +467,13 @@ function buildTwoPieceScrewCaseStepModel(
   )) {
     lid = cut(oc, lid, box(oc, slot));
   }
+  for (const featureTool of designFeatureTools(enclosure.designFeatures, outerWidth + partSpacing, enclosure.lidThickness)) {
+    if (featureTool.operation === 'emboss') {
+      lid = fuse(oc, lid, featureShape(oc, featureTool));
+    } else {
+      lid = cut(oc, lid, featureShape(oc, featureTool));
+    }
+  }
   lid = chamfer(oc, lid, enclosure.chamfer, 'lid');
   const lidPcbOrigin = {
     x: outerWidth + partSpacing + enclosure.wallThickness + enclosure.boardClearance,
@@ -672,6 +699,128 @@ function ventilationSlotTools(
       }
     }
     return slots;
+  });
+}
+
+function designFeatureTools(
+  features: DesignFeature[],
+  lidOffsetX: number,
+  lidThickness: number,
+): FeatureTool[] {
+  return features.flatMap((feature) =>
+    designFeatureFootprints(feature).map((footprint) => {
+      const isThroughCut = feature.operation === 'through_cut';
+      const height = isThroughCut ? lidThickness + 1 : Math.max(0.1, feature.depth);
+      const z = isThroughCut
+        ? -0.5
+        : feature.operation === 'recess'
+          ? lidThickness - height
+          : lidThickness;
+      return {
+        operation: feature.operation,
+        shape: feature.shape,
+        x: lidOffsetX + footprint.x,
+        y: footprint.y,
+        z,
+        width: footprint.width,
+        depth: footprint.height,
+        height,
+        diameter: footprint.diameter,
+        cornerRadius: feature.cornerRadius,
+      };
+    }),
+  );
+}
+
+function designFeatureFootprints(
+  feature: DesignFeature,
+): { x: number; y: number; width: number; height: number; diameter: number }[] {
+  const width = feature.shape === 'circle' ? feature.diameter : feature.width;
+  const height = feature.shape === 'circle' ? feature.diameter : feature.height;
+  const totalWidth = feature.columns * width + (feature.columns - 1) * feature.spacing;
+  const totalHeight = feature.rows * height + (feature.rows - 1) * feature.spacing;
+  const startX = feature.x - totalWidth / 2 + width / 2;
+  const startY = feature.y - totalHeight / 2 + height / 2;
+  const footprints: { x: number; y: number; width: number; height: number; diameter: number }[] = [];
+
+  for (let column = 0; column < feature.columns; column += 1) {
+    for (let row = 0; row < feature.rows; row += 1) {
+      footprints.push({
+        x: startX + column * (width + feature.spacing),
+        y: startY + row * (height + feature.spacing),
+        width,
+        height,
+        diameter: feature.diameter,
+      });
+    }
+  }
+
+  return footprints;
+}
+
+function featureShape(oc: OpenCascadeModule, tool: FeatureTool): OcShape {
+  if (tool.shape === 'circle') {
+    return cylinder(oc, tool.x, tool.y, tool.z, tool.diameter / 2, tool.height);
+  }
+  if (tool.shape === 'rounded_rectangle') {
+    return roundedRectanglePrism(oc, tool);
+  }
+  return centeredBox(oc, tool.x, tool.y, tool.z, tool.width, tool.depth, tool.height);
+}
+
+function roundedRectanglePrism(oc: OpenCascadeModule, tool: FeatureTool): OcShape {
+  const radius = Math.max(0, Math.min(tool.cornerRadius, tool.width / 2, tool.depth / 2));
+  if (radius <= 0) {
+    return centeredBox(oc, tool.x, tool.y, tool.z, tool.width, tool.depth, tool.height);
+  }
+
+  let shape = centeredBox(
+    oc,
+    tool.x,
+    tool.y,
+    tool.z,
+    Math.max(0.01, tool.width - radius * 2),
+    tool.depth,
+    tool.height,
+  );
+  shape = fuse(oc, shape, centeredBox(oc, tool.x, tool.y, tool.z, tool.width, Math.max(0.01, tool.depth - radius * 2), tool.height));
+
+  for (const xSign of [-1, 1]) {
+    for (const ySign of [-1, 1]) {
+      shape = fuse(
+        oc,
+        shape,
+        cylinder(
+          oc,
+          tool.x + xSign * (tool.width / 2 - radius),
+          tool.y + ySign * (tool.depth / 2 - radius),
+          tool.z,
+          radius,
+          tool.height,
+        ),
+      );
+    }
+  }
+
+  return shape;
+}
+
+function centeredBox(
+  oc: OpenCascadeModule,
+  x: number,
+  y: number,
+  z: number,
+  width: number,
+  depth: number,
+  height: number,
+): OcShape {
+  return box(oc, {
+    x: x - width / 2,
+    y: y - depth / 2,
+    z,
+    width,
+    depth,
+    height,
   });
 }
 

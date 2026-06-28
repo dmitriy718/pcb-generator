@@ -74,6 +74,24 @@ describe('project files', () => {
     expect(parsed.enclosure.ventilationRegions).toEqual([]);
   });
 
+  it('loads older project payloads that omit design features', () => {
+    const legacy = structuredClone(defaultProject);
+    const legacyEnclosure: Record<string, unknown> = { ...legacy.enclosure };
+    delete legacyEnclosure.designFeatures;
+    const contents = JSON.stringify({
+      format: 'pcb-enclosure-generator',
+      version: 1,
+      project: {
+        ...legacy,
+        enclosure: legacyEnclosure,
+      },
+    });
+
+    const parsed = parseProjectFile(contents);
+
+    expect(parsed.enclosure.designFeatures).toEqual([]);
+  });
+
   it('rejects non-project JSON', () => {
     expect(() => parseProjectFile('{"hello": "world"}')).toThrow('Project file schema is invalid');
   });

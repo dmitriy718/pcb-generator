@@ -34,6 +34,7 @@ The mesh path creates:
 - Base shell with floor and walls.
 - Rectangular side-wall connector cutouts by segmenting wall geometry around openings.
 - Rectangular lid ventilation slots by segmenting lid geometry around openings.
+- Palette-driven lid design feature previews for through-cuts and embossed shapes.
 - Hollow standoff tubes aligned to PCB mounting holes.
 - Lid panel.
 - Hollow screw bosses.
@@ -41,8 +42,10 @@ The mesh path creates:
 The OpenCascade backend lives in `src/shared/cad/kernel`. It currently generates the
 base shell, interior cavity, rectangular connector cutouts, cylindrical standoffs,
 cylindrical screw bosses, heat-set insert sockets, lid plate, rectangular lid vent
-cutouts, and editable edge chamfers as validated B-rep solids. It writes STEP through
-OpenCascade's STEP writer and validates each transferred solid with
+cutouts, repeated circular grille/button/antenna tools, rectangular and rounded
+rectangular lid cut/recess/emboss tools, and editable edge chamfers as validated
+B-rep solids. It writes STEP through OpenCascade's STEP writer and validates each
+transferred solid with
 `BRepCheck_Analyzer` before export.
 
 Mesh file exports for STL, OBJ, GLTF, and 3MF are tessellated from the same validated

@@ -160,15 +160,27 @@ requirements.
 
 Ventilation regions are editable rectangular lid areas that generate a grid of
 rectangular through-slots in the lid mesh. Region placement is validated against the
-lid wall boundary, and slot dimensions are validated before export. Honeycomb, fan
-grill, and speaker grill patterns are future geometry milestones.
+lid wall boundary, and slot dimensions are validated before export. The design
+palette also provides honeycomb-style vent presets plus fan and speaker grille
+presets that generate repeated through-cut feature patterns.
+
+## Design Feature Palette
+
+The Design Features palette adds editable lid features for display openings, button
+holes, antenna holes, speaker grilles, fan grilles, label recesses, QR recesses,
+logo badges, cable slots, and zip-tie anchors. Each feature is stored as structured
+parameters with operation, shape, position, size, depth, radius, spacing, rows,
+columns, and optional label text. Through-cuts and recesses remove lid material;
+embosses add raised geometry. Text values are currently retained as editable
+manufacturing annotations rather than converted into font-outline engraving geometry.
 
 ## STEP Export Scope
 
 STEP export uses OpenCascade.js to generate validated B-rep solids for the base shell,
 interior cavity, cylindrical standoffs, cylindrical screw bosses, rectangular connector
-openings, lid plate, rectangular lid vent cutouts, heat-set insert sockets, and
-editable chamfers. Selective ergonomic fillets remain a future kernel increment.
+openings, lid plate, rectangular lid vent cutouts, lid design feature cut/recess/emboss
+geometry, heat-set insert sockets, and editable chamfers. Selective ergonomic fillets
+remain a future kernel increment.
 
 OpenCascade.js is bundled as an offline WebAssembly dependency under LGPL-2.1-only.
 Generated user models are not licensed by the dependency.

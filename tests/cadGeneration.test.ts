@@ -90,6 +90,75 @@ describe('generateTwoPieceScrewCase', () => {
     expect(trianglesInSlot).toBe(0);
   });
 
+  it('leaves lid design feature apertures open in the preview mesh', () => {
+    const project = structuredClone(defaultProject);
+    project.enclosure.designFeatures = [
+      {
+        id: 'feature-display',
+        label: 'OLED opening',
+        kind: 'display_opening',
+        shape: 'rectangle',
+        operation: 'through_cut',
+        x: 32,
+        y: 18,
+        width: 16,
+        height: 7,
+        diameter: 7,
+        depth: project.enclosure.lidThickness,
+        cornerRadius: 0,
+        spacing: 4,
+        rows: 1,
+        columns: 1,
+        text: '',
+      },
+    ];
+    const generated = generateTwoPieceScrewCase(project);
+    const internalWidth = project.pcb.width + project.enclosure.boardClearance * 2;
+    const internalHeight = project.pcb.height + project.enclosure.boardClearance * 2;
+    const outerWidth = internalWidth + project.enclosure.wallThickness * 2;
+    const outerHeight = internalHeight + project.enclosure.wallThickness * 2;
+    const lidOffsetX = -outerWidth / 2 + outerWidth + 12;
+    const lidOffsetY = -outerHeight / 2;
+
+    const trianglesInFeature = countTriangleCentroidsInBox(generated.mesh, {
+      minX: lidOffsetX + 32 - 7,
+      maxX: lidOffsetX + 32 + 7,
+      minY: lidOffsetY + 18 - 2.5,
+      maxY: lidOffsetY + 18 + 2.5,
+      minZ: 0.01,
+      maxZ: project.enclosure.lidThickness - 0.01,
+    });
+
+    expect(trianglesInFeature).toBe(0);
+  });
+
+  it('adds embossed design features to the preview mesh as a separate group', () => {
+    const project = structuredClone(defaultProject);
+    project.enclosure.designFeatures = [
+      {
+        id: 'feature-badge',
+        label: 'Logo badge',
+        kind: 'logo_badge',
+        shape: 'rectangle',
+        operation: 'emboss',
+        x: 32,
+        y: 18,
+        width: 12,
+        height: 5,
+        diameter: 5,
+        depth: 0.8,
+        cornerRadius: 0,
+        spacing: 4,
+        rows: 1,
+        columns: 1,
+        text: '',
+      },
+    ];
+    const generated = generateTwoPieceScrewCase(project);
+
+    expect(generated.mesh.groups.map((group) => group.name)).toContain('lid-design-features');
+  });
+
   it('reports mesh topology for export validation', () => {
     const generated = generateTwoPieceScrewCase(defaultProject);
     const topology = analyzeMeshTopology(generated.mesh);

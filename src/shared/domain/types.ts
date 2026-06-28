@@ -46,6 +46,41 @@ export interface VentilationRegion {
   spacing: Millimeters;
 }
 
+export type DesignFeatureKind =
+  | 'display_opening'
+  | 'button_opening'
+  | 'antenna_hole'
+  | 'speaker_grill'
+  | 'fan_grill'
+  | 'label_recess'
+  | 'logo_badge'
+  | 'cable_slot'
+  | 'zip_tie_anchor'
+  | 'qr_recess';
+
+export type DesignFeatureShape = 'rectangle' | 'rounded_rectangle' | 'circle';
+
+export type DesignFeatureOperation = 'through_cut' | 'recess' | 'emboss';
+
+export interface DesignFeature {
+  id: string;
+  label: string;
+  kind: DesignFeatureKind;
+  shape: DesignFeatureShape;
+  operation: DesignFeatureOperation;
+  x: Millimeters;
+  y: Millimeters;
+  width: Millimeters;
+  height: Millimeters;
+  diameter: Millimeters;
+  depth: Millimeters;
+  cornerRadius: Millimeters;
+  spacing: Millimeters;
+  rows: number;
+  columns: number;
+  text: string;
+}
+
 export interface PcbSpecification {
   width: Millimeters;
   height: Millimeters;
@@ -82,6 +117,7 @@ export interface TwoPieceScrewCaseParameters {
   screwHoleDiameter: Millimeters;
   chamfer: Millimeters;
   ventilationRegions: VentilationRegion[];
+  designFeatures: DesignFeature[];
 }
 
 export type EnclosureParameters = TwoPieceScrewCaseParameters;

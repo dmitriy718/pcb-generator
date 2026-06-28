@@ -86,6 +86,7 @@ export interface PcbSpecification {
   width: Millimeters;
   height: Millimeters;
   thickness: Millimeters;
+  componentHeight: Millimeters;
   cornerRadius: Millimeters;
   mountingHoles: MountingHole[];
   connectorCutouts: ConnectorCutout[];

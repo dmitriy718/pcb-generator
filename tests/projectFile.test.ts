@@ -38,6 +38,24 @@ describe('project files', () => {
     expect(parsed.pcb.connectorCutouts).toEqual([]);
   });
 
+  it('loads older project payloads that omit component height', () => {
+    const legacy = structuredClone(defaultProject);
+    const legacyPcb: Record<string, unknown> = { ...legacy.pcb };
+    delete legacyPcb.componentHeight;
+    const contents = JSON.stringify({
+      format: 'pcb-enclosure-generator',
+      version: 1,
+      project: {
+        ...legacy,
+        pcb: legacyPcb,
+      },
+    });
+
+    const parsed = parseProjectFile(contents);
+
+    expect(parsed.pcb.componentHeight).toBe(0);
+  });
+
   it('loads older project payloads that omit fastener profile ids', () => {
     const legacy = structuredClone(defaultProject);
     const legacyEnclosure: Record<string, unknown> = { ...legacy.enclosure };

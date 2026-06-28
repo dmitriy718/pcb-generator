@@ -11,7 +11,7 @@ The application is organized by responsibility:
 - `src/shared/fasteners`: Built-in fastener and insert profile catalog.
 - `src/shared/cad`: Parametric mesh generation, mesh validation, and CAD-kernel integration.
 - `src/shared/exporters`: Deterministic text exporters and manufacturing metadata.
-- `src/shared/importers`: Offline file importers such as KiCad PCB S-expression parsing, SVG/DXF outline parsing, STL mesh bounds import, and OpenCascade STEP reference import.
+- `src/shared/importers`: Offline file importers such as KiCad PCB S-expression parsing with connector/component-height extraction, SVG/DXF outline parsing, STL mesh bounds import, and OpenCascade STEP reference import.
 - `src/shared/projectFiles`: Versioned project file serialization and validation.
 - `src/shared/printability`: Parameter-derived FDM printability analysis.
 - `tests`: Unit and integration-style tests for domain, CAD, and exports.

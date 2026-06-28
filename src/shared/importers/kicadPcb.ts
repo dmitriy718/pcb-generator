@@ -1,4 +1,4 @@
-import type { MountingHole, PcbSpecification } from '../domain';
+import type { ConnectorCutout, CutoutSide, MountingHole, PcbSpecification } from '../domain';
 
 type SExpr = string | SExpr[];
 
@@ -16,6 +16,47 @@ interface FootprintContext {
   at: Point;
   rotationDegrees: number;
 }
+
+interface BoardOrigin {
+  x: number;
+  y: number;
+}
+
+interface ConnectorPreset {
+  match: RegExp;
+  label: string;
+  width: number;
+  height: number;
+  z: number;
+}
+
+const connectorPresets: ConnectorPreset[] = [
+  { match: /rj45|ethernet/iu, label: 'Ethernet', width: 16, height: 14, z: 10 },
+  { match: /usb[_-]?c|type[_-]?c|usbc/iu, label: 'USB-C', width: 10, height: 4, z: 7 },
+  { match: /micro[_-]?usb|microusb/iu, label: 'Micro USB', width: 9, height: 4, z: 6 },
+  { match: /mini[_-]?usb|miniusb/iu, label: 'Mini USB', width: 9, height: 5, z: 6 },
+  { match: /usb[_-]?b|usbb/iu, label: 'USB-B', width: 13, height: 12, z: 9 },
+  { match: /usb[_-]?a|usba/iu, label: 'USB-A', width: 15, height: 8, z: 8 },
+  { match: /hdmi/iu, label: 'HDMI', width: 15, height: 5, z: 7 },
+  { match: /sma|rp[_-]?sma/iu, label: 'SMA', width: 7, height: 7, z: 9 },
+  { match: /barrel|dc[_-]?jack|power[_-]?jack/iu, label: 'Barrel jack', width: 11, height: 11, z: 9 },
+  { match: /button|switch/iu, label: 'Button/switch', width: 8, height: 5, z: 7 },
+];
+
+const heightHints: { match: RegExp; height: number }[] = [
+  { match: /rj45|ethernet/iu, height: 14 },
+  { match: /usb[_-]?b|usbb/iu, height: 12 },
+  { match: /usb[_-]?a|usba/iu, height: 8 },
+  { match: /usb[_-]?c|type[_-]?c|usbc/iu, height: 4 },
+  { match: /micro[_-]?usb|microusb/iu, height: 4 },
+  { match: /mini[_-]?usb|miniusb/iu, height: 5 },
+  { match: /hdmi/iu, height: 5 },
+  { match: /sma|rp[_-]?sma/iu, height: 10 },
+  { match: /barrel|dc[_-]?jack|power[_-]?jack/iu, height: 11 },
+  { match: /pin[_-]?header|header|gpio/iu, height: 8.5 },
+  { match: /button|switch/iu, height: 5 },
+  { match: /led/iu, height: 2 },
+];
 
 export function importKiCadPcb(contents: string): KiCadImportResult {
   const root = parseSExpression(contents);
@@ -38,9 +79,18 @@ export function importKiCadPcb(contents: string): KiCadImportResult {
     warnings.push('Board thickness was not declared; defaulted to 1.6 mm.');
   }
 
-  const mountingHoles = collectMountingHoles(root, { x: bounds.minX, y: bounds.minY });
+  const origin = { x: bounds.minX, y: bounds.minY };
+  const mountingHoles = collectMountingHoles(root, origin);
   if (mountingHoles.length === 0) {
     warnings.push('No drilled mounting holes were detected.');
+  }
+  const componentHeight = collectComponentHeight(root);
+  if (componentHeight > 0) {
+    warnings.push(`Detected maximum component height hint: ${roundMillimeters(componentHeight)} mm.`);
+  }
+  const connectorCutouts = collectConnectorCutouts(root, origin, width, height);
+  if (connectorCutouts.length > 0) {
+    warnings.push(`Detected ${connectorCutouts.length} connector cutout candidate(s). Verify placement and clearance.`);
   }
 
   return {
@@ -48,9 +98,10 @@ export function importKiCadPcb(contents: string): KiCadImportResult {
       width,
       height,
       thickness: roundMillimeters(thickness),
+      componentHeight: roundMillimeters(componentHeight),
       cornerRadius: 0,
       mountingHoles,
-      connectorCutouts: [],
+      connectorCutouts,
     },
     warnings,
   };
@@ -230,7 +281,7 @@ function findBoardThickness(root: SExpr): number | undefined {
   return thickness;
 }
 
-function collectMountingHoles(root: SExpr, origin: Point): MountingHole[] {
+function collectMountingHoles(root: SExpr, origin: BoardOrigin): MountingHole[] {
   const holes: MountingHole[] = [];
   walk(root, (node) => {
     if (!isList(node) || (listHead(node) !== 'footprint' && listHead(node) !== 'module')) {
@@ -259,6 +310,115 @@ function collectMountingHoles(root: SExpr, origin: Point): MountingHole[] {
     }
   });
   return holes;
+}
+
+function collectComponentHeight(root: SExpr): number {
+  let height = 0;
+  walk(root, (node) => {
+    if (!isList(node) || (listHead(node) !== 'footprint' && listHead(node) !== 'module')) {
+      return;
+    }
+    const tokens = footprintSearchText(node);
+    height = Math.max(height, propertyHeightHint(node) ?? 0, libraryHeightHint(tokens));
+  });
+  return roundMillimeters(height);
+}
+
+function collectConnectorCutouts(
+  root: SExpr,
+  origin: BoardOrigin,
+  boardWidth: number,
+  boardHeight: number,
+): ConnectorCutout[] {
+  const cutouts: ConnectorCutout[] = [];
+  walk(root, (node) => {
+    if (!isList(node) || (listHead(node) !== 'footprint' && listHead(node) !== 'module')) {
+      return;
+    }
+    const context = footprintContext(node);
+    const relative = { x: context.at.x - origin.x, y: context.at.y - origin.y };
+    const preset = connectorPresetFor(footprintSearchText(node));
+    const side = connectorSide(relative, boardWidth, boardHeight);
+    if (!preset || !side) {
+      return;
+    }
+    const offset = side === 'front' || side === 'back' ? relative.x : relative.y;
+    if (cutouts.some((cutout) => cutout.side === side && Math.abs(cutout.offset - offset) < 1.5 && cutout.label === preset.label)) {
+      return;
+    }
+    cutouts.push({
+      id: `cutout-${slugify(preset.label)}-${cutouts.length + 1}`,
+      label: preset.label,
+      side,
+      offset: roundMillimeters(offset),
+      z: preset.z,
+      width: preset.width,
+      height: preset.height,
+    });
+  });
+  return cutouts;
+}
+
+function connectorPresetFor(searchText: string): ConnectorPreset | undefined {
+  return connectorPresets.find((preset) => preset.match.test(searchText));
+}
+
+function connectorSide(point: Point, boardWidth: number, boardHeight: number): CutoutSide | undefined {
+  const edgeThreshold = Math.max(3, Math.min(boardWidth, boardHeight) * 0.08);
+  const distances: { side: CutoutSide; distance: number }[] = [
+    { side: 'front', distance: point.y },
+    { side: 'back', distance: boardHeight - point.y },
+    { side: 'left', distance: point.x },
+    { side: 'right', distance: boardWidth - point.x },
+  ];
+  const nearest = distances.sort((a, b) => a.distance - b.distance)[0];
+  return nearest && nearest.distance <= edgeThreshold ? nearest.side : undefined;
+}
+
+function footprintSearchText(node: SExpr[]): string {
+  const values: string[] = [];
+  for (const item of node) {
+    if (typeof item === 'string') {
+      values.push(item);
+    } else if (isList(item) && (item[0] === 'property' || item[0] === 'model' || item[0] === 'fp_text')) {
+      values.push(...item.filter((child): child is string => typeof child === 'string'));
+    }
+  }
+  return values.join(' ');
+}
+
+function propertyHeightHint(node: SExpr[]): number | undefined {
+  for (const child of node) {
+    if (!isList(child) || child[0] !== 'property') {
+      continue;
+    }
+    const key = typeof child[1] === 'string' ? child[1].toLowerCase() : '';
+    const value = typeof child[2] === 'string' ? child[2] : '';
+    if (/height|component[_ -]?height|z[_ -]?height/iu.test(key)) {
+      const parsed = parseMillimeterValue(value);
+      if (parsed !== undefined) {
+        return parsed;
+      }
+    }
+  }
+  return undefined;
+}
+
+function libraryHeightHint(searchText: string): number {
+  return heightHints.find((hint) => hint.match.test(searchText))?.height ?? 0;
+}
+
+function parseMillimeterValue(value: string): number | undefined {
+  const match = /([0-9]+(?:\.[0-9]+)?)\s*(mm|millimeter|millimeters)?/iu.exec(value);
+  if (!match) {
+    return undefined;
+  }
+  const parsed = Number(match[1]);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function slugify(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'connector';
 }
 
 function footprintContext(node: SExpr[]): FootprintContext {

@@ -19,6 +19,15 @@ const rectangularBoard = `
     (at 65 50)
     (pad "" thru_hole circle (at 0 0) (size 5 5) (drill 2.7) (layers "*.Cu" "*.Mask"))
   )
+  (footprint "Connector_USB:USB_C_Receptacle"
+    (at 40 20.8 180)
+    (property "Height" "3.8mm")
+    (pad "A1" smd rect (at 0 0) (size 0.3 1.2) (layers "F.Cu"))
+  )
+  (footprint "Connector_RJ:RJ45_MagJack"
+    (at 69 36 90)
+    (model "ethernet-rj45-14mm.step")
+  )
 )
 `;
 
@@ -35,11 +44,19 @@ describe('KiCad PCB importer', () => {
     expect(result.pcb.width).toBe(60);
     expect(result.pcb.height).toBe(35);
     expect(result.pcb.thickness).toBe(1.2);
+    expect(result.pcb.componentHeight).toBe(14);
     expect(result.pcb.mountingHoles).toEqual([
       { id: 'mh-1', x: 5, y: 5, diameter: 3.2 },
       { id: 'mh-2', x: 55, y: 30, diameter: 2.7 },
     ]);
-    expect(result.warnings).toEqual([]);
+    expect(result.pcb.connectorCutouts).toEqual([
+      { id: 'cutout-usb-c-1', label: 'USB-C', side: 'front', offset: 30, z: 7, width: 10, height: 4 },
+      { id: 'cutout-ethernet-2', label: 'Ethernet', side: 'right', offset: 16, z: 10, width: 16, height: 14 },
+    ]);
+    expect(result.warnings).toEqual([
+      'Detected maximum component height hint: 14 mm.',
+      'Detected 2 connector cutout candidate(s). Verify placement and clearance.',
+    ]);
   });
 
   it('applies footprint rotation to local pad positions', () => {
@@ -54,6 +71,7 @@ describe('KiCad PCB importer', () => {
     `);
 
     expect(result.pcb.mountingHoles[0]).toEqual({ id: 'mh-1', x: 20, y: 12, diameter: 3 });
+    expect(result.pcb.componentHeight).toBe(0);
     expect(result.warnings).toContain('Board thickness was not declared; defaulted to 1.6 mm.');
   });
 

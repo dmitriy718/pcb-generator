@@ -26,6 +26,7 @@ endsolid pcb
       width: 85,
       height: 56,
       thickness: 1.6,
+      componentHeight: 0,
       cornerRadius: 0,
       mountingHoles: [],
       connectorCutouts: [],

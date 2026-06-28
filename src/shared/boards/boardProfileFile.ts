@@ -25,6 +25,7 @@ const pcbSchema = z.object({
   width: z.number(),
   height: z.number(),
   thickness: z.number(),
+  componentHeight: z.number().default(0),
   cornerRadius: z.number(),
   mountingHoles: z.array(mountingHoleSchema),
   connectorCutouts: z.array(connectorCutoutSchema).default([]),
@@ -82,6 +83,10 @@ export function validateBoardProfile(profile: BoardProfile): void {
     ...defaultProject,
     name: `${profile.name} Enclosure`,
     pcb: profile.pcb,
+    enclosure: {
+      ...defaultProject.enclosure,
+      baseInternalHeight: Math.max(defaultProject.enclosure.baseInternalHeight, profile.pcb.componentHeight + 0.3),
+    },
   });
   if (!validation.ok) {
     throw new Error(

@@ -23,6 +23,7 @@ describe('built-in board library', () => {
         pcb: profile.pcb,
         enclosure: {
           ...defaultProject.enclosure,
+          baseInternalHeight: Math.max(defaultProject.enclosure.baseInternalHeight, profile.pcb.componentHeight + 0.3),
           ventilationRegions: [],
           designFeatures: [],
         },

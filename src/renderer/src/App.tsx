@@ -46,6 +46,7 @@ type NumericProjectPath =
   | 'pcb.width'
   | 'pcb.height'
   | 'pcb.thickness'
+  | 'pcb.componentHeight'
   | 'pcb.cornerRadius'
   | 'enclosure.wallThickness'
   | 'enclosure.floorThickness'
@@ -406,12 +407,31 @@ export function App(): ReactElement {
       pcb: structuredClone(profile.pcb),
       enclosure: {
         ...current.enclosure,
+        baseInternalHeight: Math.max(
+          current.enclosure.baseInternalHeight,
+          Number((profile.pcb.componentHeight + materialProfiles[current.enclosure.material].clearance).toFixed(1)),
+        ),
         ventilationRegions: [],
         designFeatures: [],
       },
     }));
     setImportWarnings([profile.notes]);
     setExportMessage(`Applied ${profile.name} board profile.`);
+  }
+
+  function applyImportedPcb(projectName: string, pcb: EnclosureProject['pcb']): void {
+    setProject((current) => ({
+      ...current,
+      name: projectName,
+      pcb,
+      enclosure: {
+        ...current.enclosure,
+        baseInternalHeight: Math.max(
+          current.enclosure.baseInternalHeight,
+          Number((pcb.componentHeight + materialProfiles[current.enclosure.material].clearance).toFixed(1)),
+        ),
+      },
+    }));
   }
 
   function pcbApi(): Window['pcbEnclosure'] | undefined {
@@ -790,11 +810,7 @@ export function App(): ReactElement {
         return;
       }
 
-      setProject((current) => ({
-        ...current,
-        name: result.projectName,
-        pcb: result.pcb,
-      }));
+      applyImportedPcb(result.projectName, result.pcb);
       setImportWarnings(result.warnings);
       setExportMessage(`Imported ${result.sourcePath}.`);
     } catch (error) {
@@ -818,11 +834,7 @@ export function App(): ReactElement {
         return;
       }
 
-      setProject((current) => ({
-        ...current,
-        name: result.projectName,
-        pcb: result.pcb,
-      }));
+      applyImportedPcb(result.projectName, result.pcb);
       setImportWarnings(result.warnings);
       setExportMessage(`Imported ${result.sourcePath}.`);
     } catch (error) {
@@ -846,11 +858,7 @@ export function App(): ReactElement {
         return;
       }
 
-      setProject((current) => ({
-        ...current,
-        name: result.projectName,
-        pcb: result.pcb,
-      }));
+      applyImportedPcb(result.projectName, result.pcb);
       setImportWarnings(result.warnings);
       setExportMessage(`Imported ${result.sourcePath}.`);
     } catch (error) {
@@ -874,11 +882,7 @@ export function App(): ReactElement {
         return;
       }
 
-      setProject((current) => ({
-        ...current,
-        name: result.projectName,
-        pcb: result.pcb,
-      }));
+      applyImportedPcb(result.projectName, result.pcb);
       setImportWarnings(result.warnings);
       setExportMessage(`Imported ${result.sourcePath}.`);
     } catch (error) {
@@ -902,11 +906,7 @@ export function App(): ReactElement {
         return;
       }
 
-      setProject((current) => ({
-        ...current,
-        name: result.projectName,
-        pcb: result.pcb,
-      }));
+      applyImportedPcb(result.projectName, result.pcb);
       setImportWarnings(result.warnings);
       setExportMessage(`Imported ${result.sourcePath}.`);
     } catch (error) {
@@ -1060,6 +1060,12 @@ export function App(): ReactElement {
               value={project.pcb.thickness}
               step={0.1}
               onChange={(value) => updateNumber('pcb.thickness', value)}
+            />
+            <NumberField
+              label="Component height"
+              value={project.pcb.componentHeight}
+              step={0.1}
+              onChange={(value) => updateNumber('pcb.componentHeight', value)}
             />
             <NumberField
               label="Corner radius"

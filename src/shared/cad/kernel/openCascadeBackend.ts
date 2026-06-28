@@ -354,6 +354,7 @@ function pcbFromBounds(extents: { x: number; y: number; z: number }): StepImport
       width,
       height,
       thickness,
+      componentHeight: Math.max(0, round(thickness - 1.6)),
       cornerRadius: 0,
       mountingHoles: [],
       connectorCutouts: [],

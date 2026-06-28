@@ -50,6 +50,23 @@ describe('board profile files', () => {
     expect(parsed.pcb.connectorCutouts).toEqual([]);
   });
 
+  it('loads older profile payloads that omit component height', () => {
+    const legacyPcb: Record<string, unknown> = { ...profile.pcb };
+    delete legacyPcb.componentHeight;
+    const contents = JSON.stringify({
+      format: 'pcb-enclosure-board-profile',
+      version: 1,
+      profile: {
+        ...profile,
+        pcb: legacyPcb,
+      },
+    });
+
+    const parsed = parseBoardProfileFile(contents);
+
+    expect(parsed.pcb.componentHeight).toBe(0);
+  });
+
   it('rejects invalid profile schema', () => {
     expect(() => parseBoardProfileFile('{"format":"wrong"}')).toThrow(
       'Board profile file schema is invalid',

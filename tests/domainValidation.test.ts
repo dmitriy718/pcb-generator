@@ -70,6 +70,17 @@ describe('validateProject', () => {
     expect(result.issues.map((issue) => issue.code)).toContain('heat_set_insert_boss_too_short');
   });
 
+  it('rejects enclosures that do not clear imported component height', () => {
+    const project = structuredClone(defaultProject);
+    project.pcb.componentHeight = 14;
+    project.enclosure.baseInternalHeight = 8;
+
+    const result = validateProject(project);
+
+    expect(result.ok).toBe(false);
+    expect(result.issues.map((issue) => issue.code)).toContain('component_clearance_too_low');
+  });
+
   it('rejects connector cutouts that do not fit on the selected wall', () => {
     const project = structuredClone(defaultProject);
     project.pcb.connectorCutouts[0] = {

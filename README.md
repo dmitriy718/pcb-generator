@@ -9,7 +9,7 @@ documentation, and CI foundation with a usable manual PCB workflow.
 
 - Cross-platform Electron desktop shell.
 - React parameter editor for manual PCB dimensions and mounting holes.
-- KiCad `.kicad_pcb` import for `Edge.Cuts` board outline, board thickness, and drilled mounting holes.
+- KiCad `.kicad_pcb` import for `Edge.Cuts` board outline, board thickness, drilled mounting holes, component-height hints, and common edge connector cutouts.
 - SVG PCB outline import for rectangular outlines, viewBox dimensions, and circular mounting holes.
 - DXF PCB outline import for LINE/LWPOLYLINE board bounds, `$INSUNITS` scaling, and circular mounting holes.
 - STL PCB/reference import for ASCII and binary STL mesh bounds and inferred board thickness.
@@ -98,7 +98,11 @@ The current importer supports common KiCad S-expression files with board outline
 `Edge.Cuts` using `gr_line`, `gr_rect`, `gr_circle`, `gr_arc`, and matching footprint
 graphics. It detects board thickness from `(thickness ...)` entries and mounting holes
 from drilled `np_thru_hole` or `thru_hole` pads inside `footprint` or legacy `module`
-blocks. Component-height and connector detection are future importer milestones.
+blocks. It also infers maximum component height from explicit footprint height
+properties and common connector/header footprint names, then creates starter enclosure
+cutouts for common edge connectors such as USB-C, Micro USB, USB-A/B, HDMI, Ethernet,
+SMA, barrel jacks, buttons, and switches. These imported cutouts are editable and must
+still be verified against the physical PCB before production printing.
 
 ## SVG Import Scope
 

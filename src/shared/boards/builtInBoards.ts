@@ -11,6 +11,7 @@ export const builtInBoardProfiles: BoardProfile[] = [
       width: 85,
       height: 56,
       thickness: 1.6,
+      componentHeight: 14,
       cornerRadius: 3,
       mountingHoles: [
         { id: 'mh-1', x: 3.5, y: 3.5, diameter: 2.75 },
@@ -35,6 +36,7 @@ export const builtInBoardProfiles: BoardProfile[] = [
       width: 51,
       height: 21,
       thickness: 1.6,
+      componentHeight: 4,
       cornerRadius: 1,
       mountingHoles: [
         { id: 'mh-1', x: 2, y: 2, diameter: 2.1 },
@@ -57,6 +59,7 @@ export const builtInBoardProfiles: BoardProfile[] = [
       width: 68.6,
       height: 53.4,
       thickness: 1.6,
+      componentHeight: 12,
       cornerRadius: 2,
       mountingHoles: [
         { id: 'mh-1', x: 14, y: 2.5, diameter: 3.2 },
@@ -80,6 +83,7 @@ export const builtInBoardProfiles: BoardProfile[] = [
       width: 45,
       height: 18,
       thickness: 1.6,
+      componentHeight: 4,
       cornerRadius: 1,
       mountingHoles: [],
       connectorCutouts: [
@@ -97,6 +101,7 @@ export const builtInBoardProfiles: BoardProfile[] = [
       width: 55,
       height: 28,
       thickness: 1.6,
+      componentHeight: 4,
       cornerRadius: 1,
       mountingHoles: [],
       connectorCutouts: [

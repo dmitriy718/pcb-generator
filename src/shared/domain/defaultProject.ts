@@ -6,6 +6,7 @@ export const defaultProject: EnclosureProject = {
     width: 58,
     height: 32,
     thickness: 1.6,
+    componentHeight: 4.5,
     cornerRadius: 2,
     mountingHoles: [
       { id: 'mh-1', x: 4, y: 4, diameter: 3 },

@@ -55,6 +55,7 @@ export function importStlPcb(contents: Uint8Array | string): StlImportResult {
       width,
       height,
       thickness,
+      componentHeight: Math.max(0, round(thickness - 1.6)),
       cornerRadius: 0,
       mountingHoles: [],
       connectorCutouts: [],

@@ -37,16 +37,17 @@ tested, documented, and usable before moving on.
     and OpenCascade production exports.
 27. Text engraving features with a built-in offline 5x7 vector-module alphabet and
     OpenCascade production export support.
+28. KiCad importer component-height hints and common edge connector cutout detection
+    for USB, Ethernet, HDMI, SMA, barrel jack, button, and switch footprints.
 
 ## Next Milestones
 
 1. Convert logo annotations/imports into true logo-outline engraving geometry.
-2. Expand KiCad importer with component-height and connector detection.
-3. Add richer mechanical reference geometry detection for imported STL/STEP assemblies.
-4. Add material-aware heat-set insert lead-in chamfers and vendor preset libraries.
-5. Add selective fillets where they improve ergonomics without hurting printability.
-6. Add additional enclosure templates one at a time.
-7. Expand board profile library coverage.
-8. Add plugin API.
-9. Add AI-assisted parameter generation with inspectable output.
-10. Add release signing, notarization, and publishing automation.
+2. Add richer mechanical reference geometry detection for imported STL/STEP assemblies.
+3. Add material-aware heat-set insert lead-in chamfers and vendor preset libraries.
+4. Add selective fillets where they improve ergonomics without hurting printability.
+5. Add additional enclosure templates one at a time.
+6. Expand board profile library coverage.
+7. Add plugin API.
+8. Add AI-assisted parameter generation with inspectable output.
+9. Add release signing, notarization, and publishing automation.

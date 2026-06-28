@@ -69,6 +69,7 @@ const pcbSchema = z.object({
   width: z.number(),
   height: z.number(),
   thickness: z.number(),
+  componentHeight: z.number().default(0),
   cornerRadius: z.number(),
   mountingHoles: z.array(mountingHoleSchema),
   connectorCutouts: z.array(connectorCutoutSchema).default([]),

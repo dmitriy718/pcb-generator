@@ -46,6 +46,7 @@ export function validateProject(project: EnclosureProject): ValidationResult {
   requirePositive(issues, pcb.width, 'pcb.width', 'PCB width');
   requirePositive(issues, pcb.height, 'pcb.height', 'PCB height');
   requirePositive(issues, pcb.thickness, 'pcb.thickness', 'PCB thickness');
+  requireNonNegative(issues, pcb.componentHeight, 'pcb.componentHeight', 'PCB component height');
   requireNonNegative(issues, pcb.cornerRadius, 'pcb.cornerRadius', 'PCB corner radius');
 
   if (pcb.cornerRadius * 2 > Math.min(pcb.width, pcb.height)) {
@@ -101,6 +102,16 @@ export function validateProject(project: EnclosureProject): ValidationResult {
         'wall_below_material_minimum',
         'enclosure.wallThickness',
         'Wall thickness is below the selected material minimum feature size.',
+      ),
+    );
+  }
+
+  if (material && enclosure.baseInternalHeight < pcb.componentHeight + material.clearance) {
+    issues.push(
+      issue(
+        'component_clearance_too_low',
+        'enclosure.baseInternalHeight',
+        'Base internal height is below the imported PCB component height plus material clearance.',
       ),
     );
   }

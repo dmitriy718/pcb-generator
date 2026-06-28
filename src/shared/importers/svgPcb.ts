@@ -69,6 +69,7 @@ export function importSvgPcb(contents: string): SvgImportResult {
       width: round(boardWidth),
       height: round(boardHeight),
       thickness: 1.6,
+      componentHeight: 0,
       cornerRadius: 0,
       mountingHoles,
       connectorCutouts: [],

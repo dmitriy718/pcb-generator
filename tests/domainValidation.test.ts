@@ -167,4 +167,133 @@ describe('validateProject', () => {
     expect(result.ok).toBe(false);
     expect(result.issues.map((issue) => issue.code)).toContain('design_feature_recess_too_deep');
   });
+
+  it('rejects overlapping lid design features', () => {
+    const project = structuredClone(defaultProject);
+    project.enclosure.ventilationRegions = [];
+    project.enclosure.designFeatures = [
+      {
+        id: 'feature-display',
+        label: 'Display',
+        kind: 'display_opening',
+        shape: 'rectangle',
+        operation: 'through_cut',
+        x: 30,
+        y: 18,
+        width: 16,
+        height: 8,
+        diameter: 8,
+        depth: project.enclosure.lidThickness,
+        cornerRadius: 0,
+        spacing: 4,
+        rows: 1,
+        columns: 1,
+        text: '',
+      },
+      {
+        id: 'feature-button',
+        label: 'Button',
+        kind: 'button_opening',
+        shape: 'circle',
+        operation: 'through_cut',
+        x: 36,
+        y: 18,
+        width: 6,
+        height: 6,
+        diameter: 6,
+        depth: project.enclosure.lidThickness,
+        cornerRadius: 0,
+        spacing: 4,
+        rows: 1,
+        columns: 1,
+        text: '',
+      },
+    ];
+
+    const result = validateProject(project);
+
+    expect(result.ok).toBe(false);
+    expect(result.issues.map((issue) => issue.code)).toContain('design_feature_overlaps_feature');
+  });
+
+  it('rejects design features that overlap ventilation regions', () => {
+    const project = structuredClone(defaultProject);
+    project.enclosure.designFeatures = [
+      {
+        id: 'feature-label',
+        label: 'Label',
+        kind: 'label_recess',
+        shape: 'rectangle',
+        operation: 'recess',
+        x: 25,
+        y: 12,
+        width: 8,
+        height: 4,
+        diameter: 4,
+        depth: 0.4,
+        cornerRadius: 0,
+        spacing: 4,
+        rows: 1,
+        columns: 1,
+        text: 'ID',
+      },
+    ];
+
+    const result = validateProject(project);
+
+    expect(result.ok).toBe(false);
+    expect(result.issues.map((issue) => issue.code)).toContain('design_feature_overlaps_vent');
+  });
+
+  it('rejects design features that overlap screw bosses', () => {
+    const project = structuredClone(defaultProject);
+    project.enclosure.ventilationRegions = [];
+    project.enclosure.designFeatures = [
+      {
+        id: 'feature-button',
+        label: 'Button over boss',
+        kind: 'button_opening',
+        shape: 'circle',
+        operation: 'through_cut',
+        x: 6.8,
+        y: 6.8,
+        width: 5,
+        height: 5,
+        diameter: 5,
+        depth: project.enclosure.lidThickness,
+        cornerRadius: 0,
+        spacing: 4,
+        rows: 1,
+        columns: 1,
+        text: '',
+      },
+    ];
+
+    const result = validateProject(project);
+
+    expect(result.ok).toBe(false);
+    expect(result.issues.map((issue) => issue.code)).toContain('design_feature_overlaps_screw_boss');
+  });
+
+  it('rejects ventilation regions that overlap screw bosses', () => {
+    const project = structuredClone(defaultProject);
+    project.enclosure.ventilationRegions = [
+      {
+        id: 'vent-over-boss',
+        label: 'Vent over boss',
+        x: 6.8,
+        y: 6.8,
+        width: 8,
+        height: 8,
+        slotWidth: 2,
+        slotHeight: 2,
+        spacing: 2,
+      },
+    ];
+
+    const result = validateProject(project);
+
+    expect(result.ok).toBe(false);
+    expect(result.issues.map((issue) => issue.code)).toContain('vent_region_overlaps_screw_boss');
+  });
 });

@@ -92,6 +92,7 @@ describe('generateTwoPieceScrewCase', () => {
 
   it('leaves lid design feature apertures open in the preview mesh', () => {
     const project = structuredClone(defaultProject);
+    project.enclosure.ventilationRegions = [];
     project.enclosure.designFeatures = [
       {
         id: 'feature-display',
@@ -134,6 +135,7 @@ describe('generateTwoPieceScrewCase', () => {
 
   it('adds embossed design features to the preview mesh as a separate group', () => {
     const project = structuredClone(defaultProject);
+    project.enclosure.ventilationRegions = [];
     project.enclosure.designFeatures = [
       {
         id: 'feature-badge',

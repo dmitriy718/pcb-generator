@@ -21,6 +21,11 @@ describe('built-in board library', () => {
         ...defaultProject,
         name: `${profile.name} Enclosure`,
         pcb: profile.pcb,
+        enclosure: {
+          ...defaultProject.enclosure,
+          ventilationRegions: [],
+          designFeatures: [],
+        },
       });
 
       expect(result.issues, profile.id).toEqual([]);

@@ -75,6 +75,11 @@ Printability analysis is shared between the UI and exporters. It does not invoke
 slicer; it reports deterministic rule-based risks and recommendations from the current
 parameter model.
 
+Project validation is also shared between UI preview and export. It checks numeric
+parameter ranges, board and lid boundaries, fastener wall requirements, heat-set insert
+depth, and 2D lid interference between ventilation regions, design features, and screw
+boss footprints before geometry generation.
+
 ## IPC Boundary
 
 The renderer cannot write files directly. It calls preload methods:

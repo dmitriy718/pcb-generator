@@ -141,6 +141,11 @@ Clone boards vary; verify physical dimensions before final prints.
 Custom board profiles can be saved from the current PCB geometry and imported later as
 versioned `.pcbboard.json` files.
 
+Applying a board profile replaces the PCB definition and clears existing lid
+ventilation and design features. This avoids silently carrying board-specific lid
+geometry into a different mounting-hole pattern where it could collide with screw
+bosses.
+
 ## Connector Cutouts
 
 Manual connector cutouts are rectangular openings on the front, back, left, or right
@@ -173,6 +178,11 @@ parameters with operation, shape, position, size, depth, radius, spacing, rows,
 columns, and optional label text. Through-cuts and recesses remove lid material;
 embosses add raised geometry. Text values are currently retained as editable
 manufacturing annotations rather than converted into font-outline engraving geometry.
+
+Validation checks lid feature placement against wall boundaries, ventilation regions,
+other design features, and screw boss footprints using the selected material
+clearance. Invalid overlaps produce actionable messages before preview generation or
+export.
 
 ## STEP Export Scope
 

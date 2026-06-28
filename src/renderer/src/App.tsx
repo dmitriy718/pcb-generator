@@ -404,6 +404,11 @@ export function App(): ReactElement {
       ...current,
       name: `${profile.name} Enclosure`,
       pcb: structuredClone(profile.pcb),
+      enclosure: {
+        ...current.enclosure,
+        ventilationRegions: [],
+        designFeatures: [],
+      },
     }));
     setImportWarnings([profile.notes]);
     setExportMessage(`Applied ${profile.name} board profile.`);

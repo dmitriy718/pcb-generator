@@ -1,6 +1,13 @@
 import { materialProfiles } from './materials';
 import { fastenerProfileById } from '../fasteners';
-import type { EnclosureProject, ValidationIssue, ValidationResult } from './types';
+import type {
+  DesignFeature,
+  EnclosureProject,
+  MountingHole,
+  ValidationIssue,
+  ValidationResult,
+  VentilationRegion,
+} from './types';
 
 function issue(code: string, path: string, message: string): ValidationIssue {
   return { code, path, message };
@@ -179,6 +186,7 @@ export function validateProject(project: EnclosureProject): ValidationResult {
   const outerHeight = internalHeight + enclosure.wallThickness * 2;
   const baseOuterHeight =
     enclosure.floorThickness + enclosure.standoffHeight + pcb.thickness + enclosure.baseInternalHeight;
+  const lidCollisionClearance = Math.max(material?.clearance ?? 0.2, 0.2);
 
   for (const [index, cutout] of pcb.connectorCutouts.entries()) {
     const path = `pcb.connectorCutouts.${index}`;
@@ -341,5 +349,171 @@ export function validateProject(project: EnclosureProject): ValidationResult {
     }
   }
 
+  const ventFootprints = enclosure.ventilationRegions.map((region, index) => ({
+    index,
+    label: region.label,
+    rect: ventilationRegionFootprint(region),
+  }));
+  const designFootprints = enclosure.designFeatures.flatMap((feature, index) =>
+    designFeatureFootprints(feature).map((rect, patternIndex) => ({
+      index,
+      patternIndex,
+      label: feature.label,
+      rect,
+    })),
+  );
+  const bossFootprints = pcb.mountingHoles.map((hole, index) => ({
+    index,
+    label: hole.id,
+    rect: bossFootprint(hole, enclosure.wallThickness, enclosure.boardClearance, enclosure.screwBossDiameter),
+  }));
+
+  for (let firstIndex = 0; firstIndex < ventFootprints.length; firstIndex += 1) {
+    for (let secondIndex = firstIndex + 1; secondIndex < ventFootprints.length; secondIndex += 1) {
+      const first = ventFootprints[firstIndex];
+      const second = ventFootprints[secondIndex];
+      if (first && second && rectanglesOverlap(first.rect, second.rect, lidCollisionClearance)) {
+        issues.push(
+          issue(
+            'vent_region_overlaps_vent',
+            `enclosure.ventilationRegions.${second.index}`,
+            `${second.label} overlaps ${first.label}. Move or resize one ventilation region.`,
+          ),
+        );
+      }
+    }
+  }
+
+  for (const vent of ventFootprints) {
+    for (const boss of bossFootprints) {
+      if (rectanglesOverlap(vent.rect, boss.rect, lidCollisionClearance)) {
+        issues.push(
+          issue(
+            'vent_region_overlaps_screw_boss',
+            `enclosure.ventilationRegions.${vent.index}`,
+            `${vent.label} overlaps screw boss ${boss.label}. Move the vent or mounting hole.`,
+          ),
+        );
+      }
+    }
+  }
+
+  for (let firstIndex = 0; firstIndex < designFootprints.length; firstIndex += 1) {
+    for (let secondIndex = firstIndex + 1; secondIndex < designFootprints.length; secondIndex += 1) {
+      const first = designFootprints[firstIndex];
+      const second = designFootprints[secondIndex];
+      if (
+        first &&
+        second &&
+        first.index !== second.index &&
+        rectanglesOverlap(first.rect, second.rect, lidCollisionClearance)
+      ) {
+        issues.push(
+          issue(
+            'design_feature_overlaps_feature',
+            `enclosure.designFeatures.${second.index}`,
+            `${second.label} overlaps ${first.label}. Move or resize one design feature.`,
+          ),
+        );
+      }
+    }
+  }
+
+  for (const feature of designFootprints) {
+    for (const vent of ventFootprints) {
+      if (rectanglesOverlap(feature.rect, vent.rect, lidCollisionClearance)) {
+        issues.push(
+          issue(
+            'design_feature_overlaps_vent',
+            `enclosure.designFeatures.${feature.index}`,
+            `${feature.label} overlaps ${vent.label}. Move or resize the feature or vent.`,
+          ),
+        );
+      }
+    }
+
+    for (const boss of bossFootprints) {
+      if (rectanglesOverlap(feature.rect, boss.rect, lidCollisionClearance)) {
+        issues.push(
+          issue(
+            'design_feature_overlaps_screw_boss',
+            `enclosure.designFeatures.${feature.index}`,
+            `${feature.label} overlaps screw boss ${boss.label}. Move the feature or mounting hole.`,
+          ),
+        );
+      }
+    }
+  }
+
   return { ok: issues.length === 0, issues };
+}
+
+interface FootprintRect {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+}
+
+function ventilationRegionFootprint(region: VentilationRegion): FootprintRect {
+  return centeredRect(region.x, region.y, region.width, region.height);
+}
+
+function bossFootprint(
+  hole: MountingHole,
+  wallThickness: number,
+  boardClearance: number,
+  bossDiameter: number,
+): FootprintRect {
+  return centeredRect(
+    wallThickness + boardClearance + hole.x,
+    wallThickness + boardClearance + hole.y,
+    bossDiameter,
+    bossDiameter,
+  );
+}
+
+function designFeatureFootprints(feature: DesignFeature): FootprintRect[] {
+  const width = feature.shape === 'circle' ? feature.diameter : feature.width;
+  const height = feature.shape === 'circle' ? feature.diameter : feature.height;
+  const columns = Math.max(1, Math.floor(feature.columns));
+  const rows = Math.max(1, Math.floor(feature.rows));
+  const totalWidth = columns * width + (columns - 1) * feature.spacing;
+  const totalHeight = rows * height + (rows - 1) * feature.spacing;
+  const startX = feature.x - totalWidth / 2 + width / 2;
+  const startY = feature.y - totalHeight / 2 + height / 2;
+  const footprints: FootprintRect[] = [];
+
+  for (let column = 0; column < columns; column += 1) {
+    for (let row = 0; row < rows; row += 1) {
+      footprints.push(
+        centeredRect(
+          startX + column * (width + feature.spacing),
+          startY + row * (height + feature.spacing),
+          width,
+          height,
+        ),
+      );
+    }
+  }
+
+  return footprints;
+}
+
+function centeredRect(x: number, y: number, width: number, height: number): FootprintRect {
+  return {
+    minX: x - width / 2,
+    maxX: x + width / 2,
+    minY: y - height / 2,
+    maxY: y + height / 2,
+  };
+}
+
+function rectanglesOverlap(first: FootprintRect, second: FootprintRect, clearance: number): boolean {
+  return !(
+    first.maxX + clearance <= second.minX ||
+    first.minX - clearance >= second.maxX ||
+    first.maxY + clearance <= second.minY ||
+    first.minY - clearance >= second.maxY
+  );
 }

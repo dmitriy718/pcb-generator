@@ -31,19 +31,19 @@ tested, documented, and usable before moving on.
 24. Palette-driven lid design features for display/button/antenna openings, speaker
     and fan grille patterns, label/QR recesses, logo badges, cable slots, and
     zip-tie anchors with preview and OpenCascade export support.
+25. Collision/interference validation between lid design features, ventilation
+    regions, screw boss footprints, and lid wall boundaries.
 
 ## Next Milestones
 
-1. Add collision/interference checks between lid design features, vents, bosses, and
-   wall boundaries.
-2. Convert text/QR/logo annotations into true font-outline and QR-code engraving
+1. Convert text/QR/logo annotations into true font-outline and QR-code engraving
    geometry.
-3. Expand KiCad importer with component-height and connector detection.
-4. Add richer mechanical reference geometry detection for imported STL/STEP assemblies.
-5. Add material-aware heat-set insert lead-in chamfers and vendor preset libraries.
-6. Add selective fillets where they improve ergonomics without hurting printability.
-7. Add additional enclosure templates one at a time.
-8. Expand board profile library coverage.
-9. Add plugin API.
-10. Add AI-assisted parameter generation with inspectable output.
-11. Add release signing, notarization, and publishing automation.
+2. Expand KiCad importer with component-height and connector detection.
+3. Add richer mechanical reference geometry detection for imported STL/STEP assemblies.
+4. Add material-aware heat-set insert lead-in chamfers and vendor preset libraries.
+5. Add selective fillets where they improve ergonomics without hurting printability.
+6. Add additional enclosure templates one at a time.
+7. Expand board profile library coverage.
+8. Add plugin API.
+9. Add AI-assisted parameter generation with inspectable output.
+10. Add release signing, notarization, and publishing automation.

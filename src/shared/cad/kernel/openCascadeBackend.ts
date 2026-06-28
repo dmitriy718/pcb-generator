@@ -12,6 +12,7 @@ import type {
 } from '../../domain';
 import { getMaterialProfile } from '../../domain/materials';
 import { fastenerProfileById, type FastenerProfile } from '../../fasteners';
+import { designFeatureFootprints } from '../designFeatureGeometry';
 import { validateMesh } from '../meshValidation';
 
 interface OcShape {
@@ -467,11 +468,15 @@ function buildTwoPieceScrewCaseStepModel(
   )) {
     lid = cut(oc, lid, box(oc, slot));
   }
-  for (const featureTool of designFeatureTools(enclosure.designFeatures, outerWidth + partSpacing, enclosure.lidThickness)) {
-    if (featureTool.operation === 'emboss') {
-      lid = fuse(oc, lid, featureShape(oc, featureTool));
+  for (const feature of enclosure.designFeatures) {
+    const featureTool = designFeatureToolShape(oc, feature, outerWidth + partSpacing, enclosure.lidThickness);
+    if (!featureTool) {
+      continue;
+    }
+    if (feature.operation === 'emboss') {
+      lid = fuse(oc, lid, featureTool);
     } else {
-      lid = cut(oc, lid, featureShape(oc, featureTool));
+      lid = cut(oc, lid, featureTool);
     }
   }
   lid = chamfer(oc, lid, enclosure.chamfer, 'lid');
@@ -703,59 +708,50 @@ function ventilationSlotTools(
 }
 
 function designFeatureTools(
-  features: DesignFeature[],
+  feature: DesignFeature,
   lidOffsetX: number,
   lidThickness: number,
 ): FeatureTool[] {
-  return features.flatMap((feature) =>
-    designFeatureFootprints(feature).map((footprint) => {
-      const isThroughCut = feature.operation === 'through_cut';
-      const height = isThroughCut ? lidThickness + 1 : Math.max(0.1, feature.depth);
-      const z = isThroughCut
-        ? -0.5
-        : feature.operation === 'recess'
-          ? lidThickness - height
-          : lidThickness;
-      return {
-        operation: feature.operation,
-        shape: feature.shape,
-        x: lidOffsetX + footprint.x,
-        y: footprint.y,
-        z,
-        width: footprint.width,
-        depth: footprint.height,
-        height,
-        diameter: footprint.diameter,
-        cornerRadius: feature.cornerRadius,
-      };
-    }),
-  );
+  return designFeatureFootprints(feature).map((footprint) => {
+    const isThroughCut = feature.operation === 'through_cut';
+    const height = isThroughCut ? lidThickness + 1 : Math.max(0.1, feature.depth);
+    const z = isThroughCut
+      ? -0.5
+      : feature.operation === 'recess'
+        ? lidThickness - height
+        : lidThickness;
+    return {
+      operation: feature.operation,
+      shape: feature.shape,
+      x: lidOffsetX + footprint.x,
+      y: footprint.y,
+      z,
+      width: footprint.width,
+      depth: footprint.height,
+      height,
+      diameter: footprint.diameter,
+      cornerRadius: footprint.cornerRadius,
+    };
+  });
 }
 
-function designFeatureFootprints(
+function designFeatureToolShape(
+  oc: OpenCascadeModule,
   feature: DesignFeature,
-): { x: number; y: number; width: number; height: number; diameter: number }[] {
-  const width = feature.shape === 'circle' ? feature.diameter : feature.width;
-  const height = feature.shape === 'circle' ? feature.diameter : feature.height;
-  const totalWidth = feature.columns * width + (feature.columns - 1) * feature.spacing;
-  const totalHeight = feature.rows * height + (feature.rows - 1) * feature.spacing;
-  const startX = feature.x - totalWidth / 2 + width / 2;
-  const startY = feature.y - totalHeight / 2 + height / 2;
-  const footprints: { x: number; y: number; width: number; height: number; diameter: number }[] = [];
-
-  for (let column = 0; column < feature.columns; column += 1) {
-    for (let row = 0; row < feature.rows; row += 1) {
-      footprints.push({
-        x: startX + column * (width + feature.spacing),
-        y: startY + row * (height + feature.spacing),
-        width,
-        height,
-        diameter: feature.diameter,
-      });
-    }
+  lidOffsetX: number,
+  lidThickness: number,
+): OcShape | undefined {
+  const tools = designFeatureTools(feature, lidOffsetX, lidThickness);
+  const first = tools[0];
+  if (!first) {
+    return undefined;
   }
 
-  return footprints;
+  let shape = featureShape(oc, first);
+  for (const tool of tools.slice(1)) {
+    shape = fuse(oc, shape, featureShape(oc, tool));
+  }
+  return shape;
 }
 
 function featureShape(oc: OpenCascadeModule, tool: FeatureTool): OcShape {

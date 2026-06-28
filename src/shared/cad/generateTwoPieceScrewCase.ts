@@ -15,6 +15,7 @@ import { validateProject } from '../domain/validation';
 import { MeshBuilder } from './meshBuilder';
 import { analyzeMeshTopology, validateMesh } from './meshValidation';
 import type { FastenerProfile } from '../fasteners';
+import { designFeatureFootprints } from './designFeatureGeometry';
 
 export function generateTwoPieceScrewCase(project: EnclosureProject): GeneratedEnclosure {
   const validation = validateProject(project);
@@ -367,25 +368,27 @@ function addPreviewDesignFeatures(
     if (feature.operation !== 'emboss') {
       continue;
     }
-    const x = options.lidOrigin.x + feature.x;
-    const y = options.lidOrigin.y + feature.y;
     const height = Math.max(0.2, feature.depth);
-    if (feature.shape === 'circle') {
-      builder.addCylinder({ x, y, z: options.lidOrigin.z }, feature.diameter / 2, height, 40);
-      continue;
+    for (const footprint of designFeatureFootprints(feature)) {
+      const x = options.lidOrigin.x + footprint.x;
+      const y = options.lidOrigin.y + footprint.y;
+      if (feature.shape === 'circle') {
+        builder.addCylinder({ x, y, z: options.lidOrigin.z }, footprint.diameter / 2, height, 40);
+        continue;
+      }
+      builder.addBox(
+        {
+          x: x - footprint.width / 2,
+          y: y - footprint.height / 2,
+          z: options.lidOrigin.z,
+        },
+        {
+          x: x + footprint.width / 2,
+          y: y + footprint.height / 2,
+          z: options.lidOrigin.z + height,
+        },
+      );
     }
-    builder.addBox(
-      {
-        x: x - feature.width / 2,
-        y: y - feature.height / 2,
-        z: options.lidOrigin.z,
-      },
-      {
-        x: x + feature.width / 2,
-        y: y + feature.height / 2,
-        z: options.lidOrigin.z + height,
-      },
-    );
   }
 }
 
@@ -401,29 +404,6 @@ function designFeaturePreviewCutSlots(features: DesignFeature[]): SlotRect[] {
       yMax: footprint.y + footprint.height / 2,
     }));
   });
-}
-
-function designFeatureFootprints(feature: DesignFeature): { x: number; y: number; width: number; height: number }[] {
-  const width = feature.shape === 'circle' ? feature.diameter : feature.width;
-  const height = feature.shape === 'circle' ? feature.diameter : feature.height;
-  const totalWidth = feature.columns * width + (feature.columns - 1) * feature.spacing;
-  const totalHeight = feature.rows * height + (feature.rows - 1) * feature.spacing;
-  const startX = feature.x - totalWidth / 2 + width / 2;
-  const startY = feature.y - totalHeight / 2 + height / 2;
-  const footprints: { x: number; y: number; width: number; height: number }[] = [];
-
-  for (let column = 0; column < feature.columns; column += 1) {
-    for (let row = 0; row < feature.rows; row += 1) {
-      footprints.push({
-        x: startX + column * (width + feature.spacing),
-        y: startY + row * (height + feature.spacing),
-        width,
-        height,
-      });
-    }
-  }
-
-  return footprints;
 }
 
 function ventilationSlots(regions: VentilationRegion[]): SlotRect[] {

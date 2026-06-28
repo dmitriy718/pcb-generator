@@ -48,6 +48,10 @@ B-rep solids. It writes STEP through OpenCascade's STEP writer and validates eac
 transferred solid with
 `BRepCheck_Analyzer` before export.
 
+QR lid features use a shared deterministic footprint generator backed by the
+`qrcode-generator` library. The kernel fuses QR module-run tools per feature before
+cutting or embossing the lid to avoid edge-touching boolean artifacts.
+
 Mesh file exports for STL, OBJ, GLTF, and 3MF are tessellated from the same validated
 OpenCascade solids. The backend runs OpenCascade incremental meshing, extracts face
 triangulations, flips reversed face orientations, and rejects invalid topology before

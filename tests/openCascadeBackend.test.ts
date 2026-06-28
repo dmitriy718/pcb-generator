@@ -119,6 +119,43 @@ describe('OpenCascade backend', () => {
     expect(topology.isEdgeManifold).toBe(true);
   });
 
+  it('generates valid OpenCascade QR recess module geometry', async () => {
+    const mesh = await generateTwoPieceScrewCaseKernelMesh({
+      ...defaultProject,
+      enclosure: {
+        ...defaultProject.enclosure,
+        chamfer: 0,
+        ventilationRegions: [],
+        designFeatures: [
+          {
+            id: 'feature-qr',
+            label: 'Serial QR',
+            kind: 'qr_recess',
+            shape: 'rectangle',
+            operation: 'recess',
+            x: 32,
+            y: 18,
+            width: 14,
+            height: 14,
+            diameter: 14,
+            depth: 0.35,
+            cornerRadius: 0,
+            spacing: 2,
+            rows: 1,
+            columns: 1,
+            text: 'PCB-001',
+          },
+        ],
+      },
+    });
+    const topology = analyzeMeshTopology(mesh);
+
+    expect(validateMesh(mesh, { checkTopology: true })).toEqual({ ok: true, issues: [] });
+    expect(mesh.indices.length / 3).toBeGreaterThan(500);
+    expect(topology.isClosed).toBe(true);
+    expect(topology.isEdgeManifold).toBe(true);
+  }, 60_000);
+
   it('imports STEP reference geometry bounds through OpenCascade', async () => {
     const step = await exportTwoPieceScrewCaseStep(defaultProject);
     const imported = await importStepPcbReference(step);

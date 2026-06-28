@@ -33,11 +33,13 @@ tested, documented, and usable before moving on.
     zip-tie anchors with preview and OpenCascade export support.
 25. Collision/interference validation between lid design features, ventilation
     regions, screw boss footprints, and lid wall boundaries.
+26. QR recess features with true generated QR module geometry in preview footprints
+    and OpenCascade production exports.
 
 ## Next Milestones
 
-1. Convert text/QR/logo annotations into true font-outline and QR-code engraving
-   geometry.
+1. Convert text and logo annotations into true font-outline and logo-outline
+   engraving geometry.
 2. Expand KiCad importer with component-height and connector detection.
 3. Add richer mechanical reference geometry detection for imported STL/STEP assemblies.
 4. Add material-aware heat-set insert lead-in chamfers and vendor preset libraries.

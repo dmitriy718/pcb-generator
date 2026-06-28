@@ -29,12 +29,14 @@ documentation, and CI foundation with a usable manual PCB workflow.
   standoffs, screw bosses, connector cutouts, rectangular vents, and editable chamfers.
 - SVG drawing, DXF drawing, and BOM CSV export plus MakerWorld metadata JSON.
 - Strict TypeScript, ESLint, Prettier, Vitest, Docker development environment, and GitHub Actions CI/release workflows.
+- Versioned plugin manifest API for offline capability discovery.
 
 ## Current Scope
 
-The current implementation intentionally does not claim plugin, AI, automated
-connector recognition, or full enclosure-template coverage. Those are tracked in the
-roadmap and should be added feature by feature with tests and documentation.
+The current implementation intentionally does not claim AI, automated connector
+recognition, arbitrary plugin code execution, or full enclosure-template coverage.
+Those are tracked in the roadmap and should be added feature by feature with tests and
+documentation.
 
 ## Development
 

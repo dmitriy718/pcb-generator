@@ -50,6 +50,8 @@ tested, documented, and usable before moving on.
     triangle grouping and facet normals before future high-confidence feature detection.
 33. Expanded built-in board library with additional Raspberry Pi, Arduino, ESP32,
     BeagleBone, Jetson, M5Stack, and SDR starter profiles validated by domain tests.
+34. Versioned plugin manifest API and capability registry for offline connector,
+    board, fastener, enclosure, vent, exporter, and material extension discovery.
 
 ## Next Milestones
 
@@ -57,6 +59,6 @@ tested, documented, and usable before moving on.
 2. Add high-confidence mounting-hole detection for STEP references.
 3. Add selective fillets where they improve ergonomics without hurting printability.
 4. Add additional enclosure templates one at a time.
-5. Add plugin API.
+5. Add sandboxed plugin loading/execution for specific approved capability types.
 6. Add AI-assisted parameter generation with inspectable output.
 7. Add release signing, notarization, and publishing automation.

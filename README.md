@@ -32,6 +32,8 @@ documentation, and CI foundation with a usable manual PCB workflow.
 - Versioned plugin manifest API for offline capability discovery.
 - Offline design assistant that converts common natural-language enclosure phrases into
   editable material, cutout, vent, and lid-feature parameters.
+- Enclosure template presets for compact, handheld, tall-clearance, wall-mount, and
+  desktop project-box variants of the validated two-piece screw case.
 
 ## Current Scope
 

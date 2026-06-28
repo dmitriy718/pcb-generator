@@ -29,6 +29,7 @@ import { applyDesignPrompt } from '../../shared/assistant';
 import { generateTwoPieceScrewCase } from '../../shared/cad';
 import { boardProfileById, builtInBoardProfiles } from '../../shared/boards';
 import { defaultProject, materialProfiles, validateProject } from '../../shared/domain';
+import { enclosureTemplateById, enclosureTemplates } from '../../shared/enclosureTemplates';
 import { builtInFastenerProfiles, fastenerProfileById } from '../../shared/fasteners';
 import type {
   ConnectorCutout,
@@ -520,6 +521,19 @@ export function App(): ReactElement {
     }));
     setImportWarnings([profile.notes]);
     setExportMessage(`Applied ${profile.name} fastener profile.`);
+  }
+
+  function applyEnclosureTemplate(templateId: string): void {
+    const template = enclosureTemplateById(templateId);
+    if (!template) {
+      return;
+    }
+    setProject((current) => ({
+      ...current,
+      enclosure: template.apply(current),
+    }));
+    setImportWarnings([template.description]);
+    setExportMessage(`Applied ${template.name} enclosure template.`);
   }
 
   function updateMountingHole(id: string, patch: Partial<Omit<MountingHole, 'id'>>): void {
@@ -1444,6 +1458,19 @@ export function App(): ReactElement {
 
           <fieldset>
             <legend>Enclosure</legend>
+            <label className="field wide">
+              <span>Template</span>
+              <select defaultValue="" onChange={(event) => applyEnclosureTemplate(event.target.value)}>
+                <option value="" disabled>
+                  Select an enclosure template
+                </option>
+                {enclosureTemplates.map((template) => (
+                  <option value={template.id} key={template.id}>
+                    {template.name}
+                  </option>
+                ))}
+              </select>
+            </label>
             <NumberField
               label="Wall"
               value={project.enclosure.wallThickness}

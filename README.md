@@ -11,6 +11,7 @@ documentation, and CI foundation with a usable manual PCB workflow.
 - React parameter editor for manual PCB dimensions and mounting holes.
 - KiCad `.kicad_pcb` import for `Edge.Cuts` board outline, board thickness, and drilled mounting holes.
 - SVG PCB outline import for rectangular outlines, viewBox dimensions, and circular mounting holes.
+- DXF PCB outline import for LINE/LWPOLYLINE board bounds, `$INSUNITS` scaling, and circular mounting holes.
 - Built-in board profiles for Raspberry Pi, Arduino, and ESP32 starter enclosures.
 - Custom `.pcbboard.json` board profile import/export.
 - Manual rectangular connector cutouts on enclosure side walls with generated printable openings.
@@ -92,6 +93,15 @@ SVG import supports offline PCB outline files with either `width`/`height`, a `v
 or a rectangular `<rect>` outline. Circular mounting holes are detected from `<circle>`
 elements whose `id` or `class` contains `hole` or `mount`. The importer supports `mm`,
 `cm`, `in`, and `px` units. Complex paths are future SVG importer work.
+
+## DXF Import Scope
+
+DXF import supports offline PCB outline files containing `LINE` or `LWPOLYLINE`
+entities on outline-like layers such as `Edge.Cuts`, `outline`, `board`, or `pcb`.
+It reads `$INSUNITS` for inch, millimeter, centimeter, and meter scaling, infers board
+dimensions from outline bounds, and detects circular mounting holes on hole-like layers
+or small circles inside the board bounds. Complex arcs, splines, and mechanical STEP
+feature detection remain future importer milestones.
 
 ## Board Library
 

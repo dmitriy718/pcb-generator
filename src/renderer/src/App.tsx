@@ -341,6 +341,23 @@ export function App(): ReactElement {
     setExportMessage(`Imported ${result.sourcePath}.`);
   }
 
+  async function importDxfProject(): Promise<void> {
+    setExportMessage('');
+    const result = await window.pcbEnclosure.importDxfProject();
+    if (!result.imported) {
+      setExportMessage('DXF import cancelled.');
+      return;
+    }
+
+    setProject((current) => ({
+      ...current,
+      name: result.projectName,
+      pcb: result.pcb,
+    }));
+    setImportWarnings(result.warnings);
+    setExportMessage(`Imported ${result.sourcePath}.`);
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -379,6 +396,9 @@ export function App(): ReactElement {
           </button>
           <button className="toolbar-button" type="button" onClick={() => void importSvgProject()}>
             <Upload size={16} aria-hidden="true" /> SVG
+          </button>
+          <button className="toolbar-button" type="button" onClick={() => void importDxfProject()}>
+            <Upload size={16} aria-hidden="true" /> DXF
           </button>
           <button
             className="toolbar-button"

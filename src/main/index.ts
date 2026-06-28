@@ -16,7 +16,7 @@ import {
   exportSvgDrawing,
   exportThreeMf,
 } from '../shared/exporters';
-import { importKiCadPcb, importSvgPcb } from '../shared/importers';
+import { importDxfPcb, importKiCadPcb, importSvgPcb } from '../shared/importers';
 import { parseProjectFile, serializeProjectFile } from '../shared/projectFiles';
 import { parseBoardProfileFile, serializeBoardProfileFile, slugify } from '../shared/boards';
 
@@ -217,6 +217,33 @@ void app.whenReady().then(() => {
       imported: true as const,
       sourcePath,
       projectName: basename(sourcePath, '.svg'),
+      pcb: imported.pcb,
+      warnings: imported.warnings,
+    };
+  });
+
+  ipcMain.handle('project:import-dxf', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: 'Import DXF PCB Outline',
+      properties: ['openFile'],
+      filters: [{ name: 'DXF PCB Outline', extensions: ['dxf'] }],
+    });
+
+    if (canceled || filePaths.length === 0) {
+      return { imported: false as const };
+    }
+
+    const sourcePath = filePaths[0];
+    if (!sourcePath) {
+      return { imported: false as const };
+    }
+
+    const contents = await readFile(sourcePath, 'utf8');
+    const imported = importDxfPcb(contents);
+    return {
+      imported: true as const,
+      sourcePath,
+      projectName: basename(sourcePath, '.dxf'),
       pcb: imported.pcb,
       warnings: imported.warnings,
     };

@@ -81,6 +81,26 @@ const api = {
           warnings: string[];
         }
     >,
+  importDxfProject: (): Promise<
+    | { imported: false }
+    | {
+        imported: true;
+        sourcePath: string;
+        projectName: string;
+        pcb: PcbSpecification;
+        warnings: string[];
+      }
+  > =>
+    ipcRenderer.invoke('project:import-dxf') as Promise<
+      | { imported: false }
+      | {
+          imported: true;
+          sourcePath: string;
+          projectName: string;
+          pcb: PcbSpecification;
+          warnings: string[];
+        }
+    >,
 };
 
 contextBridge.exposeInMainWorld('pcbEnclosure', api);

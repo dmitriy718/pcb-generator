@@ -31,6 +31,20 @@ describe('designFeatureFootprints', () => {
     expect(Math.max(...footprints.map((footprint) => footprint.y))).toBeLessThan(feature.y + feature.height / 2);
   });
 
+  it('turns logo badge keys into bounded module footprints', () => {
+    const feature = logoFeature('OSHW');
+
+    const footprints = designFeatureFootprints(feature);
+
+    expect(footprints.length).toBeGreaterThan(10);
+    expect(footprints.some((footprint) => footprint.width > footprint.height)).toBe(true);
+    expect(footprints.every((footprint) => footprint.width > 0 && footprint.height > 0)).toBe(true);
+    expect(Math.min(...footprints.map((footprint) => footprint.x))).toBeGreaterThan(feature.x - feature.width / 2);
+    expect(Math.max(...footprints.map((footprint) => footprint.x))).toBeLessThan(feature.x + feature.width / 2);
+    expect(Math.min(...footprints.map((footprint) => footprint.y))).toBeGreaterThan(feature.y - feature.height / 2);
+    expect(Math.max(...footprints.map((footprint) => footprint.y))).toBeLessThan(feature.y + feature.height / 2);
+  });
+
   it('falls back to a single editable footprint for an empty QR feature', () => {
     const footprints = designFeatureFootprints(qrFeature(''));
 
@@ -61,6 +75,27 @@ function qrFeature(text: string): DesignFeature {
     diameter: 16,
     depth: 0.4,
     cornerRadius: 0,
+    spacing: 2,
+    rows: 1,
+    columns: 1,
+    text,
+  };
+}
+
+function logoFeature(text: string): DesignFeature {
+  return {
+    id: 'feature-logo',
+    label: 'Logo badge',
+    kind: 'logo_badge',
+    shape: 'rounded_rectangle',
+    operation: 'emboss',
+    x: 30,
+    y: 18,
+    width: 16,
+    height: 10,
+    diameter: 10,
+    depth: 0.5,
+    cornerRadius: 2,
     spacing: 2,
     rows: 1,
     columns: 1,

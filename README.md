@@ -182,9 +182,9 @@ parameters with operation, shape, position, size, depth, radius, spacing, rows,
 columns, and optional label text. Through-cuts and recesses remove lid material;
 embosses add raised geometry. Text engraving features use an offline 5x7 vector-module
 alphabet for real recessed or raised text geometry. QR recesses with text generate
-true QR module geometry in OpenCascade production exports. Logo values are currently
-retained as editable manufacturing annotations rather than converted into imported
-logo-outline geometry.
+true QR module geometry in OpenCascade production exports. Logo badge features generate
+real geometry from a small offline logo catalog keyed by the text value: `OSHW`, `PCB`,
+`RF`, and `BAMBU`. Imported arbitrary logo outline geometry remains future work.
 
 Validation checks lid feature placement against wall boundaries, ventilation regions,
 other design features, and screw boss footprints using the selected material

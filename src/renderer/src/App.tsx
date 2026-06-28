@@ -102,7 +102,7 @@ const shapePalette: ShapePaletteItem[] = [
       spacing: 3,
       rows: 1,
       columns: 1,
-      text: '',
+      text: 'OSHW',
     },
   },
   {

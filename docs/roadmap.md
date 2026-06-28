@@ -41,10 +41,12 @@ tested, documented, and usable before moving on.
     for USB, Ethernet, HDMI, SMA, barrel jack, button, and switch footprints.
 29. Material-aware heat-set insert lead-in reliefs and additional short/long insert
     preset profiles in preview, BOM, validation, and OpenCascade exports.
+30. Built-in logo badge geometry catalog for editable OSHW, PCB, RF, and Bambu-style
+    logo marks in preview and OpenCascade exports.
 
 ## Next Milestones
 
-1. Convert logo annotations/imports into true logo-outline engraving geometry.
+1. Add arbitrary SVG/logo outline import for logo badge features.
 2. Add richer mechanical reference geometry detection for imported STL/STEP assemblies.
 3. Add selective fillets where they improve ergonomics without hurting printability.
 4. Add additional enclosure templates one at a time.

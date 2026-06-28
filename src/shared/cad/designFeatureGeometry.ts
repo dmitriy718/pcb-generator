@@ -13,6 +13,7 @@ export interface DesignFeatureFootprint {
 const qrQuietModules = 2;
 const qrModuleOverlapRatio = 0.02;
 const textModuleOverlapRatio = 0.04;
+const logoModuleOverlapRatio = 0.04;
 const glyphWidth = 5;
 const glyphHeight = 7;
 const glyphSpacing = 1;
@@ -24,6 +25,9 @@ export function designFeatureFootprints(feature: DesignFeature): DesignFeatureFo
   }
   if (feature.kind === 'text_engraving' && feature.text.trim()) {
     return textFootprints(feature);
+  }
+  if (feature.kind === 'logo_badge') {
+    return logoFootprints(feature);
   }
 
   return repeatedFeatureFootprints(feature);
@@ -53,6 +57,96 @@ function repeatedFeatureFootprints(feature: DesignFeature): DesignFeatureFootpri
 
   return footprints;
 }
+
+function logoFootprints(feature: DesignFeature): DesignFeatureFootprint[] {
+  const key = feature.text.trim().toUpperCase() || 'OSHW';
+  const logo = logoPatterns[key] ?? defaultLogoPattern;
+  return modulePatternFootprints(feature, logo);
+}
+
+function modulePatternFootprints(feature: DesignFeature, pattern: readonly string[]): DesignFeatureFootprint[] {
+  const rowCount = pattern.length;
+  const columnCount = Math.max(...pattern.map((row) => row.length));
+  const moduleSize = Math.min(feature.width / columnCount, feature.height / rowCount);
+  const patternWidth = columnCount * moduleSize;
+  const patternHeight = rowCount * moduleSize;
+  const startX = feature.x - patternWidth / 2 + moduleSize / 2;
+  const startY = feature.y - patternHeight / 2 + moduleSize / 2;
+  const overlap = moduleSize * logoModuleOverlapRatio;
+  const footprints: DesignFeatureFootprint[] = [];
+
+  for (let row = 0; row < rowCount; row += 1) {
+    const rowBits = pattern[row] ?? '';
+    let column = 0;
+    while (column < columnCount) {
+      if (rowBits[column] !== '1') {
+        column += 1;
+        continue;
+      }
+      const runStart = column;
+      while (column < columnCount && rowBits[column] === '1') {
+        column += 1;
+      }
+      const runLength = column - runStart;
+      const centerColumn = runStart + runLength / 2 - 0.5;
+      footprints.push({
+        x: startX + centerColumn * moduleSize,
+        y: startY + row * moduleSize,
+        width: runLength * moduleSize + overlap,
+        height: moduleSize + overlap,
+        diameter: moduleSize + overlap,
+        cornerRadius: 0,
+      });
+    }
+  }
+
+  return footprints;
+}
+
+const defaultLogoPattern = [
+  '1110011101110',
+  '1001010011001',
+  '1001010001001',
+  '1110011101110',
+  '1000010001001',
+  '1000010011001',
+  '1000011101110',
+] as const;
+
+const logoPatterns: Record<string, readonly string[]> = {
+  OSHW: [
+    '00001110000',
+    '00111111100',
+    '01100100110',
+    '11010101011',
+    '11100100111',
+    '01110001110',
+    '00111011100',
+    '00010101000',
+    '00100100100',
+    '01000000010',
+    '00000000000',
+  ],
+  PCB: defaultLogoPattern,
+  RF: [
+    '111101111',
+    '100101000',
+    '100101000',
+    '111001110',
+    '101001000',
+    '100101000',
+    '100101000',
+  ],
+  BAMBU: [
+    '111011101101101101',
+    '100010101101101101',
+    '100010101111101101',
+    '111011101101101101',
+    '100010101101101101',
+    '100010101101101101',
+    '111010101101011010',
+  ],
+};
 
 function textFootprints(feature: DesignFeature): DesignFeatureFootprint[] {
   const characters = Array.from(feature.text.toUpperCase().replace(/[^\x20-\x7E]/gu, '?')).slice(0, 32);

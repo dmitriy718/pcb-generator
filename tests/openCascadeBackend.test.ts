@@ -193,6 +193,43 @@ describe('OpenCascade backend', () => {
     expect(topology.isEdgeManifold).toBe(true);
   }, 30_000);
 
+  it('generates valid OpenCascade logo badge module geometry', async () => {
+    const mesh = await generateTwoPieceScrewCaseKernelMesh({
+      ...defaultProject,
+      enclosure: {
+        ...defaultProject.enclosure,
+        chamfer: 0,
+        ventilationRegions: [],
+        designFeatures: [
+          {
+            id: 'feature-logo',
+            label: 'Logo badge',
+            kind: 'logo_badge',
+            shape: 'rounded_rectangle',
+            operation: 'emboss',
+            x: 32,
+            y: 18,
+            width: 12,
+            height: 8,
+            diameter: 8,
+            depth: 0.4,
+            cornerRadius: 1,
+            spacing: 2,
+            rows: 1,
+            columns: 1,
+            text: 'OSHW',
+          },
+        ],
+      },
+    });
+    const topology = analyzeMeshTopology(mesh);
+
+    expect(validateMesh(mesh, { checkTopology: true })).toEqual({ ok: true, issues: [] });
+    expect(mesh.indices.length / 3).toBeGreaterThan(300);
+    expect(topology.isClosed).toBe(true);
+    expect(topology.isEdgeManifold).toBe(true);
+  }, 30_000);
+
   it('imports STEP reference geometry bounds through OpenCascade', async () => {
     const step = await exportTwoPieceScrewCaseStep(defaultProject);
     const imported = await importStepPcbReference(step);

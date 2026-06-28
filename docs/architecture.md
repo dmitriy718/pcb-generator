@@ -56,6 +56,10 @@ Text engraving features use the same shared footprint path with a built-in ASCII
 vector-module alphabet. This keeps text geometry deterministic and offline across
 preview, STEP, and mesh exports without depending on system fonts.
 
+Logo badge features also use the shared footprint path with a small built-in module
+logo catalog. This provides real geometry for common maker/electronics marks while
+keeping arbitrary imported logo outlines as a future plugin/importer extension.
+
 Mesh file exports for STL, OBJ, GLTF, and 3MF are tessellated from the same validated
 OpenCascade solids. The backend runs OpenCascade incremental meshing, extracts face
 triangulations, flips reversed face orientations, and rejects invalid topology before

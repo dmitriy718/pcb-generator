@@ -25,13 +25,14 @@ tested, documented, and usable before moving on.
 18. OpenCascade.js STEP export for validated base and lid solids.
 19. OpenCascade.js-derived STL/OBJ/GLTF/3MF mesh export with topology validation.
 20. Editable OpenCascade chamfers for generated base and lid solids.
+21. Heat-set insert socket geometry in preview and OpenCascade production exports.
 
 ## Next Milestones
 
 1. Add rounded/display/button cutout variants and collision checks.
 2. Expand KiCad importer with component-height and connector detection.
 3. Add STEP/STL/SVG/DXF import support for mechanical reference geometry.
-4. Add material-aware heat-set insert seat geometry and fastener presets.
+4. Add material-aware heat-set insert lead-in chamfers and vendor preset libraries.
 5. Add honeycomb vents, fan grills, and speaker grills.
 6. Add selective fillets where they improve ergonomics without hurting printability.
 7. Add additional enclosure templates one at a time.

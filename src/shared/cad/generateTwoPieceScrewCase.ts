@@ -13,6 +13,7 @@ import type {
 import { validateProject } from '../domain/validation';
 import { MeshBuilder } from './meshBuilder';
 import { analyzeMeshTopology, validateMesh } from './meshValidation';
+import type { FastenerProfile } from '../fasteners';
 
 export function generateTwoPieceScrewCase(project: EnclosureProject): GeneratedEnclosure {
   const validation = validateProject(project);
@@ -77,17 +78,23 @@ export function generateTwoPieceScrewCase(project: EnclosureProject): GeneratedE
 
   builder.addGroup('lid-screw-bosses', () => {
     for (const hole of pcb.mountingHoles) {
-      builder.addTube(
-        {
+      const lidBossOptions: LidBossOptions = {
+        center: {
           x: lidOffsetX + enclosure.wallThickness + enclosure.boardClearance + hole.x,
           y: lidOffsetY + enclosure.wallThickness + enclosure.boardClearance + hole.y,
           z: enclosure.lidThickness,
         },
-        enclosure.screwBossDiameter / 2,
-        (enclosure.screwHoleDiameter + material.holeCompensation) / 2,
-        enclosure.standoffHeight,
-        40,
-      );
+        outerRadius: enclosure.screwBossDiameter / 2,
+        screwRadius: (enclosure.screwHoleDiameter + material.holeCompensation) / 2,
+        height: enclosure.standoffHeight,
+      };
+      if (fastenerProfile.kind === 'heat_set_insert' && fastenerProfile.insertOuterDiameter) {
+        lidBossOptions.insertRadius = (fastenerProfile.insertOuterDiameter + material.holeCompensation) / 2;
+      }
+      if (fastenerProfile.insertDepth) {
+        lidBossOptions.insertDepth = fastenerProfile.insertDepth;
+      }
+      addLidBoss(builder, fastenerProfile, lidBossOptions);
     }
   });
 
@@ -131,6 +138,47 @@ export function generateTwoPieceScrewCase(project: EnclosureProject): GeneratedE
       printability,
     },
   };
+}
+
+interface LidBossOptions {
+  center: { x: number; y: number; z: number };
+  outerRadius: number;
+  screwRadius: number;
+  height: number;
+  insertRadius?: number;
+  insertDepth?: number;
+}
+
+function addLidBoss(
+  builder: MeshBuilder,
+  fastenerProfile: FastenerProfile,
+  options: LidBossOptions,
+): void {
+  if (
+    fastenerProfile.kind === 'heat_set_insert' &&
+    options.insertRadius !== undefined &&
+    options.insertDepth !== undefined &&
+    options.insertRadius > options.screwRadius
+  ) {
+    builder.addSteppedTube(
+      options.center,
+      options.outerRadius,
+      options.screwRadius,
+      options.insertRadius,
+      options.height,
+      Math.min(options.insertDepth, options.height),
+      40,
+    );
+    return;
+  }
+
+  builder.addTube(
+    options.center,
+    options.outerRadius,
+    options.screwRadius,
+    options.height,
+    40,
+  );
 }
 
 interface ShellCutoutOptions {

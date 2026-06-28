@@ -55,6 +55,21 @@ describe('validateProject', () => {
     expect(result.issues.map((issue) => issue.code)).toContain('boss_below_fastener_wall_minimum');
   });
 
+  it('rejects heat-set insert bosses that are too short for the modeled socket', () => {
+    const project = structuredClone(defaultProject);
+    project.enclosure.fastenerProfileId = 'm3_heat_set_insert';
+    project.enclosure.standoffDiameter = 8;
+    project.enclosure.standoffHoleDiameter = 3.2;
+    project.enclosure.screwBossDiameter = 8.5;
+    project.enclosure.screwHoleDiameter = 3.2;
+    project.enclosure.standoffHeight = 5.2;
+
+    const result = validateProject(project);
+
+    expect(result.ok).toBe(false);
+    expect(result.issues.map((issue) => issue.code)).toContain('heat_set_insert_boss_too_short');
+  });
+
   it('rejects connector cutouts that do not fit on the selected wall', () => {
     const project = structuredClone(defaultProject);
     project.pcb.connectorCutouts[0] = {

@@ -146,6 +146,20 @@ export function validateProject(project: EnclosureProject): ValidationResult {
     );
   }
 
+  if (
+    fastenerProfile?.kind === 'heat_set_insert' &&
+    fastenerProfile.insertDepth !== undefined &&
+    enclosure.standoffHeight <= fastenerProfile.insertDepth + 0.4
+  ) {
+    issues.push(
+      issue(
+        'heat_set_insert_boss_too_short',
+        'enclosure.standoffHeight',
+        'Heat-set insert boss height must leave at least 0.4 mm below the insert socket.',
+      ),
+    );
+  }
+
   for (const [index, hole] of pcb.mountingHoles.entries()) {
     requirePositive(issues, hole.diameter, `pcb.mountingHoles.${index}.diameter`, 'Mounting hole diameter');
     if (hole.x < 0 || hole.x > pcb.width || hole.y < 0 || hole.y > pcb.height) {

@@ -5,6 +5,7 @@ import {
 } from '../src/shared/cad/kernel/openCascadeBackend';
 import { analyzeMeshTopology, validateMesh } from '../src/shared/cad/meshValidation';
 import { defaultProject } from '../src/shared/domain';
+import { fastenerProfileById } from '../src/shared/fasteners';
 
 describe('OpenCascade backend', () => {
   it('exports a validated STEP model for the default two-piece case shell', async () => {
@@ -38,5 +39,28 @@ describe('OpenCascade backend', () => {
     const chamferedMesh = await generateTwoPieceScrewCaseKernelMesh(defaultProject);
 
     expect(chamferedMesh.indices.length).toBeGreaterThan(squareEdgeMesh.indices.length);
+  });
+
+  it('generates valid OpenCascade heat-set insert socket geometry', async () => {
+    const profile = fastenerProfileById('m3_heat_set_insert');
+    expect(profile).toBeDefined();
+    const mesh = await generateTwoPieceScrewCaseKernelMesh({
+      ...defaultProject,
+      enclosure: {
+        ...defaultProject.enclosure,
+        fastenerProfileId: profile?.id ?? '',
+        standoffDiameter: profile?.standoffDiameter ?? defaultProject.enclosure.standoffDiameter,
+        standoffHoleDiameter:
+          profile?.standoffHoleDiameter ?? defaultProject.enclosure.standoffHoleDiameter,
+        standoffHeight: profile?.recommendedStandoffHeight ?? defaultProject.enclosure.standoffHeight,
+        screwBossDiameter: profile?.screwBossDiameter ?? defaultProject.enclosure.screwBossDiameter,
+        screwHoleDiameter: profile?.screwHoleDiameter ?? defaultProject.enclosure.screwHoleDiameter,
+      },
+    });
+    const topology = analyzeMeshTopology(mesh);
+
+    expect(validateMesh(mesh, { checkTopology: true })).toEqual({ ok: true, issues: [] });
+    expect(topology.isClosed).toBe(true);
+    expect(topology.isEdgeManifold).toBe(true);
   });
 });

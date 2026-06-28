@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { generateTwoPieceScrewCase } from '../src/shared/cad';
 import { defaultProject, validateProject } from '../src/shared/domain';
 import { builtInFastenerProfiles, fastenerProfileById } from '../src/shared/fasteners';
+import { validateMesh } from '../src/shared/cad/meshValidation';
 
 describe('fastener profiles', () => {
   it('has unique profile ids', () => {
@@ -30,6 +31,39 @@ describe('fastener profiles', () => {
       expect(validation.issues, profile.id).toEqual([]);
       expect(generated.metadata.assemblyInstructions.join('\n')).toContain(profile.name);
     }
+  });
+
+  it('defines modeled insert socket dimensions for heat-set insert profiles', () => {
+    const heatSetProfiles = builtInFastenerProfiles.filter((profile) => profile.kind === 'heat_set_insert');
+
+    expect(heatSetProfiles.length).toBeGreaterThan(0);
+    for (const profile of heatSetProfiles) {
+      expect(profile.insertOuterDiameter, profile.id).toBeGreaterThan(profile.screwHoleDiameter);
+      expect(profile.insertDepth, profile.id).toBeGreaterThan(0);
+      expect(profile.insertDepth, profile.id).toBeLessThanOrEqual(profile.recommendedStandoffHeight);
+      expect((profile.screwBossDiameter - (profile.insertOuterDiameter ?? 0)) / 2, profile.id).toBeGreaterThan(
+        profile.minimumWallAroundHole,
+      );
+    }
+  });
+
+  it('generates valid preview mesh geometry for a heat-set insert boss profile', () => {
+    const profile = fastenerProfileById('m3_heat_set_insert');
+    expect(profile).toBeDefined();
+    const project = structuredClone(defaultProject);
+    project.enclosure.fastenerProfileId = profile?.id ?? '';
+    project.enclosure.standoffDiameter = profile?.standoffDiameter ?? project.enclosure.standoffDiameter;
+    project.enclosure.standoffHoleDiameter =
+      profile?.standoffHoleDiameter ?? project.enclosure.standoffHoleDiameter;
+    project.enclosure.standoffHeight =
+      profile?.recommendedStandoffHeight ?? project.enclosure.standoffHeight;
+    project.enclosure.screwBossDiameter = profile?.screwBossDiameter ?? project.enclosure.screwBossDiameter;
+    project.enclosure.screwHoleDiameter = profile?.screwHoleDiameter ?? project.enclosure.screwHoleDiameter;
+
+    const generated = generateTwoPieceScrewCase(project);
+
+    expect(validateMesh(generated.mesh).ok).toBe(true);
+    expect(generated.metadata.assemblyInstructions.join('\n')).toContain('M3 heat-set insert');
   });
 
   it('rejects unknown fastener profile ids', () => {

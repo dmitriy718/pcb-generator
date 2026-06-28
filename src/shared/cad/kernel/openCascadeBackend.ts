@@ -4,6 +4,7 @@ import { dirname, resolve } from 'node:path';
 
 import type { ConnectorCutout, EnclosureProject, TriangleMesh, VentilationRegion } from '../../domain';
 import { getMaterialProfile } from '../../domain/materials';
+import { fastenerProfileById, type FastenerProfile } from '../../fasteners';
 import { validateMesh } from '../meshValidation';
 
 interface OcShape {
@@ -214,6 +215,10 @@ function buildTwoPieceScrewCaseStepModel(
 ): KernelStepModel {
   const { pcb, enclosure } = project;
   const material = getMaterialProfile(enclosure.material);
+  const fastenerProfile = fastenerProfileById(enclosure.fastenerProfileId);
+  if (!fastenerProfile) {
+    throw new Error(`Unknown fastener profile: ${enclosure.fastenerProfileId}`);
+  }
   const internalWidth = pcb.width + enclosure.boardClearance * 2;
   const internalHeight = pcb.height + enclosure.boardClearance * 2;
   const outerWidth = internalWidth + enclosure.wallThickness * 2;
@@ -246,6 +251,7 @@ function buildTwoPieceScrewCaseStepModel(
   for (const cutout of pcb.connectorCutouts) {
     base = cut(oc, base, box(oc, connectorCutoutTool(cutout, enclosure.wallThickness, outerWidth, outerHeight)));
   }
+  base = chamfer(oc, base, enclosure.chamfer, 'base');
   const basePcbOrigin = {
     x: enclosure.wallThickness + enclosure.boardClearance,
     y: enclosure.wallThickness + enclosure.boardClearance,
@@ -265,7 +271,6 @@ function buildTwoPieceScrewCaseStepModel(
       ),
     );
   }
-  base = chamfer(oc, base, enclosure.chamfer, 'base');
 
   let lid = box(oc, {
     x: outerWidth + partSpacing,
@@ -282,26 +287,32 @@ function buildTwoPieceScrewCaseStepModel(
   )) {
     lid = cut(oc, lid, box(oc, slot));
   }
+  lid = chamfer(oc, lid, enclosure.chamfer, 'lid');
   const lidPcbOrigin = {
     x: outerWidth + partSpacing + enclosure.wallThickness + enclosure.boardClearance,
     y: enclosure.wallThickness + enclosure.boardClearance,
   };
   for (const hole of pcb.mountingHoles) {
+    const lidBossOptions: LidBossKernelOptions = {
+      x: lidPcbOrigin.x + hole.x,
+      y: lidPcbOrigin.y + hole.y,
+      z: enclosure.lidThickness,
+      outerRadius: enclosure.screwBossDiameter / 2,
+      screwRadius: (enclosure.screwHoleDiameter + material.holeCompensation) / 2,
+      height: enclosure.standoffHeight,
+    };
+    if (fastenerProfile.kind === 'heat_set_insert' && fastenerProfile.insertOuterDiameter) {
+      lidBossOptions.insertRadius = (fastenerProfile.insertOuterDiameter + material.holeCompensation) / 2;
+    }
+    if (fastenerProfile.insertDepth) {
+      lidBossOptions.insertDepth = fastenerProfile.insertDepth;
+    }
     lid = fuse(
       oc,
       lid,
-      tube(
-        oc,
-        lidPcbOrigin.x + hole.x,
-        lidPcbOrigin.y + hole.y,
-        enclosure.lidThickness,
-        enclosure.screwBossDiameter / 2,
-        (enclosure.screwHoleDiameter + material.holeCompensation) / 2,
-        enclosure.standoffHeight,
-      ),
+      lidBoss(oc, fastenerProfile, lidBossOptions),
     );
   }
-  lid = chamfer(oc, lid, enclosure.chamfer, 'lid');
 
   return { shapes: [base, lid] };
 }
@@ -589,6 +600,56 @@ function tube(
     oc,
     cylinder(oc, x, y, z, outerRadius, height),
     cylinder(oc, x, y, z - 0.5, innerRadius, height + 1),
+  );
+}
+
+interface LidBossKernelOptions {
+  x: number;
+  y: number;
+  z: number;
+  outerRadius: number;
+  screwRadius: number;
+  insertRadius?: number;
+  insertDepth?: number;
+  height: number;
+}
+
+function lidBoss(
+  oc: OpenCascadeModule,
+  fastenerProfile: FastenerProfile,
+  options: LidBossKernelOptions,
+): OcShape {
+  const boss = tube(
+    oc,
+    options.x,
+    options.y,
+    options.z,
+    options.outerRadius,
+    options.screwRadius,
+    options.height,
+  );
+
+  if (
+    fastenerProfile.kind !== 'heat_set_insert' ||
+    options.insertRadius === undefined ||
+    options.insertDepth === undefined ||
+    options.insertRadius <= options.screwRadius
+  ) {
+    return boss;
+  }
+
+  const seatDepth = Math.min(options.insertDepth, options.height);
+  return cut(
+    oc,
+    boss,
+    cylinder(
+      oc,
+      options.x,
+      options.y,
+      options.z + options.height - seatDepth,
+      options.insertRadius,
+      seatDepth + 0.5,
+    ),
   );
 }
 

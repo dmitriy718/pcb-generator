@@ -129,6 +129,47 @@ export class MeshBuilder {
     }
   }
 
+  addSteppedTube(
+    center: Vec3,
+    outerRadius: number,
+    lowerInnerRadius: number,
+    upperInnerRadius: number,
+    height: number,
+    upperDepth: number,
+    segments: number,
+  ): void {
+    const z0 = center.z;
+    const z1 = center.z + height;
+    const zStep = Math.max(z0, Math.min(z1, z1 - upperDepth));
+
+    for (let i = 0; i < segments; i += 1) {
+      const a0 = (Math.PI * 2 * i) / segments;
+      const a1 = (Math.PI * 2 * (i + 1)) / segments;
+      const outerBottom0 = radialPoint(center, outerRadius, a0, z0);
+      const outerBottom1 = radialPoint(center, outerRadius, a1, z0);
+      const outerStep0 = radialPoint(center, outerRadius, a0, zStep);
+      const outerStep1 = radialPoint(center, outerRadius, a1, zStep);
+      const outerTop0 = radialPoint(center, outerRadius, a0, z1);
+      const outerTop1 = radialPoint(center, outerRadius, a1, z1);
+      const lowerBottom0 = radialPoint(center, lowerInnerRadius, a0, z0);
+      const lowerBottom1 = radialPoint(center, lowerInnerRadius, a1, z0);
+      const lowerStep0 = radialPoint(center, lowerInnerRadius, a0, zStep);
+      const lowerStep1 = radialPoint(center, lowerInnerRadius, a1, zStep);
+      const upperStep0 = radialPoint(center, upperInnerRadius, a0, zStep);
+      const upperStep1 = radialPoint(center, upperInnerRadius, a1, zStep);
+      const upperTop0 = radialPoint(center, upperInnerRadius, a0, z1);
+      const upperTop1 = radialPoint(center, upperInnerRadius, a1, z1);
+
+      this.addQuad(outerBottom0, outerBottom1, outerStep1, outerStep0);
+      this.addQuad(outerStep0, outerStep1, outerTop1, outerTop0);
+      this.addQuad(lowerBottom1, lowerBottom0, lowerStep0, lowerStep1);
+      this.addQuad(upperStep1, upperStep0, upperTop0, upperTop1);
+      this.addQuad(outerTop0, outerTop1, upperTop1, upperTop0);
+      this.addQuad(outerBottom1, outerBottom0, lowerBottom0, lowerBottom1);
+      this.addQuad(upperStep0, upperStep1, lowerStep1, lowerStep0);
+    }
+  }
+
   build(): TriangleMesh {
     return {
       vertices: [...this.vertices],
@@ -137,6 +178,14 @@ export class MeshBuilder {
       units: 'mm',
     };
   }
+}
+
+function radialPoint(center: Vec3, radius: number, angle: number, z: number): Vec3 {
+  return {
+    x: center.x + Math.cos(angle) * radius,
+    y: center.y + Math.sin(angle) * radius,
+    z,
+  };
 }
 
 export function roundedRectanglePoints(width: number, height: number, radius: number, segments = 8): Vec2[] {

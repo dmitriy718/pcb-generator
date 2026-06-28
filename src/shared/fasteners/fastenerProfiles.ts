@@ -13,6 +13,8 @@ export interface FastenerProfile {
   screwBossDiameter: Millimeters;
   recommendedStandoffHeight: Millimeters;
   minimumWallAroundHole: Millimeters;
+  insertOuterDiameter?: Millimeters;
+  insertDepth?: Millimeters;
   notes: string;
 }
 
@@ -67,6 +69,8 @@ export const builtInFastenerProfiles: FastenerProfile[] = [
     screwBossDiameter: 6.8,
     recommendedStandoffHeight: 5,
     minimumWallAroundHole: 1,
+    insertOuterDiameter: 3.8,
+    insertDepth: 4,
     notes: 'Use insert manufacturer diameter guidance; press inserts into lid bosses after printing.',
   },
   {
@@ -80,6 +84,8 @@ export const builtInFastenerProfiles: FastenerProfile[] = [
     screwBossDiameter: 8.5,
     recommendedStandoffHeight: 6,
     minimumWallAroundHole: 1.2,
+    insertOuterDiameter: 4.6,
+    insertDepth: 5,
     notes: 'Robust threaded closure for larger enclosures; requires enough boss height for the chosen insert.',
   },
 ];

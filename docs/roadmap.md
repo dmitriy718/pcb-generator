@@ -56,12 +56,13 @@ tested, documented, and usable before moving on.
     into editable material, connector cutout, vent, and lid-feature parameters in the GUI.
 36. SVG logo import for rect/circle primitives, persisted as normalized editable logo
     badge footprints and exported through the OpenCascade production geometry path.
+37. High-confidence STEP text fallback mounting-hole detection from paired circular
+    curves spanning both board faces.
 
 ## Next Milestones
 
-1. Add high-confidence mounting-hole detection for STEP references.
-2. Add selective fillets where they improve ergonomics without hurting printability.
-3. Add additional enclosure templates one at a time.
-4. Add sandboxed plugin loading/execution for specific approved capability types.
-5. Add optional cloud/local LLM parsing behind the same inspectable assistant parameter model.
-6. Add release signing, notarization, and publishing automation.
+1. Add selective fillets where they improve ergonomics without hurting printability.
+2. Add additional enclosure templates one at a time.
+3. Add sandboxed plugin loading/execution for specific approved capability types.
+4. Add optional cloud/local LLM parsing behind the same inspectable assistant parameter model.
+5. Add release signing, notarization, and publishing automation.

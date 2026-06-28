@@ -307,4 +307,51 @@ END-ISO-10303-21;
       'OpenCascade could not transfer STEP topology; dimensions were recovered from STEP point coordinates.',
     );
   });
+
+  it('detects high-confidence STEP text fallback circular through holes', async () => {
+    const imported = await importStepPcbReference(`
+ISO-10303-21;
+DATA;
+#1=CARTESIAN_POINT('',(0,0,0));
+#2=CARTESIAN_POINT('',(80,40,1.6));
+#10=CARTESIAN_POINT('',(5,5,0));
+#11=CARTESIAN_POINT('',(5,5,1.6));
+#12=CARTESIAN_POINT('',(75,35,0));
+#13=CARTESIAN_POINT('',(75,35,1.6));
+#20=AXIS2_PLACEMENT_3D('',#10,#101,#102);
+#21=AXIS2_PLACEMENT_3D('',#11,#101,#102);
+#22=AXIS2_PLACEMENT_3D('',#12,#101,#102);
+#23=AXIS2_PLACEMENT_3D('',#13,#101,#102);
+#30=CIRCLE('',#20,1.5);
+#31=CIRCLE('',#21,1.5);
+#32=CIRCLE('',#22,1.5);
+#33=CIRCLE('',#23,1.5);
+ENDSEC;
+END-ISO-10303-21;
+`);
+
+    expect(imported.pcb.mountingHoles).toEqual([
+      { id: 'step-hole-1', x: 5, y: 5, diameter: 3 },
+      { id: 'step-hole-2', x: 75, y: 35, diameter: 3 },
+    ]);
+    expect(imported.warnings).toContain(
+      'Detected 2 high-confidence circular through-hole(s) from STEP curve topology.',
+    );
+  });
+
+  it('ignores STEP text fallback circles that do not span both board faces', async () => {
+    const imported = await importStepPcbReference(`
+ISO-10303-21;
+DATA;
+#1=CARTESIAN_POINT('',(0,0,0));
+#2=CARTESIAN_POINT('',(80,40,1.6));
+#10=CARTESIAN_POINT('',(5,5,0));
+#20=AXIS2_PLACEMENT_3D('',#10,#101,#102);
+#30=CIRCLE('',#20,1.5);
+ENDSEC;
+END-ISO-10303-21;
+`);
+
+    expect(imported.pcb.mountingHoles).toEqual([]);
+  });
 });

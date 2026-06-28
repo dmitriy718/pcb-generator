@@ -149,9 +149,11 @@ future high-confidence mesh feature detection.
 STEP import uses OpenCascade.js offline to read `.step` and `.stp` geometry and infer
 board width, height, and thickness from model bounds. Generic STEP files do not provide
 reliable PCB semantic labels for holes, connectors, or components, so those features
-must be verified or added manually after import. Tall STEP references use the same
-populated-assembly inference as STL imports so enclosure internal height can be raised
-without corrupting PCB board thickness.
+must be verified or added manually after import. When OpenCascade cannot transfer STEP
+topology and the importer falls back to STEP text coordinates, paired circular edges on
+both board faces are imported as high-confidence mounting holes. Tall STEP references
+use the same populated-assembly inference as STL imports so enclosure internal height
+can be raised without corrupting PCB board thickness.
 
 ## Board Library
 

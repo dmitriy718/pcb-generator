@@ -73,6 +73,11 @@ process invokes it for STEP export, while the renderer continues to receive ligh
 triangle meshes for interactive preview. Future kernel work should add selective
 fillets and richer enclosure templates.
 
+STEP text fallback import includes a conservative mounting-hole detector. It only
+creates mounting holes from circular curve topology when matching circles share the
+same center/radius on both board faces, keeping ambiguous vias, connector barrels, and
+single-face circles manual.
+
 ## Drawing Exporters
 
 SVG and DXF drawing exporters are parameter-derived 2D outputs, not viewport captures.

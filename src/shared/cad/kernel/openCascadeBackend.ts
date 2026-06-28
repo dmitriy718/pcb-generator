@@ -316,13 +316,86 @@ function pcbFromStepTextBounds(contents: string, readerError: unknown): StepImpo
     y: bounds.maxY - bounds.minY,
     z: bounds.maxZ - bounds.minZ,
   });
+  const mountingHoles = detectStepTextMountingHoles(contents, bounds);
   return {
-    ...result,
+    pcb: {
+      ...result.pcb,
+      mountingHoles,
+    },
     warnings: [
       ...result.warnings,
       'OpenCascade could not transfer STEP topology; dimensions were recovered from STEP point coordinates.',
+      ...(mountingHoles.length > 0
+        ? [`Detected ${mountingHoles.length} high-confidence circular through-hole(s) from STEP curve topology.`]
+        : []),
     ],
   };
+}
+
+function detectStepTextMountingHoles(
+  contents: string,
+  bounds: { minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number },
+): PcbSpecification['mountingHoles'] {
+  const points = new Map<string, { x: number; y: number; z: number }>();
+  for (const match of contents.matchAll(
+    /#(\d+)\s*=\s*CARTESIAN_POINT\s*\(\s*[^,]*,\s*\(\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*,\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*,\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*\)\s*\)/giu,
+  )) {
+    points.set(match[1] ?? '', {
+      x: Number(match[2]),
+      y: Number(match[3]),
+      z: Number(match[4]),
+    });
+  }
+
+  const axisOrigins = new Map<string, string>();
+  for (const match of contents.matchAll(/#(\d+)\s*=\s*AXIS2_PLACEMENT_3D\s*\(\s*[^,]*,\s*#(\d+)/giu)) {
+    axisOrigins.set(match[1] ?? '', match[2] ?? '');
+  }
+
+  const candidates: { x: number; y: number; z: number; radius: number }[] = [];
+  for (const match of contents.matchAll(
+    /#(\d+)\s*=\s*CIRCLE\s*\(\s*[^,]*,\s*#(\d+)\s*,\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*\)/giu,
+  )) {
+    const originId = axisOrigins.get(match[2] ?? '');
+    const center = originId ? points.get(originId) : undefined;
+    const radius = Number(match[3]);
+    if (!center || !Number.isFinite(radius) || radius < 1 || radius > 3.5) {
+      continue;
+    }
+    candidates.push({ ...center, radius });
+  }
+
+  const byCenter = new Map<string, { x: number; y: number; z: number; radius: number }[]>();
+  for (const candidate of candidates) {
+    if (
+      candidate.x <= bounds.minX ||
+      candidate.x >= bounds.maxX ||
+      candidate.y <= bounds.minY ||
+      candidate.y >= bounds.maxY
+    ) {
+      continue;
+    }
+    const key = `${round(candidate.x)}:${round(candidate.y)}:${round(candidate.radius)}`;
+    byCenter.set(key, [...(byCenter.get(key) ?? []), candidate]);
+  }
+
+  const holes: PcbSpecification['mountingHoles'] = [];
+  for (const group of byCenter.values()) {
+    const hasBottom = group.some((candidate) => nearlyEqual(candidate.z, bounds.minZ));
+    const hasTop = group.some((candidate) => nearlyEqual(candidate.z, bounds.maxZ));
+    const first = group[0];
+    if (!first || !hasBottom || !hasTop) {
+      continue;
+    }
+    holes.push({
+      id: `step-hole-${holes.length + 1}`,
+      x: round(first.x - bounds.minX),
+      y: round(first.y - bounds.minY),
+      diameter: round(first.radius * 2),
+    });
+  }
+
+  return holes;
 }
 
 function pcbFromBounds(extents: { x: number; y: number; z: number }): StepImportResult {
@@ -1018,6 +1091,14 @@ function removeVirtualFileIfPresent(oc: OpenCascadeModule, fileName: string): vo
   } catch {
     oc.FS.unlink(entry);
   }
+}
+
+function nearlyEqual(a: number, b: number): boolean {
+  return Math.abs(a - b) < 0.001;
+}
+
+function round(value: number): number {
+  return Math.round(value * 1000) / 1000;
 }
 
 function restoreGlobal(name: '__dirname' | '__filename' | 'require', value: unknown): void {

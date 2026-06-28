@@ -46,15 +46,16 @@ tested, documented, and usable before moving on.
 31. Shared STL/STEP mechanical-reference inference that separates tall populated
     assemblies into board thickness and component-height clearance with orientation
     and unit-confidence warnings.
+32. STL importer triangle-topology preservation for ASCII and binary meshes, retaining
+    triangle grouping and facet normals before future high-confidence feature detection.
 
 ## Next Milestones
 
 1. Add arbitrary SVG/logo outline import for logo badge features.
 2. Add high-confidence mounting-hole detection for STEP references.
-3. Preserve STL triangle topology for future high-confidence hole detection.
-4. Add selective fillets where they improve ergonomics without hurting printability.
-5. Add additional enclosure templates one at a time.
-6. Expand board profile library coverage.
-7. Add plugin API.
-8. Add AI-assisted parameter generation with inspectable output.
-9. Add release signing, notarization, and publishing automation.
+3. Add selective fillets where they improve ergonomics without hurting printability.
+4. Add additional enclosure templates one at a time.
+5. Expand board profile library coverage.
+6. Add plugin API.
+7. Add AI-assisted parameter generation with inspectable output.
+8. Add release signing, notarization, and publishing automation.

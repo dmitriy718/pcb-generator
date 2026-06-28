@@ -1,7 +1,58 @@
 import { describe, expect, it } from 'vitest';
-import { importStlPcb } from '../src/shared/importers';
+import { importStlPcb, parseStlTriangles } from '../src/shared/importers/stlPcb';
 
 describe('importStlPcb', () => {
+  it('preserves ASCII STL triangle grouping and normals', () => {
+    const triangles = parseStlTriangles(`
+solid pcb
+  facet normal 0 0 1
+    outer loop
+      vertex 10 20 0
+      vertex 95 20 0
+      vertex 95 76 1.6
+    endloop
+  endfacet
+  facet normal 0 0 1
+    outer loop
+      vertex 10 20 0
+      vertex 95 76 1.6
+      vertex 10 76 1.6
+    endloop
+  endfacet
+endsolid pcb
+`);
+
+    expect(triangles).toHaveLength(2);
+    expect(triangles[0]?.normal).toEqual({ x: 0, y: 0, z: 1 });
+    expect(triangles[0]?.vertices).toEqual([
+      { x: 10, y: 20, z: 0 },
+      { x: 95, y: 20, z: 0 },
+      { x: 95, y: 76, z: 1.6 },
+    ]);
+  });
+
+  it('preserves binary STL triangle grouping', () => {
+    const triangles = parseStlTriangles(
+      binaryStl([
+        [
+          [0, 0, 0],
+          [50, 0, 0],
+          [50, 25, 1.2],
+        ],
+        [
+          [0, 0, 0],
+          [50, 25, 1.2],
+          [0, 25, 1.2],
+        ],
+      ]),
+    );
+
+    expect(triangles).toHaveLength(2);
+    expect(triangles[1]?.vertices[2]?.x).toBe(0);
+    expect(triangles[1]?.vertices[2]?.y).toBe(25);
+    expect(triangles[1]?.vertices[2]?.z).toBeCloseTo(1.2, 5);
+  });
+
   it('imports board dimensions and thickness from ASCII STL bounds', () => {
     const result = importStlPcb(`
 solid pcb

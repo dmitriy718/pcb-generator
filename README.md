@@ -129,7 +129,8 @@ adds warnings for users to verify or manually define mounting holes, connectors,
 component clearances. Tall mechanical references are treated as populated assemblies:
 the importer keeps PCB thickness near the detected board slab or 1.6 mm default and
 stores the remaining height as component clearance instead of making the PCB itself
-unrealistically thick.
+unrealistically thick. The parser preserves triangle grouping and facet normals for
+future high-confidence mesh feature detection.
 
 ## STEP Import Scope
 

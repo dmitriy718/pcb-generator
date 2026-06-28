@@ -1,10 +1,15 @@
 import type { PcbSpecification } from '../domain';
 import { inferPcbFromMechanicalReference } from './mechanicalReference';
 
-interface Point3 {
+export interface Point3 {
   x: number;
   y: number;
   z: number;
+}
+
+export interface StlTriangle {
+  normal?: Point3;
+  vertices: [Point3, Point3, Point3];
 }
 
 interface Bounds {
@@ -18,7 +23,8 @@ export interface StlImportResult {
 }
 
 export function importStlPcb(contents: Uint8Array | string): StlImportResult {
-  const vertices = typeof contents === 'string' ? parseAsciiStl(contents) : parseStlBytes(contents);
+  const triangles = parseStlTriangles(contents);
+  const vertices = triangles.flatMap((triangle) => triangle.vertices);
   if (vertices.length < 3) {
     throw new Error('STL PCB import found no triangle vertices.');
   }
@@ -37,7 +43,14 @@ export function importStlPcb(contents: Uint8Array | string): StlImportResult {
   });
 }
 
-function parseStlBytes(bytes: Uint8Array): Point3[] {
+export function parseStlTriangles(contents: Uint8Array | string): StlTriangle[] {
+  if (typeof contents === 'string') {
+    return parseAsciiStl(contents);
+  }
+  return parseStlBytes(contents);
+}
+
+function parseStlBytes(bytes: Uint8Array): StlTriangle[] {
   if (isBinaryStl(bytes)) {
     return parseBinaryStl(bytes);
   }
@@ -53,12 +66,18 @@ function isBinaryStl(bytes: Uint8Array): boolean {
   return 84 + triangleCount * 50 === bytes.byteLength;
 }
 
-function parseBinaryStl(bytes: Uint8Array): Point3[] {
+function parseBinaryStl(bytes: Uint8Array): StlTriangle[] {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const triangleCount = view.getUint32(80, true);
-  const vertices: Point3[] = [];
+  const triangles: StlTriangle[] = [];
   for (let triangle = 0; triangle < triangleCount; triangle += 1) {
     const triangleOffset = 84 + triangle * 50;
+    const normal = {
+      x: view.getFloat32(triangleOffset, true),
+      y: view.getFloat32(triangleOffset + 4, true),
+      z: view.getFloat32(triangleOffset + 8, true),
+    };
+    const vertices: Point3[] = [];
     for (let vertex = 0; vertex < 3; vertex += 1) {
       const offset = triangleOffset + 12 + vertex * 12;
       vertices.push({
@@ -67,22 +86,69 @@ function parseBinaryStl(bytes: Uint8Array): Point3[] {
         z: view.getFloat32(offset + 8, true),
       });
     }
+    if (vertices.every(isFinitePoint)) {
+      triangles.push(stlTriangle(vertices as [Point3, Point3, Point3], normal));
+    }
   }
-  return vertices.filter(isFinitePoint);
+  return triangles;
 }
 
-function parseAsciiStl(contents: string): Point3[] {
-  const vertices: Point3[] = [];
-  for (const match of contents.matchAll(
+function parseAsciiStl(contents: string): StlTriangle[] {
+  const triangles: StlTriangle[] = [];
+  for (const facetMatch of contents.matchAll(/facet\s+normal\s+([\s\S]*?)endfacet/gimu)) {
+    const facet = facetMatch[1] ?? '';
+    const numberMatches = [...facet.matchAll(
+      /([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)/giu,
+    )].map((match) => Number(match[1]));
+    if (numberMatches.length < 12) {
+      continue;
+    }
+    const normal = pointFromNumbers(numberMatches, 0);
+    const vertices = [
+      pointFromNumbers(numberMatches, 3),
+      pointFromNumbers(numberMatches, 6),
+      pointFromNumbers(numberMatches, 9),
+    ];
+    if (vertices.every(isFinitePoint)) {
+      triangles.push(stlTriangle(vertices as [Point3, Point3, Point3], normal));
+    }
+  }
+  if (triangles.length > 0) {
+    return triangles;
+  }
+  return parseAsciiVertexStream(contents);
+}
+
+function parseAsciiVertexStream(contents: string): StlTriangle[] {
+  const vertices = [...contents.matchAll(
     /^\s*vertex\s+([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s+([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s+([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*$/gimu,
-  )) {
-    vertices.push({
+  )]
+    .map((match) => ({
       x: Number(match[1]),
       y: Number(match[2]),
       z: Number(match[3]),
+    }))
+    .filter(isFinitePoint);
+  const triangles: StlTriangle[] = [];
+  for (let index = 0; index + 2 < vertices.length; index += 3) {
+    const first = vertices[index];
+    const second = vertices[index + 1];
+    const third = vertices[index + 2];
+    if (!first || !second || !third) {
+      continue;
+    }
+    triangles.push({
+      vertices: [first, second, third],
     });
   }
-  return vertices.filter(isFinitePoint);
+  return triangles;
+}
+
+function stlTriangle(vertices: [Point3, Point3, Point3], normal?: Point3): StlTriangle {
+  if (normal && isFinitePoint(normal)) {
+    return { normal, vertices };
+  }
+  return { vertices };
 }
 
 function boundsFor(points: Point3[]): Bounds {
@@ -103,6 +169,14 @@ function boundsFor(points: Point3[]): Bounds {
 
 function isFinitePoint(point: Point3): boolean {
   return Number.isFinite(point.x) && Number.isFinite(point.y) && Number.isFinite(point.z);
+}
+
+function pointFromNumbers(values: number[], offset: number): Point3 {
+  return {
+    x: values[offset] ?? Number.NaN,
+    y: values[offset + 1] ?? Number.NaN,
+    z: values[offset + 2] ?? Number.NaN,
+  };
 }
 
 function inferBoardSlabThickness(points: Point3[], axis: keyof Point3): number | undefined {

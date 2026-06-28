@@ -919,6 +919,9 @@ export function App(): ReactElement {
               <button type="button" disabled={!validation.ok} onClick={() => void exportProject('3mf')}>
                 <FileType size={16} aria-hidden="true" /> Export 3MF
               </button>
+              <button type="button" disabled={!validation.ok} onClick={() => void exportProject('step')}>
+                <FileType size={16} aria-hidden="true" /> Export STEP
+              </button>
               <button type="button" disabled={!validation.ok} onClick={() => void exportProject('stl')}>
                 <FileType size={16} aria-hidden="true" /> Export STL
               </button>

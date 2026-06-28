@@ -4,6 +4,7 @@ import { electronApp, optimizer } from '@electron-toolkit/utils';
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import log from 'electron-log/main';
 import { generateTwoPieceScrewCase } from '../shared/cad';
+import { exportTwoPieceScrewCaseStep } from '../shared/cad/kernel/openCascadeBackend';
 import type { BoardProfile, EnclosureProject, ExportFormat, GeneratedEnclosure } from '../shared/domain';
 import { validateProject } from '../shared/domain';
 import {
@@ -265,6 +266,8 @@ void app.whenReady().then(() => {
     const normalizedFilePath = ensureExtension(filePath, extension);
     if (format === '3mf') {
       await writeFile(normalizedFilePath, await exportThreeMf(generated.mesh, generated.metadata));
+    } else if (format === 'step') {
+      await writeFile(normalizedFilePath, await exportTwoPieceScrewCaseStep(project), 'utf8');
     } else {
       const contents = exportTextFormat(project, generated, format);
       await writeFile(normalizedFilePath, contents, 'utf8');
@@ -296,7 +299,10 @@ function ensureExtension(filePath: string, extension: string): string {
 }
 
 function extensionForFormat(format: ExportFormat): string {
-  return format === 'bom' ? 'csv' : format;
+  if (format === 'bom') {
+    return 'csv';
+  }
+  return format;
 }
 
 function appendMetadataSuffix(filePath: string): string {
@@ -310,7 +316,7 @@ function appendMetadataSuffix(filePath: string): string {
 function exportTextFormat(
   project: EnclosureProject,
   generated: GeneratedEnclosure,
-  format: Exclude<ExportFormat, '3mf'>,
+  format: Exclude<ExportFormat, '3mf' | 'step'>,
 ): string {
   if (format === 'stl') {
     return exportAsciiStl(generated.mesh, project.name);

@@ -36,6 +36,7 @@
     "electron-log": "^5.4.3",
     "jszip": "^3.10.1",
     "lucide-react": "^0.562.0",
+    "opencascade.js": "^1.1.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "three": "^0.185.0",
@@ -66,7 +67,22 @@
     "icon": "resources/icon.png",
     "files": [
       "out/**/*",
-      "package.json"
+      "package.json",
+      "!node_modules/opencascade.js/.devcontainer/**",
+      "!node_modules/opencascade.js/.github/**",
+      "!node_modules/opencascade.js/actions-runner/**",
+      "!node_modules/opencascade.js/build/**",
+      "!node_modules/opencascade.js/embind/**",
+      "!node_modules/opencascade.js/patches/**",
+      "!node_modules/opencascade.js/Dockerfile",
+      "!node_modules/opencascade.js/Todo.md",
+      "!node_modules/opencascade.js/build.sh",
+      "!node_modules/opencascade.js/bundle.py",
+      "!node_modules/opencascade.js/execBuild.sh",
+      "!node_modules/opencascade.js/make.py"
+    ],
+    "asarUnpack": [
+      "node_modules/opencascade.js/dist/opencascade.wasm.wasm"
     ],
     "directories": {
       "buildResources": "resources",

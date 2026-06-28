@@ -9,7 +9,7 @@ The application is organized by responsibility:
 - `src/shared/boards`: Built-in PCB profile catalog.
 - `src/shared/boards/boardProfileFile.ts`: Custom board profile file parsing and validation.
 - `src/shared/fasteners`: Built-in fastener and insert profile catalog.
-- `src/shared/cad`: Parametric mesh generation and mesh validation.
+- `src/shared/cad`: Parametric mesh generation, mesh validation, and CAD-kernel integration.
 - `src/shared/exporters`: Deterministic text exporters and manufacturing metadata.
 - `src/shared/importers`: Offline file importers such as KiCad PCB S-expression parsing and SVG outline parsing.
 - `src/shared/projectFiles`: Versioned project file serialization and validation.
@@ -23,8 +23,12 @@ between form state and generated geometry.
 
 ## CAD Engine
 
-The current engine is a deterministic triangle-mesh generator for the initial
-two-piece screw case. It creates:
+The current engine has two CAD paths:
+
+- A deterministic triangle-mesh generator for real-time preview and mesh exports.
+- An OpenCascade.js WebAssembly backend for B-rep validation and STEP export.
+
+The mesh path creates:
 
 - Base shell with floor and walls.
 - Rectangular side-wall connector cutouts by segmenting wall geometry around openings.
@@ -33,9 +37,16 @@ two-piece screw case. It creates:
 - Lid panel.
 - Hollow screw bosses.
 
-The engine validates project parameters before generation and validates mesh buffer
-integrity after generation. Future OpenCascade.js work should live behind the same
-domain-level inputs and generated-output contract.
+The OpenCascade backend lives in `src/shared/cad/kernel`. It currently generates the
+base shell, interior cavity, rectangular connector cutouts, lid plate, and rectangular
+lid vent cutouts as validated B-rep solids. It writes STEP through OpenCascade's STEP
+writer and validates each transferred solid with `BRepCheck_Analyzer` before export.
+
+The kernel path intentionally remains isolated from the renderer. The Electron main
+process invokes it for STEP export, while the renderer continues to receive lightweight
+triangle meshes for interactive preview. Future kernel work should add standoffs,
+screw bosses, heat-set insert geometry, fillets, chamfers, and eventually mesh
+tessellation from the B-rep source so STL/3MF/OBJ are derived from the same solid model.
 
 ## Drawing Exporters
 
@@ -63,6 +74,8 @@ The renderer cannot write files directly. It calls preload methods:
 - `openProjectFile()`
 - `exportProject(project, format)`
 - `importKiCadProject()`
+- `importSvgProject()`
+- `importDxfProject()`
 
 The main process regenerates the enclosure before export, preventing stale preview
 geometry from being saved.

@@ -50,9 +50,23 @@ also packages all platforms and publishes a GitHub release with the generated ar
 ## Signing Notes
 
 Windows installers should be Authenticode-signed. macOS builds should be signed with an
-Apple Developer ID certificate and notarized. The current workflow sets
-`CSC_IDENTITY_AUTO_DISCOVERY=false` so CI can produce unsigned test artifacts without
-failing when certificates are unavailable.
+Apple Developer ID certificate and notarized. Manual `workflow_dispatch` runs can still
+produce unsigned test artifacts. Tagged releases require signing secrets for Windows and
+macOS before packaging starts.
+
+Required GitHub Actions secrets:
+
+- `WIN_CSC_LINK`: base64-encoded Windows signing certificate or certificate URL
+- `WIN_CSC_KEY_PASSWORD`: Windows certificate password
+- `MAC_CSC_LINK`: base64-encoded Apple Developer ID certificate or certificate URL
+- `MAC_CSC_KEY_PASSWORD`: macOS certificate password
+- `APPLE_ID`: Apple developer account email used for notarization
+- `APPLE_APP_SPECIFIC_PASSWORD`: app-specific password for notarization
+- `APPLE_TEAM_ID`: Apple Developer Team ID
+
+The release workflow passes these values through Electron Builder's standard
+`CSC_*`/Apple notarization environment variables and fails tagged Windows/macOS release
+jobs early when the required secrets are missing.
 
 ## Docker Development
 

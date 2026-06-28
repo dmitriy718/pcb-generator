@@ -64,8 +64,11 @@ tested, documented, and usable before moving on.
     JSON contributions with manifest registration and domain validation.
 40. Optional assistant provider interface for local/cloud prompt parsers, constrained to
     structured intent output that still generates editable validated parameters.
+41. Release signing gate for tagged Windows/macOS builds, passing Electron Builder
+    signing and Apple notarization credentials from GitHub Actions secrets.
 
 ## Next Milestones
 
 1. Add selective fillets where they improve ergonomics without hurting printability.
-2. Add release signing, notarization, and publishing automation.
+2. Add runtime-verified selective fillets where OpenCascade.js exposes the required
+   fillet builder reliably.

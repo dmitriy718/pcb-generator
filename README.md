@@ -78,8 +78,9 @@ npm run package:win
 npm run package:mac
 ```
 
-Packaging uses Electron Builder. Platform-specific signing and notarization should be
-configured before public binary releases.
+Packaging uses Electron Builder. Tagged GitHub releases require Windows signing and
+macOS signing/notarization secrets; manual workflow runs can still build unsigned test
+artifacts.
 
 See [docs/deployment.md](docs/deployment.md) for CI packaging, release, signing, and
 Docker development details.

@@ -49,7 +49,7 @@ function createWindow(): BrowserWindow {
     minHeight: 720,
     title: 'PCB Enclosure Generator',
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: join(__dirname, '../preload/index.mjs'),
       sandbox: false,
       contextIsolation: true,
       nodeIntegration: false,
@@ -69,8 +69,25 @@ function createWindow(): BrowserWindow {
 
   if (isSmokeTest) {
     mainWindow.webContents.once('did-finish-load', () => {
-      log.info('Electron smoke test loaded renderer successfully.');
-      setTimeout(() => app.quit(), 250);
+      void mainWindow.webContents
+        .executeJavaScript(
+          "Boolean(window.pcbEnclosure && window.pcbEnclosure.saveProjectFile && window.pcbEnclosure.exportProject)",
+        )
+        .then((hasPreloadBridge: boolean) => {
+          if (!hasPreloadBridge) {
+            log.error('Electron smoke test failed: preload IPC bridge is unavailable.');
+            process.exitCode = 1;
+            app.quit();
+            return;
+          }
+          log.info('Electron smoke test loaded renderer and preload bridge successfully.');
+          setTimeout(() => app.quit(), 250);
+        })
+        .catch((error: unknown) => {
+          log.error('Electron smoke test failed while checking preload bridge.', error);
+          process.exitCode = 1;
+          app.quit();
+        });
     });
 
     mainWindow.webContents.once('did-fail-load', (_event, errorCode, errorDescription, validatedUrl) => {

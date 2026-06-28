@@ -104,26 +104,53 @@ export function App(): ReactElement {
     setExportMessage(`Applied ${profile.name} board profile.`);
   }
 
+  function pcbApi(): Window['pcbEnclosure'] | undefined {
+    return window.pcbEnclosure;
+  }
+
+  function formatActionError(action: string, error: unknown): string {
+    const message = error instanceof Error ? error.message : String(error);
+    return `${action} failed: ${message}`;
+  }
+
   async function importBoardProfile(): Promise<void> {
     setExportMessage('');
-    const result = await window.pcbEnclosure.importBoardProfile();
-    if (!result.imported) {
-      setExportMessage('Board profile import cancelled.');
+    const api = pcbApi();
+    if (!api) {
+      setExportMessage('Desktop integration is unavailable. Launch the Electron app instead of the browser preview.');
       return;
     }
+    try {
+      const result = await api.importBoardProfile();
+      if (!result.imported) {
+        setExportMessage('Board profile import cancelled.');
+        return;
+      }
 
-    applyBoardProfileObject(result.profile);
-    setExportMessage(`Imported board profile ${result.sourcePath}.`);
+      applyBoardProfileObject(result.profile);
+      setExportMessage(`Imported board profile ${result.sourcePath}.`);
+    } catch (error) {
+      setExportMessage(formatActionError('Board profile import', error));
+    }
   }
 
   async function saveCurrentBoardProfile(): Promise<void> {
     setExportMessage('');
-    const result = await window.pcbEnclosure.saveCurrentBoardProfile(project);
-    setExportMessage(
-      result.saved
-        ? `Saved board profile ${result.filePath}.`
-        : 'Board profile save cancelled.',
-    );
+    const api = pcbApi();
+    if (!api) {
+      setExportMessage('Desktop integration is unavailable. Launch the Electron app instead of the browser preview.');
+      return;
+    }
+    try {
+      const result = await api.saveCurrentBoardProfile(project);
+      setExportMessage(
+        result.saved
+          ? `Saved board profile ${result.filePath}.`
+          : 'Board profile save cancelled.',
+      );
+    } catch (error) {
+      setExportMessage(formatActionError('Board profile save', error));
+    }
   }
 
   function applyFastenerProfile(profileId: string): void {
@@ -281,81 +308,135 @@ export function App(): ReactElement {
 
   async function exportProject(format: ExportFormat): Promise<void> {
     setExportMessage('');
-    const result = await window.pcbEnclosure.exportProject(project, format);
-    setExportMessage(
-      result.saved
-        ? `Saved ${result.filePath} and MakerWorld metadata.`
-        : 'Export cancelled.',
-    );
+    const api = pcbApi();
+    if (!api) {
+      setExportMessage('Desktop integration is unavailable. Launch the Electron app instead of the browser preview.');
+      return;
+    }
+    try {
+      const result = await api.exportProject(project, format);
+      setExportMessage(
+        result.saved
+          ? `Saved ${result.filePath} and MakerWorld metadata.`
+          : 'Export cancelled.',
+      );
+    } catch (error) {
+      setExportMessage(formatActionError(`${format.toUpperCase()} export`, error));
+    }
   }
 
   async function saveProjectFile(): Promise<void> {
     setExportMessage('');
-    const result = await window.pcbEnclosure.saveProjectFile(project);
-    setExportMessage(result.saved ? `Saved project ${result.filePath}.` : 'Save cancelled.');
+    const api = pcbApi();
+    if (!api) {
+      setExportMessage('Desktop integration is unavailable. Launch the Electron app instead of the browser preview.');
+      return;
+    }
+    try {
+      const result = await api.saveProjectFile(project);
+      setExportMessage(result.saved ? `Saved project ${result.filePath}.` : 'Save cancelled.');
+    } catch (error) {
+      setExportMessage(formatActionError('Project save', error));
+    }
   }
 
   async function openProjectFile(): Promise<void> {
     setExportMessage('');
-    const result = await window.pcbEnclosure.openProjectFile();
-    if (!result.opened) {
-      setExportMessage('Open cancelled.');
+    const api = pcbApi();
+    if (!api) {
+      setExportMessage('Desktop integration is unavailable. Launch the Electron app instead of the browser preview.');
       return;
     }
-    setProject(result.project);
-    setImportWarnings([]);
-    setExportMessage(`Opened project ${result.sourcePath}.`);
+    try {
+      const result = await api.openProjectFile();
+      if (!result.opened) {
+        setExportMessage('Open cancelled.');
+        return;
+      }
+      setProject(result.project);
+      setImportWarnings([]);
+      setExportMessage(`Opened project ${result.sourcePath}.`);
+    } catch (error) {
+      setExportMessage(formatActionError('Project open', error));
+    }
   }
 
   async function importKiCadProject(): Promise<void> {
     setExportMessage('');
-    const result = await window.pcbEnclosure.importKiCadProject();
-    if (!result.imported) {
-      setExportMessage('Import cancelled.');
+    const api = pcbApi();
+    if (!api) {
+      setExportMessage('Desktop integration is unavailable. Launch the Electron app instead of the browser preview.');
       return;
     }
+    try {
+      const result = await api.importKiCadProject();
+      if (!result.imported) {
+        setExportMessage('Import cancelled.');
+        return;
+      }
 
-    setProject((current) => ({
-      ...current,
-      name: result.projectName,
-      pcb: result.pcb,
-    }));
-    setImportWarnings(result.warnings);
-    setExportMessage(`Imported ${result.sourcePath}.`);
+      setProject((current) => ({
+        ...current,
+        name: result.projectName,
+        pcb: result.pcb,
+      }));
+      setImportWarnings(result.warnings);
+      setExportMessage(`Imported ${result.sourcePath}.`);
+    } catch (error) {
+      setExportMessage(formatActionError('KiCad import', error));
+    }
   }
 
   async function importSvgProject(): Promise<void> {
     setExportMessage('');
-    const result = await window.pcbEnclosure.importSvgProject();
-    if (!result.imported) {
-      setExportMessage('SVG import cancelled.');
+    const api = pcbApi();
+    if (!api) {
+      setExportMessage('Desktop integration is unavailable. Launch the Electron app instead of the browser preview.');
       return;
     }
+    try {
+      const result = await api.importSvgProject();
+      if (!result.imported) {
+        setExportMessage('SVG import cancelled.');
+        return;
+      }
 
-    setProject((current) => ({
-      ...current,
-      name: result.projectName,
-      pcb: result.pcb,
-    }));
-    setImportWarnings(result.warnings);
-    setExportMessage(`Imported ${result.sourcePath}.`);
+      setProject((current) => ({
+        ...current,
+        name: result.projectName,
+        pcb: result.pcb,
+      }));
+      setImportWarnings(result.warnings);
+      setExportMessage(`Imported ${result.sourcePath}.`);
+    } catch (error) {
+      setExportMessage(formatActionError('SVG import', error));
+    }
   }
 
   async function importDxfProject(): Promise<void> {
     setExportMessage('');
-    const result = await window.pcbEnclosure.importDxfProject();
-    if (!result.imported) {
-      setExportMessage('DXF import cancelled.');
+    const api = pcbApi();
+    if (!api) {
+      setExportMessage('Desktop integration is unavailable. Launch the Electron app instead of the browser preview.');
       return;
     }
+    try {
+      const result = await api.importDxfProject();
+      if (!result.imported) {
+        setExportMessage('DXF import cancelled.');
+        return;
+      }
 
-    setProject((current) => ({
-      ...current,
-      name: result.projectName,
-      pcb: result.pcb,
-    }));
-    setImportWarnings(result.warnings);
-    setExportMessage(`Imported ${result.sourcePath}.`);
+      setProject((current) => ({
+        ...current,
+        name: result.projectName,
+        pcb: result.pcb,
+      }));
+      setImportWarnings(result.warnings);
+      setExportMessage(`Imported ${result.sourcePath}.`);
+    } catch (error) {
+      setExportMessage(formatActionError('DXF import', error));
+    }
   }
 
   return (

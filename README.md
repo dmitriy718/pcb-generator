@@ -30,13 +30,23 @@ documentation, and CI foundation with a usable manual PCB workflow.
 - SVG drawing, DXF drawing, and BOM CSV export plus MakerWorld metadata JSON.
 - Strict TypeScript, ESLint, Prettier, Vitest, Docker development environment, and GitHub Actions CI/release workflows.
 - Versioned plugin manifest API for offline capability discovery.
+- Offline design assistant that converts common natural-language enclosure phrases into
+  editable material, cutout, vent, and lid-feature parameters.
 
 ## Current Scope
 
-The current implementation intentionally does not claim AI, automated connector
-recognition, arbitrary plugin code execution, or full enclosure-template coverage.
-Those are tracked in the roadmap and should be added feature by feature with tests and
-documentation.
+The current implementation intentionally does not claim cloud LLM integration,
+automated connector recognition for all imports, arbitrary plugin code execution, or
+full enclosure-template coverage. Those are tracked in the roadmap and should be added
+feature by feature with tests and documentation.
+
+## Design Assistant
+
+The renderer includes an offline prompt box that maps common phrases such as `USB-C on
+the left`, `OLED`, `speaker holes`, `ventilation`, `rounded`, `handheld`, and material
+names into normal editable project parameters. Generated assistant changes appear in
+the same connector, ventilation, material, and design-feature editors as manual
+changes.
 
 ## Development
 

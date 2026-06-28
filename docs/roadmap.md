@@ -52,6 +52,8 @@ tested, documented, and usable before moving on.
     BeagleBone, Jetson, M5Stack, and SDR starter profiles validated by domain tests.
 34. Versioned plugin manifest API and capability registry for offline connector,
     board, fastener, enclosure, vent, exporter, and material extension discovery.
+35. Offline natural-language design assistant that converts supported enclosure phrases
+    into editable material, connector cutout, vent, and lid-feature parameters in the GUI.
 
 ## Next Milestones
 
@@ -60,5 +62,5 @@ tested, documented, and usable before moving on.
 3. Add selective fillets where they improve ergonomics without hurting printability.
 4. Add additional enclosure templates one at a time.
 5. Add sandboxed plugin loading/execution for specific approved capability types.
-6. Add AI-assisted parameter generation with inspectable output.
+6. Add optional cloud/local LLM parsing behind the same inspectable assistant parameter model.
 7. Add release signing, notarization, and publishing automation.

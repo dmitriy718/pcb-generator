@@ -25,6 +25,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import type { ReactElement } from 'react';
 import { useMemo, useState } from 'react';
+import { applyDesignPrompt } from '../../shared/assistant';
 import { generateTwoPieceScrewCase } from '../../shared/cad';
 import { boardProfileById, builtInBoardProfiles } from '../../shared/boards';
 import { defaultProject, materialProfiles, validateProject } from '../../shared/domain';
@@ -357,6 +358,9 @@ export function App(): ReactElement {
   const [project, setProject] = useState<EnclosureProject>(defaultProject);
   const [exportMessage, setExportMessage] = useState<string>('');
   const [importWarnings, setImportWarnings] = useState<string[]>([]);
+  const [designPrompt, setDesignPrompt] = useState<string>(
+    'Handheld PETG enclosure with rounded corners, USB-C on the left, OLED, speaker holes, ventilation, and logo.',
+  );
   const validation = useMemo(() => validateProject(project), [project]);
   const generated = useMemo(() => {
     if (!validation.ok) {
@@ -441,6 +445,17 @@ export function App(): ReactElement {
   function formatActionError(action: string, error: unknown): string {
     const message = error instanceof Error ? error.message : String(error);
     return `${action} failed: ${message}`;
+  }
+
+  function applyAssistantDesign(): void {
+    const result = applyDesignPrompt(project, designPrompt);
+    setProject(result.project);
+    setImportWarnings(result.warnings);
+    setExportMessage(
+      result.applied.length > 0
+        ? `Assistant applied ${result.applied.length} editable change${result.applied.length === 1 ? '' : 's'}: ${result.applied.join(', ')}.`
+        : 'Assistant did not apply design changes.',
+    );
   }
 
   async function importBoardProfile(): Promise<void> {
@@ -1010,6 +1025,21 @@ export function App(): ReactElement {
               onChange={(event) => setProject({ ...project, name: event.target.value })}
             />
           </label>
+
+          <fieldset>
+            <legend>Design Assistant</legend>
+            <label className="field wide">
+              <span>Prompt</span>
+              <textarea
+                value={designPrompt}
+                rows={4}
+                onChange={(event) => setDesignPrompt(event.target.value)}
+              />
+            </label>
+            <button type="button" className="secondary-button" onClick={applyAssistantDesign}>
+              Apply editable parameters
+            </button>
+          </fieldset>
 
           <fieldset>
             <legend>Board Library</legend>

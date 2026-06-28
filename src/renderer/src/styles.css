@@ -175,7 +175,8 @@ legend,
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   min-height: 32px;
   border: 1px solid #c6ced2;
@@ -184,6 +185,13 @@ select {
   color: #1f2428;
   padding: 0 8px;
   font-size: 13px;
+}
+
+textarea {
+  min-height: 84px;
+  padding: 8px;
+  line-height: 1.35;
+  resize: vertical;
 }
 
 input[type='number'] {

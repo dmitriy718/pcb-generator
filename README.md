@@ -133,13 +133,15 @@ whose `id` or `class` contains `hole` or `mount`. The importer supports `mm`, `c
 
 ## DXF Import Scope
 
-DXF import supports offline PCB outline files containing `LINE`, `ARC`, or `LWPOLYLINE`
-entities on outline-like layers such as `Edge.Cuts`, `outline`, `board`, or `pcb`.
+DXF import supports offline PCB outline files containing `LINE`, `ARC`, `LWPOLYLINE`,
+or `SPLINE` entities on outline-like layers such as `Edge.Cuts`, `outline`, `board`,
+or `pcb`.
 It reads `$INSUNITS` for inch, millimeter, centimeter, and meter scaling, infers board
 dimensions from outline bounds, and detects circular mounting holes on hole-like layers
 or small circles inside the board bounds. `LWPOLYLINE` bulge values are expanded when
-measuring rounded board outlines. Complex splines and mechanical STEP feature detection
-remain future importer milestones.
+measuring rounded board outlines. `SPLINE` entities are measured conservatively from
+control/fit point bounds and produce a verification warning. Exact NURBS evaluation and
+mechanical STEP feature detection remain future importer milestones.
 
 ## STL Import Scope
 

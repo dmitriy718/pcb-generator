@@ -44,7 +44,15 @@ interface ArcEntity {
   endAngleDegrees: number;
 }
 
-type DxfEntity = ArcEntity | CircleEntity | LineEntity | PolylineEntity;
+interface SplineEntity {
+  type: 'SPLINE';
+  layer: string;
+  points: Point[];
+}
+
+type OutlineEntity = ArcEntity | LineEntity | PolylineEntity | SplineEntity;
+
+type DxfEntity = ArcEntity | CircleEntity | LineEntity | PolylineEntity | SplineEntity;
 
 export interface DxfImportResult {
   pcb: PcbSpecification;
@@ -60,7 +68,7 @@ export function importDxfPcb(contents: string): DxfImportResult {
   const outlinePoints = outlineEntities.flatMap(outlineEntityPoints);
 
   if (outlinePoints.length === 0) {
-    throw new Error('DXF PCB outline import found no LINE, LWPOLYLINE, or ARC outline geometry.');
+    throw new Error('DXF PCB outline import found no LINE, LWPOLYLINE, ARC, or SPLINE outline geometry.');
   }
 
   const bounds = boundsFor(outlinePoints);
@@ -72,6 +80,9 @@ export function importDxfPcb(contents: string): DxfImportResult {
 
   if (outlineEntities.some((entity) => entity.type === 'LWPOLYLINE' && !entity.closed)) {
     warnings.push('At least one DXF outline polyline is open; dimensions were inferred from its bounds.');
+  }
+  if (outlineEntities.some((entity) => entity.type === 'SPLINE')) {
+    warnings.push('At least one DXF outline spline was measured from control/fit point bounds; verify dimensions before production.');
   }
 
   const mountingHoles = extractMountingHoles(entities, bounds, scale);
@@ -170,6 +181,12 @@ function parseEntity(type: string, pairs: DxfPair[]): DxfEntity | undefined {
       ? { type, layer, center, radius, startAngleDegrees, endAngleDegrees }
       : undefined;
   }
+  if (type === 'SPLINE') {
+    const controlPoints = pointsFromCodes(pairs, 10, 20);
+    const fitPoints = pointsFromCodes(pairs, 11, 21);
+    const points = controlPoints.length > 0 ? controlPoints : fitPoints;
+    return points.length >= 2 ? { type, layer, points } : undefined;
+  }
   return undefined;
 }
 
@@ -232,18 +249,35 @@ function polylineVertices(pairs: DxfPair[]): PolylineVertex[] {
   return vertices;
 }
 
-function preferredOutlineEntities(entities: DxfEntity[]): (ArcEntity | LineEntity | PolylineEntity)[] {
+function pointsFromCodes(pairs: DxfPair[], xCode: number, yCode: number): Point[] {
+  const points: Point[] = [];
+  let pendingX: number | undefined;
+  for (const pair of pairs) {
+    if (pair.code === xCode) {
+      pendingX = Number(pair.value);
+    } else if (pair.code === yCode && pendingX !== undefined) {
+      const y = Number(pair.value);
+      if (Number.isFinite(pendingX) && Number.isFinite(y)) {
+        points.push({ x: pendingX, y });
+      }
+      pendingX = undefined;
+    }
+  }
+  return points;
+}
+
+function preferredOutlineEntities(entities: DxfEntity[]): OutlineEntity[] {
   const outlines = entities.filter(
-    (entity): entity is ArcEntity | LineEntity | PolylineEntity =>
+    (entity): entity is OutlineEntity =>
       entity.type !== 'CIRCLE' && isOutlineLayer(entity.layer),
   );
   if (outlines.length > 0) {
     return outlines;
   }
-  return entities.filter((entity): entity is ArcEntity | LineEntity | PolylineEntity => entity.type !== 'CIRCLE');
+  return entities.filter((entity): entity is OutlineEntity => entity.type !== 'CIRCLE');
 }
 
-function outlineEntityPoints(entity: ArcEntity | LineEntity | PolylineEntity): Point[] {
+function outlineEntityPoints(entity: OutlineEntity): Point[] {
   if (entity.type === 'LINE') {
     return [entity.start, entity.end];
   }
@@ -337,7 +371,7 @@ function pointInsideBounds(
 }
 
 function isSupportedEntity(type: string): boolean {
-  return type === 'LINE' || type === 'LWPOLYLINE' || type === 'CIRCLE' || type === 'ARC';
+  return type === 'LINE' || type === 'LWPOLYLINE' || type === 'CIRCLE' || type === 'ARC' || type === 'SPLINE';
 }
 
 function bulgeSegmentPoints(start: PolylineVertex, end: PolylineVertex): Point[] {

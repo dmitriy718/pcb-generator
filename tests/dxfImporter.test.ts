@@ -235,9 +235,82 @@ Edge.Cuts
     expect(result.pcb.height).toBe(10);
   });
 
+  it('uses SPLINE control-point bounds with a production verification warning', () => {
+    const result = importDxfPcb(`
+0
+SPLINE
+8
+Edge.Cuts
+10
+0
+20
+0
+10
+60
+20
+0
+10
+60
+20
+40
+10
+0
+20
+40
+0
+CIRCLE
+8
+MountingHoles
+10
+5
+20
+5
+40
+1.5
+`);
+
+    expect(result.pcb.width).toBe(60);
+    expect(result.pcb.height).toBe(40);
+    expect(result.pcb.mountingHoles).toEqual([{ id: 'mh-1', x: 5, y: 5, diameter: 3 }]);
+    expect(result.warnings).toContain(
+      'At least one DXF outline spline was measured from control/fit point bounds; verify dimensions before production.',
+    );
+  });
+
+  it('falls back to SPLINE fit-point bounds when control points are absent', () => {
+    const result = importDxfPcb(`
+0
+SPLINE
+8
+outline
+11
+-5
+21
+-2
+11
+45
+21
+-2
+11
+45
+21
+18
+11
+-5
+21
+18
+`);
+
+    expect(result.pcb.width).toBe(50);
+    expect(result.pcb.height).toBe(20);
+    expect(result.warnings).toContain(
+      'At least one DXF outline spline was measured from control/fit point bounds; verify dimensions before production.',
+    );
+  });
+
   it('throws when no outline geometry is present', () => {
     expect(() => importDxfPcb('0\nCIRCLE\n8\nholes\n10\n1\n20\n1\n40\n0.5\n')).toThrow(
-      'no LINE, LWPOLYLINE, or ARC',
+      'no LINE, LWPOLYLINE, ARC, or SPLINE',
     );
   });
 });

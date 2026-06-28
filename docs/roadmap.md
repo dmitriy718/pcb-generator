@@ -73,10 +73,12 @@ tested, documented, and usable before moving on.
     rounded board bounds covered by importer regression tests.
 44. SVG PCB outline path import for common `M`, `L`, `H`, `V`, `A`, and `Z` commands,
     including relative line paths and elliptical arc rounded-corner outlines.
+45. Conservative DXF `SPLINE` outline import from control/fit point bounds with
+    user-facing verification warnings and regression coverage.
 
 ## Next Milestones
 
 1. Broaden runtime-verified fillet selection to additional enclosure templates as those
    templates graduate from presets into independent validated generators.
-2. Add deeper importer feature extraction for SVG Bezier paths, DXF splines, and
-   semantic STEP connector recognition.
+2. Add deeper importer feature extraction for SVG Bezier paths, exact DXF NURBS
+   evaluation, and semantic STEP connector recognition.

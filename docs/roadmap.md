@@ -60,10 +60,11 @@ tested, documented, and usable before moving on.
     curves spanning both board faces.
 38. Enclosure template preset registry and GUI selector for compact, rounded handheld,
     tall-clearance, wall-mount, and desktop project-box two-piece screw-case variants.
+39. Declarative plugin package loader for approved board-library and enclosure-template
+    JSON contributions with manifest registration and domain validation.
 
 ## Next Milestones
 
 1. Add selective fillets where they improve ergonomics without hurting printability.
-2. Add sandboxed plugin loading/execution for specific approved capability types.
-3. Add optional cloud/local LLM parsing behind the same inspectable assistant parameter model.
-4. Add release signing, notarization, and publishing automation.
+2. Add optional cloud/local LLM parsing behind the same inspectable assistant parameter model.
+3. Add release signing, notarization, and publishing automation.

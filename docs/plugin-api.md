@@ -51,8 +51,37 @@ Supported sandbox permission declarations:
 - `network`
 
 The current API validates manifests and indexes declared capabilities. Plugin code
-execution, dynamic loading, and third-party geometry execution are intentionally future
-work and must be added behind explicit sandbox and review boundaries.
+execution and third-party geometry execution are intentionally not supported. Declarative
+plugin packages can contribute approved JSON data for board libraries and enclosure
+template parameter patches without executing plugin code.
+
+## Declarative Packages
+
+Declarative plugin packages use this wrapper:
+
+```json
+{
+  "format": "pcb-enclosure-plugin-package",
+  "manifest": {
+    "format": "pcb-enclosure-plugin",
+    "apiVersion": "1",
+    "id": "maker.board-pack",
+    "name": "Maker Board Pack",
+    "version": "1.0.0",
+    "capabilities": [
+      { "kind": "board_library", "id": "maker-boards", "name": "Maker Boards" }
+    ]
+  },
+  "contributions": {
+    "boardProfiles": [],
+    "enclosureTemplates": []
+  }
+}
+```
+
+Board profiles are validated with the same domain rules as normal board profile files.
+Enclosure templates are converted into parameter patches for the existing validated
+two-piece screw-case generator.
 
 ## TypeScript API
 

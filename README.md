@@ -29,7 +29,8 @@ documentation, and CI foundation with a usable manual PCB workflow.
   standoffs, screw bosses, connector cutouts, rectangular vents, and editable chamfers.
 - SVG drawing, DXF drawing, and BOM CSV export plus MakerWorld metadata JSON.
 - Strict TypeScript, ESLint, Prettier, Vitest, Docker development environment, and GitHub Actions CI/release workflows.
-- Versioned plugin manifest API for offline capability discovery.
+- Versioned plugin manifest API plus declarative JSON package loading for approved
+  board-library and enclosure-template contributions.
 - Offline design assistant that converts common natural-language enclosure phrases into
   editable material, cutout, vent, and lid-feature parameters.
 - Enclosure template presets for compact, handheld, tall-clearance, wall-mount, and

@@ -29,4 +29,14 @@ describe('OpenCascade backend', () => {
     expect(topology.isClosed).toBe(true);
     expect(topology.isEdgeManifold).toBe(true);
   });
+
+  it('applies the editable chamfer parameter in the OpenCascade tessellation', async () => {
+    const squareEdgeMesh = await generateTwoPieceScrewCaseKernelMesh({
+      ...defaultProject,
+      enclosure: { ...defaultProject.enclosure, chamfer: 0 },
+    });
+    const chamferedMesh = await generateTwoPieceScrewCaseKernelMesh(defaultProject);
+
+    expect(chamferedMesh.indices.length).toBeGreaterThan(squareEdgeMesh.indices.length);
+  });
 });

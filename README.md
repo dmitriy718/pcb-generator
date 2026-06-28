@@ -24,7 +24,7 @@ documentation, and CI foundation with a usable manual PCB workflow.
 - Three.js real-time preview.
 - Validation with actionable user-facing errors.
 - OpenCascade.js-backed STEP, STL, OBJ, GLTF, and 3MF export for base shell, lid,
-  standoffs, screw bosses, connector cutouts, and rectangular vents.
+  standoffs, screw bosses, connector cutouts, rectangular vents, and editable chamfers.
 - SVG drawing, DXF drawing, and BOM CSV export plus MakerWorld metadata JSON.
 - Strict TypeScript, ESLint, Prettier, Vitest, Docker development environment, and GitHub Actions CI/release workflows.
 

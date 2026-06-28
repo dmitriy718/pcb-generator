@@ -24,6 +24,7 @@ tested, documented, and usable before moving on.
 17. OpenCascade.js B-rep generation and validation for the two-piece screw enclosure.
 18. OpenCascade.js STEP export for validated base and lid solids.
 19. OpenCascade.js-derived STL/OBJ/GLTF/3MF mesh export with topology validation.
+20. Editable OpenCascade chamfers for generated base and lid solids.
 
 ## Next Milestones
 
@@ -32,8 +33,9 @@ tested, documented, and usable before moving on.
 3. Add STEP/STL/SVG/DXF import support for mechanical reference geometry.
 4. Add material-aware heat-set insert seat geometry and fastener presets.
 5. Add honeycomb vents, fan grills, and speaker grills.
-6. Add additional enclosure templates one at a time.
-7. Expand board profile library coverage.
-8. Add plugin API.
-9. Add AI-assisted parameter generation with inspectable output.
-10. Add release signing, notarization, and publishing automation.
+6. Add selective fillets where they improve ergonomics without hurting printability.
+7. Add additional enclosure templates one at a time.
+8. Expand board profile library coverage.
+9. Add plugin API.
+10. Add AI-assisted parameter generation with inspectable output.
+11. Add release signing, notarization, and publishing automation.

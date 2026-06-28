@@ -9,6 +9,7 @@ import { validateMesh } from '../meshValidation';
 interface OcShape {
   ShapeType(): unknown;
   Orientation_1(): unknown;
+  IsSame(other: OcShape): boolean;
 }
 
 interface OcMakeShape {
@@ -73,6 +74,12 @@ interface OpenCascadeModule {
   BRepAlgoAPI_Cut_3: new (base: OcShape, tool: OcShape) => OcMakeShape;
   BRepAlgoAPI_Fuse_3: new (base: OcShape, tool: OcShape) => OcMakeShape;
   BRepCheck_Analyzer: new (shape: OcShape, geomControls: boolean) => OcAnalyzer;
+  BRepFilletAPI_MakeChamfer: new (shape: OcShape) => {
+    Add_2(distance: number, edge: OcShape): void;
+    Build(): void;
+    Shape(): OcShape;
+    delete?(): void;
+  };
   BRepPrimAPI_MakeCylinder_3: new (axis: unknown, radius: number, height: number) => OcMakeShape;
   BRepPrimAPI_MakeBox_1: new (dx: number, dy: number, dz: number) => OcMakeShape;
   BRepPrimAPI_MakeBox_2: new (point: unknown, dx: number, dy: number, dz: number) => OcMakeShape;
@@ -96,6 +103,7 @@ interface OpenCascadeModule {
   };
   FS: OcFileSystem;
   TopAbs_ShapeEnum: {
+    TopAbs_EDGE: unknown;
     TopAbs_FACE: unknown;
     TopAbs_SHAPE: unknown;
     TopAbs_SOLID: unknown;
@@ -106,6 +114,7 @@ interface OpenCascadeModule {
   TopExp_Explorer_2: new (shape: OcShape, target: unknown, avoid: unknown) => OcExplorer;
   TopLoc_Location_1: new () => unknown;
   TopoDS: {
+    Edge_1(shape: OcShape): OcShape;
     Face_1(shape: OcShape): OcShape;
   };
   gp_Ax2_3: new (point: unknown, direction: unknown) => unknown;
@@ -256,6 +265,7 @@ function buildTwoPieceScrewCaseStepModel(
       ),
     );
   }
+  base = chamfer(oc, base, enclosure.chamfer, 'base');
 
   let lid = box(oc, {
     x: outerWidth + partSpacing,
@@ -291,6 +301,7 @@ function buildTwoPieceScrewCaseStepModel(
       ),
     );
   }
+  lid = chamfer(oc, lid, enclosure.chamfer, 'lid');
 
   return { shapes: [base, lid] };
 }
@@ -508,6 +519,61 @@ function cut(oc: OpenCascadeModule, base: OcShape, tool: OcShape): OcShape {
 
 function fuse(oc: OpenCascadeModule, base: OcShape, tool: OcShape): OcShape {
   return new oc.BRepAlgoAPI_Fuse_3(base, tool).Shape();
+}
+
+function chamfer(
+  oc: OpenCascadeModule,
+  shape: OcShape,
+  distance: number,
+  partName: string,
+): OcShape {
+  if (distance <= 0) {
+    return shape;
+  }
+
+  const chamferBuilder = new oc.BRepFilletAPI_MakeChamfer(shape);
+  const explorer = new oc.TopExp_Explorer_2(
+    shape,
+    oc.TopAbs_ShapeEnum.TopAbs_EDGE,
+    oc.TopAbs_ShapeEnum.TopAbs_SHAPE,
+  );
+  const edges: OcShape[] = [];
+  while (explorer.More()) {
+    const edge = oc.TopoDS.Edge_1(explorer.Current());
+    if (!edges.some((existingEdge) => existingEdge.IsSame(edge))) {
+      edges.push(edge);
+    }
+    explorer.Next();
+  }
+  explorer.delete?.();
+
+  if (edges.length === 0) {
+    chamferBuilder.delete?.();
+    throw new Error(`OpenCascade could not find edges to chamfer on the ${partName}.`);
+  }
+
+  try {
+    for (const edge of edges) {
+      chamferBuilder.Add_2(distance, edge);
+    }
+    chamferBuilder.Build();
+    const result = chamferBuilder.Shape();
+    const analyzer = new oc.BRepCheck_Analyzer(result, true);
+    const isValid = analyzer.IsValid_2();
+    analyzer.delete?.();
+    if (!isValid) {
+      throw new Error('resulting solid failed B-rep validation');
+    }
+    return result;
+  } catch (error) {
+    throw new Error(
+      `OpenCascade could not apply a ${distance} mm chamfer to the ${partName}. Reduce the chamfer or increase nearby feature spacing. Cause: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  } finally {
+    chamferBuilder.delete?.();
+  }
 }
 
 function tube(

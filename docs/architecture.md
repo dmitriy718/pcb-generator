@@ -40,9 +40,9 @@ The mesh path creates:
 
 The OpenCascade backend lives in `src/shared/cad/kernel`. It currently generates the
 base shell, interior cavity, rectangular connector cutouts, cylindrical standoffs,
-cylindrical screw bosses, lid plate, and rectangular lid vent cutouts as validated
-B-rep solids. It writes STEP through OpenCascade's STEP writer and validates each
-transferred solid with `BRepCheck_Analyzer` before export.
+cylindrical screw bosses, lid plate, rectangular lid vent cutouts, and editable edge
+chamfers as validated B-rep solids. It writes STEP through OpenCascade's STEP writer
+and validates each transferred solid with `BRepCheck_Analyzer` before export.
 
 Mesh file exports for STL, OBJ, GLTF, and 3MF are tessellated from the same validated
 OpenCascade solids. The backend runs OpenCascade incremental meshing, extracts face
@@ -52,7 +52,7 @@ writing mesh-based manufacturing files.
 The kernel path intentionally remains isolated from the renderer. The Electron main
 process invokes it for STEP export, while the renderer continues to receive lightweight
 triangle meshes for interactive preview. Future kernel work should add heat-set insert
-seat details, fillets, chamfers, and richer enclosure templates.
+seat details, selective fillets, and richer enclosure templates.
 
 ## Drawing Exporters
 

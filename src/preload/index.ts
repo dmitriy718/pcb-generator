@@ -121,6 +121,26 @@ const api = {
           warnings: string[];
         }
     >,
+  importStepProject: (): Promise<
+    | { imported: false }
+    | {
+        imported: true;
+        sourcePath: string;
+        projectName: string;
+        pcb: PcbSpecification;
+        warnings: string[];
+      }
+  > =>
+    ipcRenderer.invoke('project:import-step') as Promise<
+      | { imported: false }
+      | {
+          imported: true;
+          sourcePath: string;
+          projectName: string;
+          pcb: PcbSpecification;
+          warnings: string[];
+        }
+    >,
 };
 
 contextBridge.exposeInMainWorld('pcbEnclosure', api);

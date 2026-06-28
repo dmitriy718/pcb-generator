@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 
-import type { ConnectorCutout, EnclosureProject, TriangleMesh, VentilationRegion } from '../../domain';
+import type { ConnectorCutout, EnclosureProject, PcbSpecification, TriangleMesh, VentilationRegion } from '../../domain';
 import { getMaterialProfile } from '../../domain/materials';
 import { fastenerProfileById, type FastenerProfile } from '../../fasteners';
 import { validateMesh } from '../meshValidation';
@@ -25,6 +25,24 @@ interface OcAnalyzer {
 interface OcStepWriter {
   Transfer(shape: OcShape, mode: unknown, compgraph: boolean): unknown;
   Write(fileName: string): unknown;
+  delete?(): void;
+}
+
+interface OcStepReader {
+  ReadFile(fileName: string): unknown;
+  TransferRoots(): number;
+  OneShape(): OcShape;
+  delete?(): void;
+}
+
+interface OcBoundingBox {
+  GetXmin(): number;
+  GetXmax(): number;
+  GetYmin(): number;
+  GetYmax(): number;
+  GetZmin(): number;
+  GetZmax(): number;
+  IsVoid(): boolean;
   delete?(): void;
 }
 
@@ -68,6 +86,7 @@ interface OcIncrementalMesh {
 interface OcFileSystem {
   readdir(path: string): string[];
   readFile(path: string, options: { encoding: 'utf8' }): string;
+  writeFile(path: string, contents: string): void;
   unlink(path: string): void;
 }
 
@@ -99,8 +118,13 @@ interface OpenCascadeModule {
     STEPControl_ManifoldSolidBrep: unknown;
   };
   STEPControl_Writer_1: new () => OcStepWriter;
+  STEPControl_Reader_1: new () => OcStepReader;
   IFSelect_ReturnStatus: {
     IFSelect_RetDone: unknown;
+  };
+  Bnd_Box_1: new () => OcBoundingBox;
+  BRepBndLib: {
+    AddOptimal(shape: OcShape, box: OcBoundingBox, useTriangulation: boolean, useShapeTolerance: boolean): void;
   };
   FS: OcFileSystem;
   TopAbs_ShapeEnum: {
@@ -138,6 +162,12 @@ interface KernelStepModel {
 
 let openCascadePromise: Promise<OpenCascadeModule> | undefined;
 let stepFileCounter = 0;
+let stepImportCounter = 0;
+
+export interface StepImportResult {
+  pcb: PcbSpecification;
+  warnings: string[];
+}
 
 export async function exportTwoPieceScrewCaseStep(project: EnclosureProject): Promise<string> {
   const oc = await loadOpenCascade();
@@ -179,6 +209,136 @@ export async function generateTwoPieceScrewCaseKernelMesh(project: EnclosureProj
     );
   }
   return mesh;
+}
+
+export async function importStepPcbReference(contents: string): Promise<StepImportResult> {
+  const oc = await loadOpenCascade();
+  stepImportCounter = (stepImportCounter + 1) % 1_000_000;
+  const fileName = `import${stepImportCounter}.step`;
+  oc.FS.writeFile(fileName, contents);
+
+  const reader = new oc.STEPControl_Reader_1();
+  try {
+    const status = reader.ReadFile(fileName);
+    if (status !== oc.IFSelect_ReturnStatus.IFSelect_RetDone) {
+      throw new Error('OpenCascade STEP reader could not read the file.');
+    }
+    const transferredRoots = reader.TransferRoots();
+    if (transferredRoots < 1) {
+      throw new Error('OpenCascade STEP reader found no transferable shape roots.');
+    }
+
+    const shape = reader.OneShape();
+    const bounds = new oc.Bnd_Box_1();
+    oc.BRepBndLib.AddOptimal(shape, bounds, true, false);
+    if (bounds.IsVoid()) {
+      bounds.delete?.();
+      throw new Error('OpenCascade STEP reader produced empty bounds.');
+    }
+    const result = pcbFromBounds({
+      x: bounds.GetXmax() - bounds.GetXmin(),
+      y: bounds.GetYmax() - bounds.GetYmin(),
+      z: bounds.GetZmax() - bounds.GetZmin(),
+    });
+    bounds.delete?.();
+    return result;
+  } catch (error) {
+    return pcbFromStepTextBounds(contents, error);
+  } finally {
+    reader.delete?.();
+    try {
+      oc.FS.unlink(fileName);
+    } catch {
+      // The in-memory file may not exist if OpenCascade failed before reading it.
+    }
+  }
+}
+
+function pcbFromStepTextBounds(contents: string, readerError: unknown): StepImportResult {
+  const points = [...contents.matchAll(
+    /CARTESIAN_POINT\s*\(\s*[^,]*,\s*\(\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*,\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*,\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*\)\s*\)/giu,
+  )]
+    .map((match) => ({
+      x: Number(match[1]),
+      y: Number(match[2]),
+      z: Number(match[3]),
+    }))
+    .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y) && Number.isFinite(point.z));
+
+  if (points.length === 0) {
+    throw readerError instanceof Error ? readerError : new Error(String(readerError));
+  }
+
+  const bounds = points.reduce(
+    (current, point) => ({
+      minX: Math.min(current.minX, point.x),
+      maxX: Math.max(current.maxX, point.x),
+      minY: Math.min(current.minY, point.y),
+      maxY: Math.max(current.maxY, point.y),
+      minZ: Math.min(current.minZ, point.z),
+      maxZ: Math.max(current.maxZ, point.z),
+    }),
+    {
+      minX: Number.POSITIVE_INFINITY,
+      maxX: Number.NEGATIVE_INFINITY,
+      minY: Number.POSITIVE_INFINITY,
+      maxY: Number.NEGATIVE_INFINITY,
+      minZ: Number.POSITIVE_INFINITY,
+      maxZ: Number.NEGATIVE_INFINITY,
+    },
+  );
+  const result = pcbFromBounds({
+    x: bounds.maxX - bounds.minX,
+    y: bounds.maxY - bounds.minY,
+    z: bounds.maxZ - bounds.minZ,
+  });
+  return {
+    ...result,
+    warnings: [
+      ...result.warnings,
+      'OpenCascade could not transfer STEP topology; dimensions were recovered from STEP point coordinates.',
+    ],
+  };
+}
+
+function pcbFromBounds(extents: { x: number; y: number; z: number }): StepImportResult {
+  const sortedExtents = [
+    { axis: 'x' as const, size: extents.x },
+    { axis: 'y' as const, size: extents.y },
+    { axis: 'z' as const, size: extents.z },
+  ].sort((a, b) => b.size - a.size);
+  const width = round(sortedExtents[0]?.size ?? 0);
+  const height = round(sortedExtents[1]?.size ?? 0);
+  const measuredThickness = round(sortedExtents[2]?.size ?? 0);
+  if (width <= 0 || height <= 0) {
+    throw new Error('STEP PCB import could not determine positive board width and height.');
+  }
+
+  const warnings = [
+    'STEP geometry was imported from model bounds; verify PCB orientation and dimensions.',
+    'Mounting holes, connector cutouts, and components must be verified or added manually when STEP metadata is unavailable.',
+  ];
+  let thickness = measuredThickness;
+  if (thickness <= 0.05) {
+    thickness = 1.6;
+    warnings.push('STEP thickness was flat or missing; defaulted board thickness to 1.6 mm.');
+  } else if (thickness > 4) {
+    warnings.push(
+      'STEP thickness is larger than a typical bare PCB; imported model may include components or a full assembly.',
+    );
+  }
+
+  return {
+    pcb: {
+      width,
+      height,
+      thickness,
+      cornerRadius: 0,
+      mountingHoles: [],
+      connectorCutouts: [],
+    },
+    warnings,
+  };
 }
 
 async function loadOpenCascade(): Promise<OpenCascadeModule> {
@@ -706,4 +866,8 @@ function restoreGlobal(name: '__dirname' | '__filename' | 'require', value: unkn
     return;
   }
   Reflect.set(globalThis, name, value);
+}
+
+function round(value: number): number {
+  return Math.round(value * 1000) / 1000;
 }

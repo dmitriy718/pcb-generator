@@ -7,6 +7,7 @@ import { generateTwoPieceScrewCase } from '../shared/cad';
 import {
   exportTwoPieceScrewCaseStep,
   generateTwoPieceScrewCaseKernelMesh,
+  importStepPcbReference,
 } from '../shared/cad/kernel/openCascadeBackend';
 import { analyzeMeshTopology } from '../shared/cad/meshValidation';
 import type { BoardProfile, EnclosureProject, ExportFormat, GeneratedEnclosure, TriangleMesh } from '../shared/domain';
@@ -71,7 +72,7 @@ function createWindow(): BrowserWindow {
     mainWindow.webContents.once('did-finish-load', () => {
       void mainWindow.webContents
         .executeJavaScript(
-          "Boolean(window.pcbEnclosure && window.pcbEnclosure.saveProjectFile && window.pcbEnclosure.exportProject && window.pcbEnclosure.importStlProject)",
+          "Boolean(window.pcbEnclosure && window.pcbEnclosure.saveProjectFile && window.pcbEnclosure.exportProject && window.pcbEnclosure.importStlProject && window.pcbEnclosure.importStepProject)",
         )
         .then((hasPreloadBridge: boolean) => {
           if (!hasPreloadBridge) {
@@ -293,6 +294,33 @@ void app.whenReady().then(() => {
       imported: true as const,
       sourcePath,
       projectName: basename(sourcePath, '.stl'),
+      pcb: imported.pcb,
+      warnings: imported.warnings,
+    };
+  });
+
+  ipcMain.handle('project:import-step', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: 'Import STEP PCB Reference',
+      properties: ['openFile'],
+      filters: [{ name: 'STEP PCB Reference', extensions: ['step', 'stp'] }],
+    });
+
+    if (canceled || filePaths.length === 0) {
+      return { imported: false as const };
+    }
+
+    const sourcePath = filePaths[0];
+    if (!sourcePath) {
+      return { imported: false as const };
+    }
+
+    const contents = await readFile(sourcePath, 'utf8');
+    const imported = await importStepPcbReference(contents);
+    return {
+      imported: true as const,
+      sourcePath,
+      projectName: basename(sourcePath).replace(/\.(?:step|stp)$/iu, ''),
       pcb: imported.pcb,
       warnings: imported.warnings,
     };

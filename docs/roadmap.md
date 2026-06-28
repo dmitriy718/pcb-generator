@@ -27,12 +27,13 @@ tested, documented, and usable before moving on.
 20. Editable OpenCascade chamfers for generated base and lid solids.
 21. Heat-set insert socket geometry in preview and OpenCascade production exports.
 22. ASCII and binary STL PCB/reference import from mesh bounds.
+23. OpenCascade STEP PCB/reference import from model bounds.
 
 ## Next Milestones
 
 1. Add rounded/display/button cutout variants and collision checks.
 2. Expand KiCad importer with component-height and connector detection.
-3. Add STEP import support and richer mechanical reference geometry detection.
+3. Add richer mechanical reference geometry detection for imported STL/STEP assemblies.
 4. Add material-aware heat-set insert lead-in chamfers and vendor preset libraries.
 5. Add honeycomb vents, fan grills, and speaker grills.
 6. Add selective fillets where they improve ergonomics without hurting printability.

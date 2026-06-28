@@ -13,6 +13,7 @@ documentation, and CI foundation with a usable manual PCB workflow.
 - SVG PCB outline import for rectangular outlines, viewBox dimensions, and circular mounting holes.
 - DXF PCB outline import for LINE/LWPOLYLINE board bounds, `$INSUNITS` scaling, and circular mounting holes.
 - STL PCB/reference import for ASCII and binary STL mesh bounds and inferred board thickness.
+- STEP PCB/reference import through OpenCascade.js model bounds.
 - Built-in board profiles for Raspberry Pi, Arduino, and ESP32 starter enclosures.
 - Custom `.pcbboard.json` board profile import/export.
 - Manual rectangular connector cutouts on enclosure side walls with generated printable openings.
@@ -69,13 +70,21 @@ Docker development details.
 ## Export Workflow
 
 1. Launch the app.
-2. Import a KiCad `.kicad_pcb`, SVG, DXF, or STL file, or edit PCB dimensions, mounting holes, connector cutouts, material, and enclosure dimensions.
+2. Import a KiCad `.kicad_pcb`, SVG, DXF, STL, or STEP file, or edit PCB dimensions, mounting holes, connector cutouts, material, and enclosure dimensions.
 3. Resolve validation issues.
 4. Save the editable project as `.pcbenc.json` when needed.
 5. Export STEP, 3MF, STL, OBJ, GLTF, SVG drawing, DXF drawing, or BOM CSV. STEP and
    mesh manufacturing exports are generated from validated OpenCascade solids.
 6. The app writes a matching `.makerworld.json` file containing print recommendations,
    orientation, material, support status, and assembly guidance.
+
+## Bambu SD Card Workflow
+
+Bambu Lab printer SD cards store sliced printer instructions such as `.gcode` files.
+This app exports CAD/model assets and MakerWorld metadata, not raw printer G-code.
+For direct SD-card printing, export 3MF/STL from this app, slice it in Bambu Studio or
+a compatible slicer with the target printer/material profile, then copy the slicer's
+generated `.gcode` to the SD card.
 
 ## Project Files
 
@@ -114,6 +123,13 @@ does not contain PCB semantics, units, layers, holes, or connector metadata, so 
 importer infers board width, height, and thickness from mesh bounds in millimeters and
 adds warnings for users to verify or manually define mounting holes, connectors, and
 component clearances.
+
+## STEP Import Scope
+
+STEP import uses OpenCascade.js offline to read `.step` and `.stp` geometry and infer
+board width, height, and thickness from model bounds. Generic STEP files do not provide
+reliable PCB semantic labels for holes, connectors, or components, so those features
+must be verified or added manually after import.
 
 ## Board Library
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   exportTwoPieceScrewCaseStep,
   generateTwoPieceScrewCaseKernelMesh,
+  importStepPcbReference,
 } from '../src/shared/cad/kernel/openCascadeBackend';
 import { analyzeMeshTopology, validateMesh } from '../src/shared/cad/meshValidation';
 import { defaultProject } from '../src/shared/domain';
@@ -62,5 +63,16 @@ describe('OpenCascade backend', () => {
     expect(validateMesh(mesh, { checkTopology: true })).toEqual({ ok: true, issues: [] });
     expect(topology.isClosed).toBe(true);
     expect(topology.isEdgeManifold).toBe(true);
+  });
+
+  it('imports STEP reference geometry bounds through OpenCascade', async () => {
+    const step = await exportTwoPieceScrewCaseStep(defaultProject);
+    const imported = await importStepPcbReference(step);
+
+    expect(imported.pcb.width).toBeGreaterThan(0);
+    expect(imported.pcb.height).toBeGreaterThan(0);
+    expect(imported.pcb.thickness).toBeGreaterThan(0);
+    expect(imported.pcb.mountingHoles).toEqual([]);
+    expect(imported.warnings).toContain('STEP geometry was imported from model bounds; verify PCB orientation and dimensions.');
   });
 });

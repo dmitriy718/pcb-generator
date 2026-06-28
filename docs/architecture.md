@@ -59,8 +59,9 @@ vector-module alphabet. This keeps text geometry deterministic and offline acros
 preview, STEP, and mesh exports without depending on system fonts.
 
 Logo badge features also use the shared footprint path with a small built-in module
-logo catalog. This provides real geometry for common maker/electronics marks while
-keeping arbitrary imported logo outlines as a future plugin/importer extension.
+logo catalog. Imported SVG logo primitives are normalized into custom footprint data on
+the design feature, so project files, preview, and OpenCascade exports share one
+structured representation. Complex path import remains a future SVG importer extension.
 
 Mesh file exports for STL, OBJ, GLTF, and 3MF are tessellated from the same validated
 OpenCascade solids. The backend runs OpenCascade incremental meshing, extracts face

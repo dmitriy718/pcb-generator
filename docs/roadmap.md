@@ -54,13 +54,14 @@ tested, documented, and usable before moving on.
     board, fastener, enclosure, vent, exporter, and material extension discovery.
 35. Offline natural-language design assistant that converts supported enclosure phrases
     into editable material, connector cutout, vent, and lid-feature parameters in the GUI.
+36. SVG logo import for rect/circle primitives, persisted as normalized editable logo
+    badge footprints and exported through the OpenCascade production geometry path.
 
 ## Next Milestones
 
-1. Add arbitrary SVG/logo outline import for logo badge features.
-2. Add high-confidence mounting-hole detection for STEP references.
-3. Add selective fillets where they improve ergonomics without hurting printability.
-4. Add additional enclosure templates one at a time.
-5. Add sandboxed plugin loading/execution for specific approved capability types.
-6. Add optional cloud/local LLM parsing behind the same inspectable assistant parameter model.
-7. Add release signing, notarization, and publishing automation.
+1. Add high-confidence mounting-hole detection for STEP references.
+2. Add selective fillets where they improve ergonomics without hurting printability.
+3. Add additional enclosure templates one at a time.
+4. Add sandboxed plugin loading/execution for specific approved capability types.
+5. Add optional cloud/local LLM parsing behind the same inspectable assistant parameter model.
+6. Add release signing, notarization, and publishing automation.

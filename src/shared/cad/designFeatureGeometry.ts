@@ -59,6 +59,20 @@ function repeatedFeatureFootprints(feature: DesignFeature): DesignFeatureFootpri
 }
 
 function logoFootprints(feature: DesignFeature): DesignFeatureFootprint[] {
+  if (feature.customFootprints && feature.customFootprints.length > 0) {
+    return feature.customFootprints.map((footprint) => {
+      const width = feature.width * footprint.widthRatio;
+      const height = feature.height * footprint.heightRatio;
+      return {
+        x: feature.x - feature.width / 2 + feature.width * footprint.xRatio,
+        y: feature.y - feature.height / 2 + feature.height * footprint.yRatio,
+        width,
+        height,
+        diameter: Math.min(width, height),
+        cornerRadius: Math.min(width, height) * Math.min(footprint.cornerRadiusRatio, 0.25),
+      };
+    });
+  }
   const key = feature.text.trim().toUpperCase() || 'OSHW';
   const logo = logoPatterns[key] ?? defaultLogoPattern;
   return modulePatternFootprints(feature, logo);

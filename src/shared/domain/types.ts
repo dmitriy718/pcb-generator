@@ -63,6 +63,14 @@ export type DesignFeatureShape = 'rectangle' | 'rounded_rectangle' | 'circle';
 
 export type DesignFeatureOperation = 'through_cut' | 'recess' | 'emboss';
 
+export interface DesignFeatureCustomFootprint {
+  xRatio: number;
+  yRatio: number;
+  widthRatio: number;
+  heightRatio: number;
+  cornerRadiusRatio: number;
+}
+
 export interface DesignFeature {
   id: string;
   label: string;
@@ -80,6 +88,7 @@ export interface DesignFeature {
   rows: number;
   columns: number;
   text: string;
+  customFootprints?: DesignFeatureCustomFootprint[] | undefined;
 }
 
 export interface PcbSpecification {

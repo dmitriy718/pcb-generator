@@ -63,6 +63,17 @@ const designFeatureSchema = z.object({
   rows: z.number(),
   columns: z.number(),
   text: z.string().default(''),
+  customFootprints: z
+    .array(
+      z.object({
+        xRatio: z.number(),
+        yRatio: z.number(),
+        widthRatio: z.number(),
+        heightRatio: z.number(),
+        cornerRadiusRatio: z.number(),
+      }),
+    )
+    .optional(),
 });
 
 const pcbSchema = z.object({

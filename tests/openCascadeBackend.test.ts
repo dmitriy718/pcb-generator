@@ -8,9 +8,12 @@ import { analyzeMeshTopology, validateMesh } from '../src/shared/cad/meshValidat
 import { defaultProject } from '../src/shared/domain';
 import { fastenerProfileById } from '../src/shared/fasteners';
 
+let defaultStepFixture: string | undefined;
+
 describe('OpenCascade backend', () => {
   it('exports a validated STEP model for the default two-piece case shell', async () => {
     const step = await exportTwoPieceScrewCaseStep(defaultProject);
+    defaultStepFixture = step;
 
     expect(step.startsWith('ISO-10303-21;')).toBe(true);
     expect(step).toContain('FILE_SCHEMA');
@@ -230,8 +233,48 @@ describe('OpenCascade backend', () => {
     expect(topology.isEdgeManifold).toBe(true);
   }, 30_000);
 
+  it('generates valid OpenCascade imported SVG logo footprint geometry', async () => {
+    const mesh = await generateTwoPieceScrewCaseKernelMesh({
+      ...defaultProject,
+      enclosure: {
+        ...defaultProject.enclosure,
+        chamfer: 0,
+        ventilationRegions: [],
+        designFeatures: [
+          {
+            id: 'feature-logo-imported',
+            label: 'Imported logo',
+            kind: 'logo_badge',
+            shape: 'rounded_rectangle',
+            operation: 'emboss',
+            x: 32,
+            y: 18,
+            width: 14,
+            height: 8,
+            diameter: 8,
+            depth: 0.8,
+            cornerRadius: 1,
+            spacing: 2,
+            rows: 1,
+            columns: 1,
+            text: 'Imported',
+            customFootprints: [
+              { xRatio: 0.25, yRatio: 0.5, widthRatio: 0.3, heightRatio: 0.4, cornerRadiusRatio: 0.1 },
+              { xRatio: 0.7, yRatio: 0.5, widthRatio: 0.25, heightRatio: 0.5, cornerRadiusRatio: 0.5 },
+            ],
+          },
+        ],
+      },
+    });
+    const topology = analyzeMeshTopology(mesh);
+
+    expect(validateMesh(mesh, { checkTopology: true })).toEqual({ ok: true, issues: [] });
+    expect(topology.isClosed).toBe(true);
+    expect(topology.isEdgeManifold).toBe(true);
+  }, 30_000);
+
   it('imports STEP reference geometry bounds through OpenCascade', async () => {
-    const step = await exportTwoPieceScrewCaseStep(defaultProject);
+    const step = defaultStepFixture ?? await exportTwoPieceScrewCaseStep(defaultProject);
     const imported = await importStepPcbReference(step);
 
     expect(imported.pcb.width).toBeGreaterThan(0);

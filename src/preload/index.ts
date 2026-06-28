@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type {
   BoardProfile,
+  DesignFeatureCustomFootprint,
   EnclosureProject,
   ExportFormat,
   PcbSpecification,
@@ -78,6 +79,26 @@ const api = {
           sourcePath: string;
           projectName: string;
           pcb: PcbSpecification;
+          warnings: string[];
+        }
+    >,
+  importLogoSvg: (): Promise<
+    | { imported: false }
+    | {
+        imported: true;
+        sourcePath: string;
+        label: string;
+        footprints: DesignFeatureCustomFootprint[];
+        warnings: string[];
+      }
+  > =>
+    ipcRenderer.invoke('project:import-logo-svg') as Promise<
+      | { imported: false }
+      | {
+          imported: true;
+          sourcePath: string;
+          label: string;
+          footprints: DesignFeatureCustomFootprint[];
           warnings: string[];
         }
     >,

@@ -202,7 +202,8 @@ export async function exportTwoPieceScrewCaseStep(project: EnclosureProject): Pr
   }
 
   stepFileCounter = (stepFileCounter + 1) % 1_000_000;
-  const fileName = `model${stepFileCounter}.step`;
+  const fileName = `/model${stepFileCounter}.step`;
+  removeVirtualFileIfPresent(oc, fileName);
   const beforeWrite = new Set(oc.FS.readdir('/'));
   const status = writer.Write(fileName);
   if (status !== oc.IFSelect_ReturnStatus.IFSelect_RetDone) {
@@ -236,7 +237,8 @@ export async function generateTwoPieceScrewCaseKernelMesh(project: EnclosureProj
 export async function importStepPcbReference(contents: string): Promise<StepImportResult> {
   const oc = await loadOpenCascade();
   stepImportCounter = (stepImportCounter + 1) % 1_000_000;
-  const fileName = `import${stepImportCounter}.step`;
+  const fileName = `/import${stepImportCounter}.step`;
+  removeVirtualFileIfPresent(oc, fileName);
   oc.FS.writeFile(fileName, contents);
 
   const reader = new oc.STEPControl_Reader_1();
@@ -993,7 +995,8 @@ function findWrittenStepPath(
   requestedFileName: string,
   beforeWrite: Set<string>,
 ): string {
-  if (oc.FS.readdir('/').includes(requestedFileName)) {
+  const requestedEntry = requestedFileName.replace(/^\//u, '');
+  if (oc.FS.readdir('/').includes(requestedEntry)) {
     return requestedFileName;
   }
   const createdEntries = oc.FS
@@ -1003,6 +1006,18 @@ function findWrittenStepPath(
     return `/${createdEntries[0]}`;
   }
   throw new Error('OpenCascade STEP writer did not produce a readable virtual file.');
+}
+
+function removeVirtualFileIfPresent(oc: OpenCascadeModule, fileName: string): void {
+  const entry = fileName.replace(/^\//u, '');
+  if (!oc.FS.readdir('/').includes(entry)) {
+    return;
+  }
+  try {
+    oc.FS.unlink(fileName);
+  } catch {
+    oc.FS.unlink(entry);
+  }
 }
 
 function restoreGlobal(name: '__dirname' | '__filename' | 'require', value: unknown): void {

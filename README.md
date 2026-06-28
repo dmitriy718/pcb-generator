@@ -205,7 +205,9 @@ embosses add raised geometry. Text engraving features use an offline 5x7 vector-
 alphabet for real recessed or raised text geometry. QR recesses with text generate
 true QR module geometry in OpenCascade production exports. Logo badge features generate
 real geometry from a small offline logo catalog keyed by the text value: `OSHW`, `PCB`,
-`RF`, and `BAMBU`. Imported arbitrary logo outline geometry remains future work.
+`RF`, and `BAMBU`. SVG logo import supports offline rect/circle SVG primitives and
+stores them as normalized editable logo badge footprints used by preview and
+OpenCascade exports. Complex SVG paths remain future importer work.
 
 Validation checks lid feature placement against wall boundaries, ventilation regions,
 other design features, and screw boss footprints using the selected material

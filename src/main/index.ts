@@ -22,7 +22,7 @@ import {
   exportSvgDrawing,
   exportThreeMf,
 } from '../shared/exporters';
-import { importDxfPcb, importKiCadPcb, importStlPcb, importSvgPcb } from '../shared/importers';
+import { importDxfPcb, importKiCadPcb, importStlPcb, importSvgLogoFootprints, importSvgPcb } from '../shared/importers';
 import { parseProjectFile, serializeProjectFile } from '../shared/projectFiles';
 import { parseBoardProfileFile, serializeBoardProfileFile, slugify } from '../shared/boards';
 
@@ -241,6 +241,33 @@ void app.whenReady().then(() => {
       sourcePath,
       projectName: basename(sourcePath, '.svg'),
       pcb: imported.pcb,
+      warnings: imported.warnings,
+    };
+  });
+
+  ipcMain.handle('project:import-logo-svg', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: 'Import SVG Logo',
+      properties: ['openFile'],
+      filters: [{ name: 'SVG Logo', extensions: ['svg'] }],
+    });
+
+    if (canceled || filePaths.length === 0) {
+      return { imported: false as const };
+    }
+
+    const sourcePath = filePaths[0];
+    if (!sourcePath) {
+      return { imported: false as const };
+    }
+
+    const contents = await readFile(sourcePath, 'utf8');
+    const imported = importSvgLogoFootprints(contents);
+    return {
+      imported: true as const,
+      sourcePath,
+      label: basename(sourcePath, '.svg'),
+      footprints: imported.footprints,
       warnings: imported.warnings,
     };
   });

@@ -34,6 +34,7 @@ import type {
   ConnectorCutout,
   CutoutSide,
   BoardProfile,
+  DesignFeatureCustomFootprint,
   DesignFeature,
   EnclosureProject,
   ExportFormat,
@@ -648,6 +649,47 @@ export function App(): ReactElement {
     setExportMessage(`Added ${preset.label}.`);
   }
 
+  function addLogoFeatureFromFootprints(label: string, footprints: DesignFeatureCustomFootprint[]): void {
+    setProject((current) => {
+      const outerWidth =
+        current.pcb.width +
+        current.enclosure.boardClearance * 2 +
+        current.enclosure.wallThickness * 2;
+      const outerHeight =
+        current.pcb.height +
+        current.enclosure.boardClearance * 2 +
+        current.enclosure.wallThickness * 2;
+      return {
+        ...current,
+        enclosure: {
+          ...current.enclosure,
+          designFeatures: [
+            ...current.enclosure.designFeatures,
+            {
+              id: `feature-logo-${crypto.randomUUID().slice(0, 8)}`,
+              label,
+              kind: 'logo_badge',
+              shape: 'rounded_rectangle',
+              operation: 'emboss',
+              x: Number((outerWidth * 0.5).toFixed(1)),
+              y: Number((outerHeight * 0.78).toFixed(1)),
+              width: 20,
+              height: 12,
+              diameter: 12,
+              depth: Math.max(0.8, materialProfiles[current.enclosure.material].minimumFeatureSize),
+              cornerRadius: 1,
+              spacing: 3,
+              rows: 1,
+              columns: 1,
+              text: label,
+              customFootprints: footprints,
+            },
+          ],
+        },
+      };
+    });
+  }
+
   function removeDesignFeature(id: string): void {
     setProject((current) => ({
       ...current,
@@ -736,6 +778,29 @@ export function App(): ReactElement {
       return;
     }
     addVentilationRegionPreset(item.vent);
+  }
+
+  async function importLogoSvg(): Promise<void> {
+    setExportMessage('');
+    const api = pcbApi();
+    if (!api) {
+      setExportMessage(
+        'Desktop integration is unavailable. Launch the Electron app instead of the browser preview.',
+      );
+      return;
+    }
+    try {
+      const result = await api.importLogoSvg();
+      if (!result.imported) {
+        setExportMessage('SVG logo import cancelled.');
+        return;
+      }
+      addLogoFeatureFromFootprints(result.label, result.footprints);
+      setImportWarnings(result.warnings);
+      setExportMessage(`Imported SVG logo ${result.sourcePath}.`);
+    } catch (error) {
+      setExportMessage(formatActionError('SVG logo import', error));
+    }
   }
 
   function removeVentilationRegion(id: string): void {
@@ -1247,6 +1312,9 @@ export function App(): ReactElement {
                 );
               })}
             </div>
+            <button type="button" className="secondary-button" onClick={() => void importLogoSvg()}>
+              Import SVG logo
+            </button>
             {project.enclosure.designFeatures.length > 0 ? (
               <div className="feature-list">
                 {project.enclosure.designFeatures.map((feature) => (

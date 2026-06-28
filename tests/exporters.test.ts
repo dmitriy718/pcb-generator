@@ -150,4 +150,13 @@ describe('exporters', () => {
     expect(csv).toContain('M2.5 self-tapping screw,hardware,4,piece');
     expect(csv).toContain('Connector opening finishing,process,1,opening,USB-C');
   });
+
+  it('includes heat-set insert lead-in dimensions in BOM output', () => {
+    const project = structuredClone(defaultProject);
+    project.enclosure.fastenerProfileId = 'm3_heat_set_insert';
+
+    const csv = exportBomCsv(project);
+
+    expect(csv).toContain('5 mm lead-in x 0.7 mm');
+  });
 });

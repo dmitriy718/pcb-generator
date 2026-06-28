@@ -500,6 +500,12 @@ function buildTwoPieceScrewCaseStepModel(
     if (fastenerProfile.insertDepth) {
       lidBossOptions.insertDepth = fastenerProfile.insertDepth;
     }
+    if (fastenerProfile.insertLeadInDiameter) {
+      lidBossOptions.leadInRadius = (fastenerProfile.insertLeadInDiameter + material.holeCompensation) / 2;
+    }
+    if (fastenerProfile.insertLeadInDepth) {
+      lidBossOptions.leadInDepth = fastenerProfile.insertLeadInDepth;
+    }
     lid = fuse(
       oc,
       lid,
@@ -917,6 +923,8 @@ interface LidBossKernelOptions {
   screwRadius: number;
   insertRadius?: number;
   insertDepth?: number;
+  leadInRadius?: number;
+  leadInDepth?: number;
   height: number;
 }
 
@@ -945,7 +953,7 @@ function lidBoss(
   }
 
   const seatDepth = Math.min(options.insertDepth, options.height);
-  return cut(
+  let shapedBoss = cut(
     oc,
     boss,
     cylinder(
@@ -957,6 +965,26 @@ function lidBoss(
       seatDepth + 0.5,
     ),
   );
+  if (
+    options.leadInRadius !== undefined &&
+    options.leadInDepth !== undefined &&
+    options.leadInRadius > options.insertRadius
+  ) {
+    const leadInDepth = Math.min(options.leadInDepth, options.height);
+    shapedBoss = cut(
+      oc,
+      shapedBoss,
+      cylinder(
+        oc,
+        options.x,
+        options.y,
+        options.z + options.height - leadInDepth,
+        options.leadInRadius,
+        leadInDepth + 0.5,
+      ),
+    );
+  }
+  return shapedBoss;
 }
 
 function cylinder(

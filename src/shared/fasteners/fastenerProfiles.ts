@@ -15,6 +15,9 @@ export interface FastenerProfile {
   minimumWallAroundHole: Millimeters;
   insertOuterDiameter?: Millimeters;
   insertDepth?: Millimeters;
+  insertLeadInDiameter?: Millimeters;
+  insertLeadInDepth?: Millimeters;
+  vendorStyle?: string;
   notes: string;
 }
 
@@ -71,7 +74,10 @@ export const builtInFastenerProfiles: FastenerProfile[] = [
     minimumWallAroundHole: 1,
     insertOuterDiameter: 3.8,
     insertDepth: 4,
-    notes: 'Use insert manufacturer diameter guidance; press inserts into lid bosses after printing.',
+    insertLeadInDiameter: 4.2,
+    insertLeadInDepth: 0.6,
+    vendorStyle: 'Generic short knurled brass insert',
+    notes: 'Use insert manufacturer diameter guidance; press inserts into lid bosses after printing. Includes a shallow lead-in relief for easier heat-set alignment.',
   },
   {
     id: 'm3_heat_set_insert',
@@ -86,7 +92,46 @@ export const builtInFastenerProfiles: FastenerProfile[] = [
     minimumWallAroundHole: 1.2,
     insertOuterDiameter: 4.6,
     insertDepth: 5,
-    notes: 'Robust threaded closure for larger enclosures; requires enough boss height for the chosen insert.',
+    insertLeadInDiameter: 5,
+    insertLeadInDepth: 0.7,
+    vendorStyle: 'Generic M3 knurled brass insert',
+    notes: 'Robust threaded closure for larger enclosures; requires enough boss height for the chosen insert. Includes a shallow lead-in relief for easier heat-set alignment.',
+  },
+  {
+    id: 'm2_short_heat_set_insert',
+    name: 'M2 short heat-set insert',
+    kind: 'heat_set_insert',
+    nominalSize: 'M2',
+    screwHoleDiameter: 2.2,
+    standoffHoleDiameter: 2.2,
+    standoffDiameter: 6,
+    screwBossDiameter: 6.4,
+    recommendedStandoffHeight: 4.2,
+    minimumWallAroundHole: 1,
+    insertOuterDiameter: 3.2,
+    insertDepth: 3,
+    insertLeadInDiameter: 3.6,
+    insertLeadInDepth: 0.5,
+    vendorStyle: 'Short knurled brass insert',
+    notes: 'Compact insert preset for small enclosures. Verify insert data sheet and print a coupon before production.',
+  },
+  {
+    id: 'm3_long_heat_set_insert',
+    name: 'M3 long heat-set insert',
+    kind: 'heat_set_insert',
+    nominalSize: 'M3',
+    screwHoleDiameter: 3.2,
+    standoffHoleDiameter: 3.2,
+    standoffDiameter: 9,
+    screwBossDiameter: 9.2,
+    recommendedStandoffHeight: 8,
+    minimumWallAroundHole: 1.3,
+    insertOuterDiameter: 4.8,
+    insertDepth: 6.5,
+    insertLeadInDiameter: 5.25,
+    insertLeadInDepth: 0.8,
+    vendorStyle: 'Long knurled brass insert',
+    notes: 'Longer insert preset for repeated service access. Requires taller bosses and careful heat control.',
   },
 ];
 

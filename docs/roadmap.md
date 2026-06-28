@@ -39,15 +39,16 @@ tested, documented, and usable before moving on.
     OpenCascade production export support.
 28. KiCad importer component-height hints and common edge connector cutout detection
     for USB, Ethernet, HDMI, SMA, barrel jack, button, and switch footprints.
+29. Material-aware heat-set insert lead-in reliefs and additional short/long insert
+    preset profiles in preview, BOM, validation, and OpenCascade exports.
 
 ## Next Milestones
 
 1. Convert logo annotations/imports into true logo-outline engraving geometry.
 2. Add richer mechanical reference geometry detection for imported STL/STEP assemblies.
-3. Add material-aware heat-set insert lead-in chamfers and vendor preset libraries.
-4. Add selective fillets where they improve ergonomics without hurting printability.
-5. Add additional enclosure templates one at a time.
-6. Expand board profile library coverage.
-7. Add plugin API.
-8. Add AI-assisted parameter generation with inspectable output.
-9. Add release signing, notarization, and publishing automation.
+3. Add selective fillets where they improve ergonomics without hurting printability.
+4. Add additional enclosure templates one at a time.
+5. Expand board profile library coverage.
+6. Add plugin API.
+7. Add AI-assisted parameter generation with inspectable output.
+8. Add release signing, notarization, and publishing automation.

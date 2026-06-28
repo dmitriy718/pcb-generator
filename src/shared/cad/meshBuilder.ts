@@ -170,6 +170,60 @@ export class MeshBuilder {
     }
   }
 
+  addLeadInSteppedTube(
+    center: Vec3,
+    outerRadius: number,
+    lowerInnerRadius: number,
+    insertRadius: number,
+    leadInRadius: number,
+    height: number,
+    insertDepth: number,
+    leadInDepth: number,
+    segments: number,
+  ): void {
+    const z0 = center.z;
+    const z1 = center.z + height;
+    const zLeadStart = Math.max(z0, z1 - Math.min(Math.max(0, leadInDepth), height));
+    const zInsertStart = Math.max(z0, z1 - Math.min(Math.max(0, insertDepth), height));
+
+    for (let i = 0; i < segments; i += 1) {
+      const a0 = (Math.PI * 2 * i) / segments;
+      const a1 = (Math.PI * 2 * (i + 1)) / segments;
+      const outerBottom0 = radialPoint(center, outerRadius, a0, z0);
+      const outerBottom1 = radialPoint(center, outerRadius, a1, z0);
+      const outerInsert0 = radialPoint(center, outerRadius, a0, zInsertStart);
+      const outerInsert1 = radialPoint(center, outerRadius, a1, zInsertStart);
+      const outerLead0 = radialPoint(center, outerRadius, a0, zLeadStart);
+      const outerLead1 = radialPoint(center, outerRadius, a1, zLeadStart);
+      const outerTop0 = radialPoint(center, outerRadius, a0, z1);
+      const outerTop1 = radialPoint(center, outerRadius, a1, z1);
+
+      const lowerBottom0 = radialPoint(center, lowerInnerRadius, a0, z0);
+      const lowerBottom1 = radialPoint(center, lowerInnerRadius, a1, z0);
+      const lowerInsert0 = radialPoint(center, lowerInnerRadius, a0, zInsertStart);
+      const lowerInsert1 = radialPoint(center, lowerInnerRadius, a1, zInsertStart);
+      const insertBottom0 = radialPoint(center, insertRadius, a0, zInsertStart);
+      const insertBottom1 = radialPoint(center, insertRadius, a1, zInsertStart);
+      const insertLead0 = radialPoint(center, insertRadius, a0, zLeadStart);
+      const insertLead1 = radialPoint(center, insertRadius, a1, zLeadStart);
+      const leadBottom0 = radialPoint(center, leadInRadius, a0, zLeadStart);
+      const leadBottom1 = radialPoint(center, leadInRadius, a1, zLeadStart);
+      const leadTop0 = radialPoint(center, leadInRadius, a0, z1);
+      const leadTop1 = radialPoint(center, leadInRadius, a1, z1);
+
+      this.addQuad(outerBottom0, outerBottom1, outerInsert1, outerInsert0);
+      this.addQuad(outerInsert0, outerInsert1, outerLead1, outerLead0);
+      this.addQuad(outerLead0, outerLead1, outerTop1, outerTop0);
+      this.addQuad(lowerBottom1, lowerBottom0, lowerInsert0, lowerInsert1);
+      this.addQuad(insertBottom1, insertBottom0, insertLead0, insertLead1);
+      this.addQuad(leadBottom1, leadBottom0, leadTop0, leadTop1);
+      this.addQuad(outerTop0, outerTop1, leadTop1, leadTop0);
+      this.addQuad(outerBottom1, outerBottom0, lowerBottom0, lowerBottom1);
+      this.addQuad(insertBottom0, insertBottom1, lowerInsert1, lowerInsert0);
+      this.addQuad(leadBottom0, leadBottom1, insertLead1, insertLead0);
+    }
+  }
+
   build(): TriangleMesh {
     return {
       vertices: [...this.vertices],

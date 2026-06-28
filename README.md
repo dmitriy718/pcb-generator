@@ -160,10 +160,10 @@ span or below the floor.
 ## Fastener Profiles
 
 Built-in fastener profiles include M2, M2.5, and M3 self-tapping screws plus M2.5 and
-M3 heat-set insert starter dimensions. Selecting a profile updates standoff diameter,
-standoff pilot hole, boss diameter, screw hole, insert socket dimensions, and
-recommended standoff height. Profiles are validated against minimum radial wall
-requirements.
+M3 heat-set insert starter dimensions and short/long insert presets. Selecting a
+profile updates standoff diameter, standoff pilot hole, boss diameter, screw hole,
+insert socket dimensions, lead-in relief dimensions, and recommended standoff height.
+Profiles are validated against minimum radial wall requirements.
 
 ## Ventilation
 
@@ -196,8 +196,8 @@ export.
 STEP export uses OpenCascade.js to generate validated B-rep solids for the base shell,
 interior cavity, cylindrical standoffs, cylindrical screw bosses, rectangular connector
 openings, lid plate, rectangular lid vent cutouts, lid design feature cut/recess/emboss
-geometry, heat-set insert sockets, and editable chamfers. Selective ergonomic fillets
-remain a future kernel increment.
+geometry, heat-set insert sockets with material-compensated lead-in reliefs, and
+editable chamfers. Selective ergonomic fillets remain a future kernel increment.
 
 OpenCascade.js is bundled as an offline WebAssembly dependency under LGPL-2.1-only.
 Generated user models are not licensed by the dependency.

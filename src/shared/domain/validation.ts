@@ -178,6 +178,35 @@ export function validateProject(project: EnclosureProject): ValidationResult {
     );
   }
 
+  if (
+    fastenerProfile?.kind === 'heat_set_insert' &&
+    fastenerProfile.insertLeadInDiameter !== undefined &&
+    fastenerProfile.insertLeadInDiameter >= enclosure.screwBossDiameter - 0.8
+  ) {
+    issues.push(
+      issue(
+        'heat_set_insert_lead_in_too_wide',
+        'enclosure.screwBossDiameter',
+        'Heat-set insert lead-in relief leaves less than 0.4 mm radial boss wall thickness.',
+      ),
+    );
+  }
+
+  if (
+    fastenerProfile?.kind === 'heat_set_insert' &&
+    fastenerProfile.insertLeadInDepth !== undefined &&
+    fastenerProfile.insertDepth !== undefined &&
+    fastenerProfile.insertLeadInDepth > fastenerProfile.insertDepth
+  ) {
+    issues.push(
+      issue(
+        'heat_set_insert_lead_in_too_deep',
+        'enclosure.fastenerProfileId',
+        'Heat-set insert lead-in relief depth must not exceed the insert socket depth.',
+      ),
+    );
+  }
+
   for (const [index, hole] of pcb.mountingHoles.entries()) {
     requirePositive(issues, hole.diameter, `pcb.mountingHoles.${index}.diameter`, 'Mounting hole diameter');
     if (hole.x < 0 || hole.x > pcb.width || hole.y < 0 || hole.y > pcb.height) {

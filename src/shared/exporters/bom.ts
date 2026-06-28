@@ -60,7 +60,7 @@ export function buildBillOfMaterials(project: EnclosureProject): BomItem[] {
       category: 'hardware',
       quantity: screwCount,
       unit: 'piece',
-      specification: `${fastener.insertOuterDiameter} mm socket x ${fastener.insertDepth} mm depth, ${fastener.screwHoleDiameter} mm through clearance`,
+      specification: `${fastener.insertOuterDiameter} mm socket x ${fastener.insertDepth} mm depth, ${fastener.insertLeadInDiameter ?? fastener.insertOuterDiameter} mm lead-in x ${fastener.insertLeadInDepth ?? 0} mm, ${fastener.screwHoleDiameter} mm through clearance`,
       notes: 'Verify insert manufacturer drill and boss recommendations before production.',
     });
   }

@@ -104,6 +104,12 @@ export function generateTwoPieceScrewCase(project: EnclosureProject): GeneratedE
       if (fastenerProfile.insertDepth) {
         lidBossOptions.insertDepth = fastenerProfile.insertDepth;
       }
+      if (fastenerProfile.insertLeadInDiameter) {
+        lidBossOptions.leadInRadius = (fastenerProfile.insertLeadInDiameter + material.holeCompensation) / 2;
+      }
+      if (fastenerProfile.insertLeadInDepth) {
+        lidBossOptions.leadInDepth = fastenerProfile.insertLeadInDepth;
+      }
       addLidBoss(builder, fastenerProfile, lidBossOptions);
     }
   });
@@ -157,6 +163,8 @@ interface LidBossOptions {
   height: number;
   insertRadius?: number;
   insertDepth?: number;
+  leadInRadius?: number;
+  leadInDepth?: number;
 }
 
 function addLidBoss(
@@ -170,6 +178,24 @@ function addLidBoss(
     options.insertDepth !== undefined &&
     options.insertRadius > options.screwRadius
   ) {
+    if (
+      options.leadInRadius !== undefined &&
+      options.leadInDepth !== undefined &&
+      options.leadInRadius > options.insertRadius
+    ) {
+      builder.addLeadInSteppedTube(
+        options.center,
+        options.outerRadius,
+        options.screwRadius,
+        options.insertRadius,
+        options.leadInRadius,
+        options.height,
+        Math.min(options.insertDepth, options.height),
+        Math.min(options.leadInDepth, options.height),
+        40,
+      );
+      return;
+    }
     builder.addSteppedTube(
       options.center,
       options.outerRadius,

@@ -63,8 +63,8 @@ writing mesh-based manufacturing files.
 
 The kernel path intentionally remains isolated from the renderer. The Electron main
 process invokes it for STEP export, while the renderer continues to receive lightweight
-triangle meshes for interactive preview. Future kernel work should add heat-set insert
-lead-in chamfers, selective fillets, and richer enclosure templates.
+triangle meshes for interactive preview. Future kernel work should add selective
+fillets and richer enclosure templates.
 
 ## Drawing Exporters
 

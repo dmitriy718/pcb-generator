@@ -48,6 +48,8 @@ tested, documented, and usable before moving on.
     and unit-confidence warnings.
 32. STL importer triangle-topology preservation for ASCII and binary meshes, retaining
     triangle grouping and facet normals before future high-confidence feature detection.
+33. Expanded built-in board library with additional Raspberry Pi, Arduino, ESP32,
+    BeagleBone, Jetson, M5Stack, and SDR starter profiles validated by domain tests.
 
 ## Next Milestones
 
@@ -55,7 +57,6 @@ tested, documented, and usable before moving on.
 2. Add high-confidence mounting-hole detection for STEP references.
 3. Add selective fillets where they improve ergonomics without hurting printability.
 4. Add additional enclosure templates one at a time.
-5. Expand board profile library coverage.
-6. Add plugin API.
-7. Add AI-assisted parameter generation with inspectable output.
-8. Add release signing, notarization, and publishing automation.
+5. Add plugin API.
+6. Add AI-assisted parameter generation with inspectable output.
+7. Add release signing, notarization, and publishing automation.

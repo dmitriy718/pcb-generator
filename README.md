@@ -143,10 +143,13 @@ without corrupting PCB board thickness.
 
 ## Board Library
 
-The built-in board library currently includes starter profiles for Raspberry Pi 4
-Model B, Raspberry Pi Pico, Arduino Uno R3, Arduino Nano, and ESP32 DevKit V1. Profiles
-set PCB dimensions, mounting holes where applicable, and starter connector cutouts.
-Clone boards vary; verify physical dimensions before final prints.
+The built-in board library currently includes starter profiles for Raspberry Pi 5,
+Raspberry Pi 4 Model B, Raspberry Pi Zero 2 W, Raspberry Pi Pico, Arduino Uno R3,
+Arduino Mega 2560 R3, Arduino Nano, ESP32 DevKit V1, ESP32-S3-DevKitC-1,
+BeagleBone Black, NVIDIA Jetson Orin Nano DevKit Carrier, M5Stack Core2, HackRF One,
+LimeSDR Mini, and RTL-SDR Blog V3. Profiles set PCB dimensions, mounting holes where
+applicable, and starter connector cutouts. Clone boards and module revisions vary;
+verify physical dimensions before final prints.
 
 Custom board profiles can be saved from the current PCB geometry and imported later as
 versioned `.pcbboard.json` files.

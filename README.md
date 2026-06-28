@@ -49,7 +49,9 @@ The renderer includes an offline prompt box that maps common phrases such as `US
 the left`, `OLED`, `speaker holes`, `ventilation`, `rounded`, `handheld`, and material
 names into normal editable project parameters. Generated assistant changes appear in
 the same connector, ventilation, material, and design-feature editors as manual
-changes.
+changes. The shared assistant also exposes an optional provider interface for local or
+cloud parsers; provider output is constrained to a structured intent object and still
+flows through the same editable parameter generator.
 
 ## Development
 

@@ -62,9 +62,10 @@ tested, documented, and usable before moving on.
     tall-clearance, wall-mount, and desktop project-box two-piece screw-case variants.
 39. Declarative plugin package loader for approved board-library and enclosure-template
     JSON contributions with manifest registration and domain validation.
+40. Optional assistant provider interface for local/cloud prompt parsers, constrained to
+    structured intent output that still generates editable validated parameters.
 
 ## Next Milestones
 
 1. Add selective fillets where they improve ergonomics without hurting printability.
-2. Add optional cloud/local LLM parsing behind the same inspectable assistant parameter model.
-3. Add release signing, notarization, and publishing automation.
+2. Add release signing, notarization, and publishing automation.

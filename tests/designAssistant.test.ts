@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyDesignPrompt } from '../src/shared/assistant';
+import { applyDesignPrompt, applyDesignPromptWithProvider } from '../src/shared/assistant';
 import { defaultProject, validateProject } from '../src/shared/domain';
 
 describe('applyDesignPrompt', () => {
@@ -48,5 +48,32 @@ describe('applyDesignPrompt', () => {
     expect(applyDesignPrompt(defaultProject, 'make it excellent').warnings[0]).toContain(
       'No supported design phrases',
     );
+  });
+
+  it('applies structured provider intent through the same editable parameter model', async () => {
+    const result = await applyDesignPromptWithProvider(
+      defaultProject,
+      'provider parsed prompt',
+      () => Promise.resolve({
+        material: 'asa',
+        style: 'handheld',
+        connectors: [{ type: 'usb-c', side: 'left' }],
+        display: 'oled',
+        speaker: true,
+        ventilation: true,
+      }),
+    );
+
+    expect(result.intent).toEqual(
+      expect.objectContaining({
+        material: 'asa',
+        style: 'handheld',
+      }),
+    );
+    expect(result.project.enclosure.material).toBe('asa');
+    expect(result.project.pcb.connectorCutouts).toEqual(
+      expect.arrayContaining([expect.objectContaining({ label: 'USB-C', side: 'left' })]),
+    );
+    expect(validateProject(result.project).issues).toEqual([]);
   });
 });

@@ -12,7 +12,27 @@ export interface DesignAssistantResult {
   project: EnclosureProject;
   applied: string[];
   warnings: string[];
+  intent?: DesignPromptIntent;
 }
+
+export interface DesignPromptIntent {
+  material?: MaterialId;
+  style?: 'compact' | 'handheld' | 'desktop' | 'wall_mount';
+  connectors?: { type: 'usb-c' | 'micro_usb' | 'ethernet' | 'hdmi' | 'sma' | 'gpio'; side?: CutoutSide }[];
+  display?: 'oled' | 'touchscreen';
+  button?: boolean;
+  switch?: boolean;
+  speaker?: boolean;
+  ventilation?: boolean;
+  logo?: string;
+}
+
+export interface DesignPromptProviderRequest {
+  prompt: string;
+  project: EnclosureProject;
+}
+
+export type DesignPromptProvider = (request: DesignPromptProviderRequest) => Promise<DesignPromptIntent>;
 
 interface ConnectorIntent {
   key: string;
@@ -190,6 +210,83 @@ export function applyDesignPrompt(project: EnclosureProject, prompt: string): De
   }
 
   return { project: next, applied, warnings };
+}
+
+export async function applyDesignPromptWithProvider(
+  project: EnclosureProject,
+  prompt: string,
+  provider: DesignPromptProvider,
+): Promise<DesignAssistantResult> {
+  const intent = sanitizeIntent(await provider({ prompt, project: structuredClone(project) }));
+  const result = applyDesignPrompt(project, intentToPrompt(intent));
+  return {
+    ...result,
+    intent,
+    warnings: [
+      ...result.warnings,
+      ...(prompt.trim() ? [] : ['Provider was called with an empty original prompt.']),
+    ],
+  };
+}
+
+function sanitizeIntent(intent: DesignPromptIntent): DesignPromptIntent {
+  const sanitized: DesignPromptIntent = {};
+  if (intent.material) {
+    sanitized.material = intent.material;
+  }
+  if (intent.style) {
+    sanitized.style = intent.style;
+  }
+  const connectors = intent.connectors
+    ?.filter((connector) =>
+      ['usb-c', 'micro_usb', 'ethernet', 'hdmi', 'sma', 'gpio'].includes(connector.type),
+    )
+    .map((connector) => ({
+      type: connector.type,
+      ...(connector.side ? { side: connector.side } : {}),
+    }));
+  if (connectors && connectors.length > 0) {
+    sanitized.connectors = connectors;
+  }
+  if (intent.display) {
+    sanitized.display = intent.display;
+  }
+  if (intent.button === true) {
+    sanitized.button = true;
+  }
+  if (intent.switch === true) {
+    sanitized.switch = true;
+  }
+  if (intent.speaker === true) {
+    sanitized.speaker = true;
+  }
+  if (intent.ventilation === true) {
+    sanitized.ventilation = true;
+  }
+  if (intent.logo?.trim()) {
+    sanitized.logo = intent.logo.trim();
+  }
+  return sanitized;
+}
+
+function intentToPrompt(intent: DesignPromptIntent): string {
+  const phrases: string[] = [];
+  if (intent.style === 'handheld') phrases.push('handheld rounded');
+  if (intent.style === 'desktop') phrases.push('desktop');
+  if (intent.style === 'wall_mount') phrases.push('wall mount');
+  if (intent.material) phrases.push(intent.material.replace('_', ' '));
+  for (const connector of intent.connectors ?? []) {
+    const label = connector.type === 'micro_usb' ? 'micro usb' : connector.type;
+    phrases.push(`${label}${connector.side ? ` on the ${connector.side}` : ''}`);
+  }
+  if (intent.display === 'touchscreen') phrases.push('touchscreen');
+  if (intent.display === 'oled') phrases.push('oled');
+  if (intent.button) phrases.push('button');
+  if (intent.switch) phrases.push('switch');
+  if (intent.speaker) phrases.push('speaker holes');
+  if (intent.ventilation) phrases.push('ventilation');
+  if (intent.logo) phrases.push('logo');
+  return phrases.join(', ');
 }
 
 function addFeature(

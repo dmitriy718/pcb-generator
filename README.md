@@ -1,8 +1,8 @@
 # PCB Enclosure Generator
 
 PCB Enclosure Generator is an offline desktop application for generating parametric,
-3D-printable electronics enclosures. This repository currently implements milestone 1:
-a production-oriented Electron, React, TypeScript, Three.js, validation, export, test,
+3D-printable electronics enclosures. This repository currently implements a
+production-oriented Electron, React, TypeScript, Three.js, validation, export, test,
 documentation, and CI foundation with a usable manual PCB workflow.
 
 ## Implemented in This Milestone
@@ -23,15 +23,16 @@ documentation, and CI foundation with a usable manual PCB workflow.
 - Material tolerance profiles for PLA, PETG, ABS, ASA, TPU, CF PLA, and Nylon.
 - Three.js real-time preview.
 - Validation with actionable user-facing errors.
-- STL, OBJ, GLTF, 3MF, SVG drawing, DXF drawing, and BOM CSV export plus MakerWorld metadata JSON.
-- OpenCascade.js-backed STEP export for base shell, lid, standoffs, screw bosses, connector cutouts, and rectangular vents.
+- OpenCascade.js-backed STEP, STL, OBJ, GLTF, and 3MF export for base shell, lid,
+  standoffs, screw bosses, connector cutouts, and rectangular vents.
+- SVG drawing, DXF drawing, and BOM CSV export plus MakerWorld metadata JSON.
 - Strict TypeScript, ESLint, Prettier, Vitest, Docker development environment, and GitHub Actions CI/release workflows.
 
 ## Current Scope
 
-The current implementation intentionally does not claim STEP, plugin, AI, or full
-enclosure-template coverage. Those are tracked in the roadmap and should be added
-feature by feature with tests and documentation.
+The current implementation intentionally does not claim plugin, AI, automated
+connector recognition, or full enclosure-template coverage. Those are tracked in the
+roadmap and should be added feature by feature with tests and documentation.
 
 ## Development
 
@@ -70,7 +71,8 @@ Docker development details.
 2. Import a KiCad `.kicad_pcb` file or edit PCB dimensions, mounting holes, connector cutouts, material, and enclosure dimensions.
 3. Resolve validation issues.
 4. Save the editable project as `.pcbenc.json` when needed.
-5. Export STEP, 3MF, STL, OBJ, GLTF, SVG drawing, DXF drawing, or BOM CSV.
+5. Export STEP, 3MF, STL, OBJ, GLTF, SVG drawing, DXF drawing, or BOM CSV. STEP and
+   mesh manufacturing exports are generated from validated OpenCascade solids.
 6. The app writes a matching `.makerworld.json` file containing print recommendations,
    orientation, material, support status, and assembly guidance.
 

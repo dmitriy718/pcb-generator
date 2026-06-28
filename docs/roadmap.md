@@ -21,18 +21,19 @@ tested, documented, and usable before moving on.
 14. Custom `.pcbboard.json` board profile import/export.
 15. SVG PCB outline import for rectangular outlines and circular mounting holes.
 16. Native-platform GitHub Actions package/release workflow and Docker development environment.
+17. OpenCascade.js B-rep generation and validation for the two-piece screw enclosure.
+18. OpenCascade.js STEP export for validated base and lid solids.
+19. OpenCascade.js-derived STL/OBJ/GLTF/3MF mesh export with topology validation.
 
 ## Next Milestones
 
-1. Replace or augment mesh primitives with OpenCascade.js B-rep generation.
-2. Add STEP export backed by OpenCascade.js or another validated CAD kernel.
-3. Add rounded/display/button cutout variants and collision checks.
-4. Expand KiCad importer with component-height and connector detection.
-5. Expand board library coverage and add custom profile import/export.
-5. Add material-aware fastener library and heat-set insert presets.
-6. Add honeycomb vents, fan grills, and speaker grills.
+1. Add rounded/display/button cutout variants and collision checks.
+2. Expand KiCad importer with component-height and connector detection.
+3. Add STEP/STL/SVG/DXF import support for mechanical reference geometry.
+4. Add material-aware heat-set insert seat geometry and fastener presets.
+5. Add honeycomb vents, fan grills, and speaker grills.
 6. Add additional enclosure templates one at a time.
-7. Add board profile library.
+7. Expand board profile library coverage.
 8. Add plugin API.
 9. Add AI-assisted parameter generation with inspectable output.
 10. Add release signing, notarization, and publishing automation.

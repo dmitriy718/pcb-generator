@@ -25,8 +25,9 @@ between form state and generated geometry.
 
 The current engine has two CAD paths:
 
-- A deterministic triangle-mesh generator for real-time preview and mesh exports.
-- An OpenCascade.js WebAssembly backend for B-rep validation and STEP export.
+- A deterministic triangle-mesh generator for real-time preview.
+- An OpenCascade.js WebAssembly backend for B-rep validation, STEP export, and
+  production mesh tessellation.
 
 The mesh path creates:
 
@@ -43,11 +44,15 @@ cylindrical screw bosses, lid plate, and rectangular lid vent cutouts as validat
 B-rep solids. It writes STEP through OpenCascade's STEP writer and validates each
 transferred solid with `BRepCheck_Analyzer` before export.
 
+Mesh file exports for STL, OBJ, GLTF, and 3MF are tessellated from the same validated
+OpenCascade solids. The backend runs OpenCascade incremental meshing, extracts face
+triangulations, flips reversed face orientations, and rejects invalid topology before
+writing mesh-based manufacturing files.
+
 The kernel path intentionally remains isolated from the renderer. The Electron main
 process invokes it for STEP export, while the renderer continues to receive lightweight
 triangle meshes for interactive preview. Future kernel work should add heat-set insert
-seat details, fillets, chamfers, and eventually mesh tessellation from the B-rep source
-so STL/3MF/OBJ are derived from the same solid model.
+seat details, fillets, chamfers, and richer enclosure templates.
 
 ## Drawing Exporters
 

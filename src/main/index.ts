@@ -4,8 +4,12 @@ import { electronApp, optimizer } from '@electron-toolkit/utils';
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import log from 'electron-log/main';
 import { generateTwoPieceScrewCase } from '../shared/cad';
-import { exportTwoPieceScrewCaseStep } from '../shared/cad/kernel/openCascadeBackend';
-import type { BoardProfile, EnclosureProject, ExportFormat, GeneratedEnclosure } from '../shared/domain';
+import {
+  exportTwoPieceScrewCaseStep,
+  generateTwoPieceScrewCaseKernelMesh,
+} from '../shared/cad/kernel/openCascadeBackend';
+import { analyzeMeshTopology } from '../shared/cad/meshValidation';
+import type { BoardProfile, EnclosureProject, ExportFormat, GeneratedEnclosure, TriangleMesh } from '../shared/domain';
 import { validateProject } from '../shared/domain';
 import {
   exportBomCsv,
@@ -252,6 +256,7 @@ void app.whenReady().then(() => {
 
   ipcMain.handle('project:export', async (_event, project: EnclosureProject, format: ExportFormat) => {
     const generated = generateTwoPieceScrewCase(project);
+    let exportedGenerated = generated;
     const extension = extensionForFormat(format);
     const { canceled, filePath } = await dialog.showSaveDialog({
       title: `Export ${format.toUpperCase()}`,
@@ -265,16 +270,19 @@ void app.whenReady().then(() => {
 
     const normalizedFilePath = ensureExtension(filePath, extension);
     if (format === '3mf') {
-      await writeFile(normalizedFilePath, await exportThreeMf(generated.mesh, generated.metadata));
+      const kernelExport = await generatedKernelExport(project, generated);
+      exportedGenerated = kernelExport.generated;
+      await writeFile(normalizedFilePath, await exportThreeMf(kernelExport.mesh, kernelExport.generated.metadata));
     } else if (format === 'step') {
       await writeFile(normalizedFilePath, await exportTwoPieceScrewCaseStep(project), 'utf8');
     } else {
-      const contents = exportTextFormat(project, generated, format);
-      await writeFile(normalizedFilePath, contents, 'utf8');
+      const exportResult = await exportTextFormat(project, generated, format);
+      exportedGenerated = exportResult.generated;
+      await writeFile(normalizedFilePath, exportResult.contents, 'utf8');
     }
 
     const metadataPath = appendMetadataSuffix(normalizedFilePath);
-    await writeFile(metadataPath, exportMakerWorldMetadata(generated.metadata), 'utf8');
+    await writeFile(metadataPath, exportMakerWorldMetadata(exportedGenerated.metadata), 'utf8');
 
     return { saved: true as const, filePath: normalizedFilePath, metadataPath };
   });
@@ -317,21 +325,56 @@ function exportTextFormat(
   project: EnclosureProject,
   generated: GeneratedEnclosure,
   format: Exclude<ExportFormat, '3mf' | 'step'>,
-): string {
+): Promise<{ contents: string; generated: GeneratedEnclosure }> {
   if (format === 'stl') {
-    return exportAsciiStl(generated.mesh, project.name);
+    return generatedKernelExport(project, generated).then((kernelExport) => ({
+      contents: exportAsciiStl(kernelExport.mesh, project.name),
+      generated: kernelExport.generated,
+    }));
   }
   if (format === 'obj') {
-    return exportObj(generated.mesh, project.name);
+    return generatedKernelExport(project, generated).then((kernelExport) => ({
+      contents: exportObj(kernelExport.mesh, project.name),
+      generated: kernelExport.generated,
+    }));
   }
   if (format === 'gltf') {
-    return exportGltf(generated.mesh, generated.metadata);
+    return generatedKernelExport(project, generated).then((kernelExport) => ({
+      contents: exportGltf(kernelExport.mesh, kernelExport.generated.metadata),
+      generated: kernelExport.generated,
+    }));
   }
   if (format === 'svg') {
-    return exportSvgDrawing(project);
+    return Promise.resolve({ contents: exportSvgDrawing(project), generated });
   }
   if (format === 'bom') {
-    return exportBomCsv(project);
+    return Promise.resolve({ contents: exportBomCsv(project), generated });
   }
-  return exportDxfDrawing(project);
+  return Promise.resolve({ contents: exportDxfDrawing(project), generated });
+}
+
+async function generatedKernelExport(
+  project: EnclosureProject,
+  generated: GeneratedEnclosure,
+): Promise<{ mesh: TriangleMesh; generated: GeneratedEnclosure }> {
+  const mesh = await generateTwoPieceScrewCaseKernelMesh(project);
+  const meshTopology = analyzeMeshTopology(mesh);
+  return {
+    mesh,
+    generated: {
+      ...generated,
+      mesh,
+      metadata: {
+        ...generated.metadata,
+        meshTopology,
+        printability: {
+          ...generated.metadata.printability,
+          overall:
+            meshTopology.isClosed && meshTopology.isEdgeManifold
+              ? generated.metadata.printability.overall
+              : 'blocked',
+        },
+      },
+    },
+  };
 }

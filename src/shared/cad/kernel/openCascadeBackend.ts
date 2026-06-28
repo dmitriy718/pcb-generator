@@ -2,11 +2,13 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 
-import type { ConnectorCutout, EnclosureProject, VentilationRegion } from '../../domain';
+import type { ConnectorCutout, EnclosureProject, TriangleMesh, VentilationRegion } from '../../domain';
 import { getMaterialProfile } from '../../domain/materials';
+import { validateMesh } from '../meshValidation';
 
 interface OcShape {
   ShapeType(): unknown;
+  Orientation_1(): unknown;
 }
 
 interface OcMakeShape {
@@ -31,6 +33,36 @@ interface OcExplorer {
   delete?(): void;
 }
 
+interface OcPoint {
+  X(): number;
+  Y(): number;
+  Z(): number;
+  delete?(): void;
+}
+
+interface OcTriangle {
+  Value(index: 1 | 2 | 3): number;
+  delete?(): void;
+}
+
+interface OcTriangulation {
+  NbNodes(): number;
+  NbTriangles(): number;
+  Node(index: number): OcPoint;
+  Triangle(index: number): OcTriangle;
+}
+
+interface OcTriangulationHandle {
+  IsNull(): boolean;
+  get(): OcTriangulation;
+  delete?(): void;
+}
+
+interface OcIncrementalMesh {
+  IsDone(): boolean;
+  delete?(): void;
+}
+
 interface OcFileSystem {
   readdir(path: string): string[];
   readFile(path: string, options: { encoding: 'utf8' }): string;
@@ -44,6 +76,16 @@ interface OpenCascadeModule {
   BRepPrimAPI_MakeCylinder_3: new (axis: unknown, radius: number, height: number) => OcMakeShape;
   BRepPrimAPI_MakeBox_1: new (dx: number, dy: number, dz: number) => OcMakeShape;
   BRepPrimAPI_MakeBox_2: new (point: unknown, dx: number, dy: number, dz: number) => OcMakeShape;
+  BRepMesh_IncrementalMesh_2: new (
+    shape: OcShape,
+    linearDeflection: number,
+    isRelative: boolean,
+    angularDeflection: number,
+    inParallel: boolean,
+  ) => OcIncrementalMesh;
+  BRep_Tool: {
+    Triangulation(face: OcShape, location: unknown): OcTriangulationHandle;
+  };
   STEPControl_StepModelType: {
     STEPControl_AsIs: unknown;
     STEPControl_ManifoldSolidBrep: unknown;
@@ -54,10 +96,18 @@ interface OpenCascadeModule {
   };
   FS: OcFileSystem;
   TopAbs_ShapeEnum: {
+    TopAbs_FACE: unknown;
     TopAbs_SHAPE: unknown;
     TopAbs_SOLID: unknown;
   };
+  TopAbs_Orientation: {
+    TopAbs_REVERSED: unknown;
+  };
   TopExp_Explorer_2: new (shape: OcShape, target: unknown, avoid: unknown) => OcExplorer;
+  TopLoc_Location_1: new () => unknown;
+  TopoDS: {
+    Face_1(shape: OcShape): OcShape;
+  };
   gp_Ax2_3: new (point: unknown, direction: unknown) => unknown;
   gp_Dir_4: new (x: number, y: number, z: number) => unknown;
   gp_Pnt_3: new (x: number, y: number, z: number) => unknown;
@@ -82,24 +132,11 @@ let stepFileCounter = 0;
 export async function exportTwoPieceScrewCaseStep(project: EnclosureProject): Promise<string> {
   const oc = await loadOpenCascade();
   const model = buildTwoPieceScrewCaseStepModel(oc, project);
-  if (model.shapes.length === 0) {
-    throw new Error('OpenCascade STEP export produced no solids.');
-  }
-
-  for (const [index, shape] of model.shapes.entries()) {
-    const analyzer = new oc.BRepCheck_Analyzer(shape, true);
-    const isValid = analyzer.IsValid_2();
-    analyzer.delete?.();
-    if (!isValid) {
-      throw new Error(`OpenCascade STEP export produced an invalid solid at index ${index}.`);
-    }
-  }
+  const solids = validatedSolids(oc, model, 'STEP export');
 
   const writer = new oc.STEPControl_Writer_1();
-  for (const shape of model.shapes) {
-    for (const solid of solidsIn(oc, shape)) {
-      writer.Transfer(solid, oc.STEPControl_StepModelType.STEPControl_AsIs, true);
-    }
+  for (const solid of solids) {
+    writer.Transfer(solid, oc.STEPControl_StepModelType.STEPControl_AsIs, true);
   }
 
   stepFileCounter = (stepFileCounter + 1) % 1_000_000;
@@ -116,6 +153,22 @@ export async function exportTwoPieceScrewCaseStep(project: EnclosureProject): Pr
   oc.FS.unlink(writtenPath);
   writer.delete?.();
   return contents;
+}
+
+export async function generateTwoPieceScrewCaseKernelMesh(project: EnclosureProject): Promise<TriangleMesh> {
+  const oc = await loadOpenCascade();
+  const model = buildTwoPieceScrewCaseStepModel(oc, project);
+  const solids = validatedSolids(oc, model, 'mesh export');
+  const mesh = meshSolids(oc, solids);
+  const validation = validateMesh(mesh, { checkTopology: true });
+  if (!validation.ok) {
+    throw new Error(
+      `OpenCascade mesh export produced invalid topology:\n${validation.issues
+        .map((issue) => `- ${issue.message}`)
+        .join('\n')}`,
+    );
+  }
+  return mesh;
 }
 
 async function loadOpenCascade(): Promise<OpenCascadeModule> {
@@ -240,6 +293,123 @@ function buildTwoPieceScrewCaseStepModel(
   }
 
   return { shapes: [base, lid] };
+}
+
+function validatedSolids(
+  oc: OpenCascadeModule,
+  model: KernelStepModel,
+  exportName: string,
+): OcShape[] {
+  if (model.shapes.length === 0) {
+    throw new Error(`OpenCascade ${exportName} produced no solids.`);
+  }
+
+  const solids = model.shapes.flatMap((shape) => solidsIn(oc, shape));
+  if (solids.length === 0) {
+    throw new Error(`OpenCascade ${exportName} produced no solids.`);
+  }
+
+  for (const [index, solid] of solids.entries()) {
+    const analyzer = new oc.BRepCheck_Analyzer(solid, true);
+    const isValid = analyzer.IsValid_2();
+    analyzer.delete?.();
+    if (!isValid) {
+      throw new Error(`OpenCascade ${exportName} produced an invalid solid at index ${index}.`);
+    }
+  }
+  return solids;
+}
+
+function meshSolids(oc: OpenCascadeModule, solids: OcShape[]): TriangleMesh {
+  const vertices: number[] = [];
+  const indices: number[] = [];
+  const groups: TriangleMesh['groups'] = [];
+
+  for (const [solidIndex, solid] of solids.entries()) {
+    const groupStart = indices.length;
+    const mesher = new oc.BRepMesh_IncrementalMesh_2(solid, 0.18, false, 0.35, true);
+    const isDone = mesher.IsDone();
+    mesher.delete?.();
+    if (!isDone) {
+      throw new Error(`OpenCascade mesh export failed to tessellate solid ${solidIndex}.`);
+    }
+
+    appendShapeTriangles(oc, solid, vertices, indices);
+    groups.push({
+      name: `kernel-solid-${solidIndex + 1}`,
+      start: groupStart,
+      count: indices.length - groupStart,
+    });
+  }
+
+  if (vertices.length === 0 || indices.length === 0) {
+    throw new Error('OpenCascade mesh export produced an empty mesh.');
+  }
+
+  return { vertices, indices, groups, units: 'mm' };
+}
+
+function appendShapeTriangles(
+  oc: OpenCascadeModule,
+  shape: OcShape,
+  vertices: number[],
+  indices: number[],
+): void {
+  const explorer = new oc.TopExp_Explorer_2(
+    shape,
+    oc.TopAbs_ShapeEnum.TopAbs_FACE,
+    oc.TopAbs_ShapeEnum.TopAbs_SHAPE,
+  );
+
+  while (explorer.More()) {
+    const faceShape = explorer.Current();
+    const face = oc.TopoDS.Face_1(faceShape);
+    const location = new oc.TopLoc_Location_1();
+    const triangulationHandle = oc.BRep_Tool.Triangulation(face, location);
+    if (triangulationHandle.IsNull()) {
+      triangulationHandle.delete?.();
+      explorer.Next();
+      continue;
+    }
+
+    appendFaceTriangles(
+      triangulationHandle.get(),
+      faceShape.Orientation_1() === oc.TopAbs_Orientation.TopAbs_REVERSED,
+      vertices,
+      indices,
+    );
+    triangulationHandle.delete?.();
+    explorer.Next();
+  }
+
+  explorer.delete?.();
+}
+
+function appendFaceTriangles(
+  triangulation: OcTriangulation,
+  isReversed: boolean,
+  vertices: number[],
+  indices: number[],
+): void {
+  const vertexOffset = vertices.length / 3;
+  for (let nodeIndex = 1; nodeIndex <= triangulation.NbNodes(); nodeIndex += 1) {
+    const node = triangulation.Node(nodeIndex);
+    vertices.push(node.X(), node.Y(), node.Z());
+    node.delete?.();
+  }
+
+  for (let triangleIndex = 1; triangleIndex <= triangulation.NbTriangles(); triangleIndex += 1) {
+    const triangle = triangulation.Triangle(triangleIndex);
+    const a = vertexOffset + triangle.Value(1) - 1;
+    const b = vertexOffset + triangle.Value(2) - 1;
+    const c = vertexOffset + triangle.Value(3) - 1;
+    if (isReversed) {
+      indices.push(a, c, b);
+    } else {
+      indices.push(a, b, c);
+    }
+    triangle.delete?.();
+  }
 }
 
 function connectorCutoutTool(

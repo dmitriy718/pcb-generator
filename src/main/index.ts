@@ -21,7 +21,7 @@ import {
   exportSvgDrawing,
   exportThreeMf,
 } from '../shared/exporters';
-import { importDxfPcb, importKiCadPcb, importSvgPcb } from '../shared/importers';
+import { importDxfPcb, importKiCadPcb, importStlPcb, importSvgPcb } from '../shared/importers';
 import { parseProjectFile, serializeProjectFile } from '../shared/projectFiles';
 import { parseBoardProfileFile, serializeBoardProfileFile, slugify } from '../shared/boards';
 
@@ -71,7 +71,7 @@ function createWindow(): BrowserWindow {
     mainWindow.webContents.once('did-finish-load', () => {
       void mainWindow.webContents
         .executeJavaScript(
-          "Boolean(window.pcbEnclosure && window.pcbEnclosure.saveProjectFile && window.pcbEnclosure.exportProject)",
+          "Boolean(window.pcbEnclosure && window.pcbEnclosure.saveProjectFile && window.pcbEnclosure.exportProject && window.pcbEnclosure.importStlProject)",
         )
         .then((hasPreloadBridge: boolean) => {
           if (!hasPreloadBridge) {
@@ -266,6 +266,33 @@ void app.whenReady().then(() => {
       imported: true as const,
       sourcePath,
       projectName: basename(sourcePath, '.dxf'),
+      pcb: imported.pcb,
+      warnings: imported.warnings,
+    };
+  });
+
+  ipcMain.handle('project:import-stl', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      title: 'Import STL PCB Reference',
+      properties: ['openFile'],
+      filters: [{ name: 'STL PCB Reference', extensions: ['stl'] }],
+    });
+
+    if (canceled || filePaths.length === 0) {
+      return { imported: false as const };
+    }
+
+    const sourcePath = filePaths[0];
+    if (!sourcePath) {
+      return { imported: false as const };
+    }
+
+    const contents = await readFile(sourcePath);
+    const imported = importStlPcb(contents);
+    return {
+      imported: true as const,
+      sourcePath,
+      projectName: basename(sourcePath, '.stl'),
       pcb: imported.pcb,
       warnings: imported.warnings,
     };

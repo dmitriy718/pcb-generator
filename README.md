@@ -12,6 +12,7 @@ documentation, and CI foundation with a usable manual PCB workflow.
 - KiCad `.kicad_pcb` import for `Edge.Cuts` board outline, board thickness, and drilled mounting holes.
 - SVG PCB outline import for rectangular outlines, viewBox dimensions, and circular mounting holes.
 - DXF PCB outline import for LINE/LWPOLYLINE board bounds, `$INSUNITS` scaling, and circular mounting holes.
+- STL PCB/reference import for ASCII and binary STL mesh bounds and inferred board thickness.
 - Built-in board profiles for Raspberry Pi, Arduino, and ESP32 starter enclosures.
 - Custom `.pcbboard.json` board profile import/export.
 - Manual rectangular connector cutouts on enclosure side walls with generated printable openings.
@@ -68,7 +69,7 @@ Docker development details.
 ## Export Workflow
 
 1. Launch the app.
-2. Import a KiCad `.kicad_pcb` file or edit PCB dimensions, mounting holes, connector cutouts, material, and enclosure dimensions.
+2. Import a KiCad `.kicad_pcb`, SVG, DXF, or STL file, or edit PCB dimensions, mounting holes, connector cutouts, material, and enclosure dimensions.
 3. Resolve validation issues.
 4. Save the editable project as `.pcbenc.json` when needed.
 5. Export STEP, 3MF, STL, OBJ, GLTF, SVG drawing, DXF drawing, or BOM CSV. STEP and
@@ -105,6 +106,14 @@ It reads `$INSUNITS` for inch, millimeter, centimeter, and meter scaling, infers
 dimensions from outline bounds, and detects circular mounting holes on hole-like layers
 or small circles inside the board bounds. Complex arcs, splines, and mechanical STEP
 feature detection remain future importer milestones.
+
+## STL Import Scope
+
+STL import supports offline ASCII and binary STL files as PCB/reference geometry. STL
+does not contain PCB semantics, units, layers, holes, or connector metadata, so the
+importer infers board width, height, and thickness from mesh bounds in millimeters and
+adds warnings for users to verify or manually define mounting holes, connectors, and
+component clearances.
 
 ## Board Library
 

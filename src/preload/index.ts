@@ -101,6 +101,26 @@ const api = {
           warnings: string[];
         }
     >,
+  importStlProject: (): Promise<
+    | { imported: false }
+    | {
+        imported: true;
+        sourcePath: string;
+        projectName: string;
+        pcb: PcbSpecification;
+        warnings: string[];
+      }
+  > =>
+    ipcRenderer.invoke('project:import-stl') as Promise<
+      | { imported: false }
+      | {
+          imported: true;
+          sourcePath: string;
+          projectName: string;
+          pcb: PcbSpecification;
+          warnings: string[];
+        }
+    >,
 };
 
 contextBridge.exposeInMainWorld('pcbEnclosure', api);

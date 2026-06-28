@@ -439,6 +439,32 @@ export function App(): ReactElement {
     }
   }
 
+  async function importStlProject(): Promise<void> {
+    setExportMessage('');
+    const api = pcbApi();
+    if (!api) {
+      setExportMessage('Desktop integration is unavailable. Launch the Electron app instead of the browser preview.');
+      return;
+    }
+    try {
+      const result = await api.importStlProject();
+      if (!result.imported) {
+        setExportMessage('STL import cancelled.');
+        return;
+      }
+
+      setProject((current) => ({
+        ...current,
+        name: result.projectName,
+        pcb: result.pcb,
+      }));
+      setImportWarnings(result.warnings);
+      setExportMessage(`Imported ${result.sourcePath}.`);
+    } catch (error) {
+      setExportMessage(formatActionError('STL import', error));
+    }
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -480,6 +506,9 @@ export function App(): ReactElement {
           </button>
           <button className="toolbar-button" type="button" onClick={() => void importDxfProject()}>
             <Upload size={16} aria-hidden="true" /> DXF
+          </button>
+          <button className="toolbar-button" type="button" onClick={() => void importStlProject()}>
+            <Upload size={16} aria-hidden="true" /> STL
           </button>
           <button
             className="toolbar-button"

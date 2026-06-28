@@ -126,9 +126,10 @@ still be verified against the physical PCB before production printing.
 ## SVG Import Scope
 
 SVG import supports offline PCB outline files with either `width`/`height`, a `viewBox`,
-or a rectangular `<rect>` outline. Circular mounting holes are detected from `<circle>`
-elements whose `id` or `class` contains `hole` or `mount`. The importer supports `mm`,
-`cm`, `in`, and `px` units. Complex paths are future SVG importer work.
+a rectangular `<rect>` outline, or common `<path>` outlines using `M`, `L`, `H`, `V`,
+`A`, and `Z` commands. Circular mounting holes are detected from `<circle>` elements
+whose `id` or `class` contains `hole` or `mount`. The importer supports `mm`, `cm`,
+`in`, and `px` units. Bezier and spline path commands remain future SVG importer work.
 
 ## DXF Import Scope
 

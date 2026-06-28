@@ -5,6 +5,11 @@ interface SvgNumber {
   unit: string;
 }
 
+interface Point {
+  x: number;
+  y: number;
+}
+
 interface Rect {
   x: number;
   y: number;
@@ -16,6 +21,12 @@ interface Circle {
   cx: number;
   cy: number;
   r: number;
+  id: string | undefined;
+  className: string | undefined;
+}
+
+interface PathOutline {
+  d: string;
   id: string | undefined;
   className: string | undefined;
 }
@@ -83,23 +94,56 @@ function findOutlineRect(contents: string, viewBox: Rect | undefined): Rect | un
     .map((match) => parseRect(match[1] ?? ''))
     .filter((rect): rect is Rect => rect !== undefined);
 
-  if (rects.length === 0) {
-    return viewBox;
-  }
-
-  if (!viewBox) {
+  if (rects.length > 0 && !viewBox) {
     return rects.sort((a, b) => b.width * b.height - a.width * a.height)[0];
   }
 
-  return (
-    rects.find(
+  if (rects.length > 0 && viewBox) {
+    return (
+      rects.find(
+        (rect) =>
+          nearlyEqual(rect.x, viewBox.x) &&
+          nearlyEqual(rect.y, viewBox.y) &&
+          nearlyEqual(rect.width, viewBox.width) &&
+          nearlyEqual(rect.height, viewBox.height),
+      ) ?? rects.sort((a, b) => b.width * b.height - a.width * a.height)[0]
+    );
+  }
+
+  const pathBounds = findOutlinePathBounds(contents, viewBox);
+  if (pathBounds) {
+    return pathBounds;
+  }
+
+  return viewBox;
+}
+
+function findOutlinePathBounds(contents: string, viewBox: Rect | undefined): Rect | undefined {
+  const paths = [...contents.matchAll(/<path\b([^>]*)\/?>/giu)]
+    .map((match) => parsePathOutline(match[1] ?? ''))
+    .filter((path): path is PathOutline => path !== undefined);
+  const preferredPaths = paths.filter((path) => isOutlineName(`${path.id ?? ''} ${path.className ?? ''}`));
+  const bounds = (preferredPaths.length > 0 ? preferredPaths : paths)
+    .map((path) => parseSvgPathBounds(path.d))
+    .filter((rect): rect is Rect => rect !== undefined);
+
+  if (bounds.length === 0) {
+    return undefined;
+  }
+
+  if (viewBox) {
+    return (
+      bounds.find(
       (rect) =>
         nearlyEqual(rect.x, viewBox.x) &&
         nearlyEqual(rect.y, viewBox.y) &&
         nearlyEqual(rect.width, viewBox.width) &&
         nearlyEqual(rect.height, viewBox.height),
-    ) ?? rects.sort((a, b) => b.width * b.height - a.width * a.height)[0]
-  );
+      ) ?? bounds.sort((a, b) => b.width * b.height - a.width * a.height)[0]
+    );
+  }
+
+  return bounds.sort((a, b) => b.width * b.height - a.width * a.height)[0];
 }
 
 function extractMountingHoles(contents: string, origin: { x: number; y: number }, scale: number): MountingHole[] {
@@ -152,6 +196,229 @@ function parseCircle(attributesText: string): Circle | undefined {
     id: attributes.id,
     className: attributes.class,
   };
+}
+
+function parsePathOutline(attributesText: string): PathOutline | undefined {
+  const attributes = parseAttributes(attributesText);
+  if (!attributes.d) {
+    return undefined;
+  }
+  return {
+    d: attributes.d,
+    id: attributes.id,
+    className: attributes.class,
+  };
+}
+
+function parseSvgPathBounds(path: string): Rect | undefined {
+  const points = parseSvgPathPoints(path);
+  if (!points || points.length === 0) {
+    return undefined;
+  }
+  const bounds = points.reduce(
+    (current, point) => ({
+      minX: Math.min(current.minX, point.x),
+      minY: Math.min(current.minY, point.y),
+      maxX: Math.max(current.maxX, point.x),
+      maxY: Math.max(current.maxY, point.y),
+    }),
+    {
+      minX: Number.POSITIVE_INFINITY,
+      minY: Number.POSITIVE_INFINITY,
+      maxX: Number.NEGATIVE_INFINITY,
+      maxY: Number.NEGATIVE_INFINITY,
+    },
+  );
+  return { x: bounds.minX, y: bounds.minY, width: bounds.maxX - bounds.minX, height: bounds.maxY - bounds.minY };
+}
+
+function parseSvgPathPoints(path: string): Point[] | undefined {
+  const tokens = [...path.matchAll(/[AaCcHhLlMmQqSsTtVvZz]|[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/gu)].map(
+    (match) => match[0],
+  );
+  const points: Point[] = [];
+  let cursor = 0;
+  let command = '';
+  let current: Point = { x: 0, y: 0 };
+  let subpathStart: Point = { x: 0, y: 0 };
+
+  const isCommand = (token: string | undefined): boolean => token !== undefined && /^[A-Za-z]$/u.test(token);
+  const readNumber = (): number | undefined => {
+    const token = tokens[cursor];
+    if (token === undefined || isCommand(token)) {
+      return undefined;
+    }
+    cursor += 1;
+    const value = Number(token);
+    return Number.isFinite(value) ? value : undefined;
+  };
+  const hasNumber = (): boolean => tokens[cursor] !== undefined && !isCommand(tokens[cursor]);
+
+  while (cursor < tokens.length) {
+    if (isCommand(tokens[cursor])) {
+      command = tokens[cursor] ?? '';
+      cursor += 1;
+    }
+    if (!command) {
+      return undefined;
+    }
+
+    const relative = command === command.toLowerCase();
+    switch (command.toLowerCase()) {
+      case 'm': {
+        const x = readNumber();
+        const y = readNumber();
+        if (x === undefined || y === undefined) {
+          return undefined;
+        }
+        current = relativePoint(current, { x, y }, relative);
+        subpathStart = current;
+        points.push(current);
+        command = relative ? 'l' : 'L';
+        break;
+      }
+      case 'l': {
+        while (hasNumber()) {
+          const x = readNumber();
+          const y = readNumber();
+          if (x === undefined || y === undefined) {
+            return undefined;
+          }
+          current = relativePoint(current, { x, y }, relative);
+          points.push(current);
+        }
+        break;
+      }
+      case 'h': {
+        while (hasNumber()) {
+          const x = readNumber();
+          if (x === undefined) {
+            return undefined;
+          }
+          current = { x: relative ? current.x + x : x, y: current.y };
+          points.push(current);
+        }
+        break;
+      }
+      case 'v': {
+        while (hasNumber()) {
+          const y = readNumber();
+          if (y === undefined) {
+            return undefined;
+          }
+          current = { x: current.x, y: relative ? current.y + y : y };
+          points.push(current);
+        }
+        break;
+      }
+      case 'a': {
+        while (hasNumber()) {
+          const rx = readNumber();
+          const ry = readNumber();
+          const rotation = readNumber();
+          const largeArcFlag = readNumber();
+          const sweepFlag = readNumber();
+          const x = readNumber();
+          const y = readNumber();
+          if (
+            rx === undefined ||
+            ry === undefined ||
+            rotation === undefined ||
+            largeArcFlag === undefined ||
+            sweepFlag === undefined ||
+            x === undefined ||
+            y === undefined
+          ) {
+            return undefined;
+          }
+          const end = relativePoint(current, { x, y }, relative);
+          points.push(...svgArcPoints(current, end, rx, ry, rotation, largeArcFlag !== 0, sweepFlag !== 0));
+          current = end;
+        }
+        break;
+      }
+      case 'z': {
+        current = subpathStart;
+        points.push(current);
+        command = '';
+        break;
+      }
+      default:
+        return undefined;
+    }
+  }
+
+  return points;
+}
+
+function relativePoint(current: Point, point: Point, relative: boolean): Point {
+  return relative ? { x: current.x + point.x, y: current.y + point.y } : point;
+}
+
+function svgArcPoints(
+  start: Point,
+  end: Point,
+  rxInput: number,
+  ryInput: number,
+  rotationDegrees: number,
+  largeArc: boolean,
+  sweep: boolean,
+): Point[] {
+  let rx = Math.abs(rxInput);
+  let ry = Math.abs(ryInput);
+  if (rx <= 0 || ry <= 0 || (nearlyEqual(start.x, end.x) && nearlyEqual(start.y, end.y))) {
+    return [end];
+  }
+
+  const phi = (rotationDegrees * Math.PI) / 180;
+  const cosPhi = Math.cos(phi);
+  const sinPhi = Math.sin(phi);
+  const dx = (start.x - end.x) / 2;
+  const dy = (start.y - end.y) / 2;
+  const x1Prime = cosPhi * dx + sinPhi * dy;
+  const y1Prime = -sinPhi * dx + cosPhi * dy;
+  const radiusScale = x1Prime ** 2 / rx ** 2 + y1Prime ** 2 / ry ** 2;
+  if (radiusScale > 1) {
+    const scale = Math.sqrt(radiusScale);
+    rx *= scale;
+    ry *= scale;
+  }
+
+  const numerator = rx ** 2 * ry ** 2 - rx ** 2 * y1Prime ** 2 - ry ** 2 * x1Prime ** 2;
+  const denominator = rx ** 2 * y1Prime ** 2 + ry ** 2 * x1Prime ** 2;
+  const coefficient = (largeArc === sweep ? -1 : 1) * Math.sqrt(Math.max(0, numerator / denominator));
+  const cxPrime = coefficient * ((rx * y1Prime) / ry);
+  const cyPrime = coefficient * (-(ry * x1Prime) / rx);
+  const center = {
+    x: cosPhi * cxPrime - sinPhi * cyPrime + (start.x + end.x) / 2,
+    y: sinPhi * cxPrime + cosPhi * cyPrime + (start.y + end.y) / 2,
+  };
+
+  const startVector = { x: (x1Prime - cxPrime) / rx, y: (y1Prime - cyPrime) / ry };
+  const endVector = { x: (-x1Prime - cxPrime) / rx, y: (-y1Prime - cyPrime) / ry };
+  const startAngle = vectorAngle({ x: 1, y: 0 }, startVector);
+  let deltaAngle = vectorAngle(startVector, endVector);
+  if (!sweep && deltaAngle > 0) {
+    deltaAngle -= Math.PI * 2;
+  } else if (sweep && deltaAngle < 0) {
+    deltaAngle += Math.PI * 2;
+  }
+
+  const segmentCount = Math.max(4, Math.ceil(Math.abs(deltaAngle) / (Math.PI / 24)));
+  const points: Point[] = [];
+  for (let index = 0; index <= segmentCount; index += 1) {
+    const angle = startAngle + (deltaAngle * index) / segmentCount;
+    const x = cosPhi * rx * Math.cos(angle) - sinPhi * ry * Math.sin(angle) + center.x;
+    const y = sinPhi * rx * Math.cos(angle) + cosPhi * ry * Math.sin(angle) + center.y;
+    points.push({ x, y });
+  }
+  return points;
+}
+
+function vectorAngle(a: Point, b: Point): number {
+  const dot = a.x * b.x + a.y * b.y;
+  const determinant = a.x * b.y - a.y * b.x;
+  return Math.atan2(determinant, dot);
 }
 
 function parseAttributes(attributesText: string): Record<string, string> {
@@ -219,6 +486,11 @@ function tagMatch(contents: string, tagName: string): string | undefined {
 
 function nearlyEqual(a: number, b: number): boolean {
   return Math.abs(a - b) < 0.001;
+}
+
+function isOutlineName(value: string): boolean {
+  const normalized = value.toLowerCase();
+  return normalized.includes('edge') || normalized.includes('outline') || normalized.includes('board') || normalized.includes('pcb');
 }
 
 function round(value: number): number {

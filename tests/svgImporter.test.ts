@@ -41,6 +41,38 @@ describe('SVG PCB importer', () => {
     expect(result.pcb.height).toBe(25.4);
   });
 
+  it('imports board dimensions from a path outline with elliptical corner arcs', () => {
+    const result = importSvgPcb(`
+      <svg xmlns="http://www.w3.org/2000/svg">
+        <path id="board-outline" d="M10 0 H90 A10 10 0 0 1 100 10 V50 A10 10 0 0 1 90 60 H10 A10 10 0 0 1 0 50 V10 A10 10 0 0 1 10 0 Z" />
+        <circle class="mounting-hole" cx="10" cy="10" r="1.5" />
+      </svg>
+    `);
+
+    expect(result.pcb.width).toBe(100);
+    expect(result.pcb.height).toBe(60);
+    expect(result.pcb.mountingHoles).toEqual([{ id: 'mh-1', x: 10, y: 10, diameter: 3 }]);
+  });
+
+  it('imports board dimensions from relative path line commands', () => {
+    const result = importSvgPcb(`
+      <svg xmlns="http://www.w3.org/2000/svg">
+        <path class="edge-cuts" d="m 5 8 h 50 v 20 h -50 z" />
+        <circle id="mount-hole-a" cx="10" cy="13" r="1" />
+      </svg>
+    `);
+
+    expect(result.pcb.width).toBe(50);
+    expect(result.pcb.height).toBe(20);
+    expect(result.pcb.mountingHoles).toEqual([{ id: 'mount-hole-a', x: 5, y: 5, diameter: 2 }]);
+  });
+
+  it('rejects unsupported SVG path curves when no other dimensions are available', () => {
+    expect(() => importSvgPcb('<svg><path id="board-outline" d="M0 0 C10 0 10 10 20 10 Z"/></svg>')).toThrow(
+      'positive board width and height',
+    );
+  });
+
   it('rejects non-SVG input', () => {
     expect(() => importSvgPcb('<html></html>')).toThrow('root <svg>');
   });

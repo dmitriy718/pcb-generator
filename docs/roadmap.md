@@ -71,10 +71,12 @@ tested, documented, and usable before moving on.
     topology validation.
 43. DXF importer support for `ARC` outline entities and `LWPOLYLINE` bulge arcs, with
     rounded board bounds covered by importer regression tests.
+44. SVG PCB outline path import for common `M`, `L`, `H`, `V`, `A`, and `Z` commands,
+    including relative line paths and elliptical arc rounded-corner outlines.
 
 ## Next Milestones
 
 1. Broaden runtime-verified fillet selection to additional enclosure templates as those
    templates graduate from presets into independent validated generators.
-2. Add deeper importer feature extraction for complex SVG paths, DXF splines, and
+2. Add deeper importer feature extraction for SVG Bezier paths, DXF splines, and
    semantic STEP connector recognition.

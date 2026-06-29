@@ -394,4 +394,45 @@ END-ISO-10303-21;
       'Detected 2 named connector cutout candidate(s) from STEP placement labels.',
     );
   });
+
+  it('detects STEP shape representation connector names attached to placements', async () => {
+    const imported = await importStepPcbReference(`
+ISO-10303-21;
+DATA;
+#1=CARTESIAN_POINT('',(0,0,0));
+#2=CARTESIAN_POINT('',(90,40,1.6));
+#10=CARTESIAN_POINT('',(45,0,1.6));
+#20=AXIS2_PLACEMENT_3D('',#10,#101,#102);
+#30=SHAPE_REPRESENTATION('USB-A receptacle',(#20),#999);
+ENDSEC;
+END-ISO-10303-21;
+`);
+
+    expect(imported.pcb.connectorCutouts).toEqual([
+      { id: 'step-cutout-usb-a-1', label: 'USB-A', side: 'front', offset: 45, z: 8, width: 15, height: 8 },
+    ]);
+  });
+
+  it('detects STEP product names linked through shape definition representations', async () => {
+    const imported = await importStepPcbReference(`
+ISO-10303-21;
+DATA;
+#1=CARTESIAN_POINT('',(0,0,0));
+#2=CARTESIAN_POINT('',(100,50,1.6));
+#10=CARTESIAN_POINT('',(100,25,1.6));
+#20=AXIS2_PLACEMENT_3D('',#10,#101,#102);
+#30=SHAPE_REPRESENTATION('',(#20),#999);
+#40=PRODUCT('HDMI connector','HDMI connector','',(#901));
+#41=PRODUCT_DEFINITION_FORMATION('','',#40);
+#42=PRODUCT_DEFINITION('design','',#41,#902);
+#43=PRODUCT_DEFINITION_SHAPE('','',#42);
+#44=SHAPE_DEFINITION_REPRESENTATION(#43,#30);
+ENDSEC;
+END-ISO-10303-21;
+`);
+
+    expect(imported.pcb.connectorCutouts).toEqual([
+      { id: 'step-cutout-hdmi-1', label: 'HDMI', side: 'right', offset: 25, z: 7, width: 15, height: 5 },
+    ]);
+  });
 });

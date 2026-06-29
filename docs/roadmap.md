@@ -81,10 +81,11 @@ tested, documented, and usable before moving on.
     including smooth-control reflection semantics.
 48. DXF `SPLINE` outline NURBS sampling from degree, knot, control-point, and optional
     weight data, with conservative warning fallback only for incomplete spline records.
+49. STEP text fallback connector detection through `SHAPE_REPRESENTATION` item names and
+    linked `PRODUCT` definition to shape-representation placement relationships.
 
 ## Next Milestones
 
 1. Broaden runtime-verified fillet selection to additional enclosure templates as those
    templates graduate from presets into independent validated generators.
-2. Add deeper importer feature extraction for STEP assembly/product-to-placement
-   relationships.
+2. Add full STEP assembly transform composition for nested product instances.

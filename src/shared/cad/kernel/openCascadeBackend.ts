@@ -490,6 +490,11 @@ function stepNamedPoints(contents: string): StepNamedPoint[] {
     });
   }
 
+  const axisOrigins = new Map<string, string>();
+  for (const match of contents.matchAll(/#(\d+)\s*=\s*AXIS2_PLACEMENT_3D\s*\(\s*'([^']*)'\s*,\s*#(\d+)/giu)) {
+    axisOrigins.set(match[1] ?? '', match[3] ?? '');
+  }
+
   const namedPoints = [...points.values()].filter((point) => point.name.trim().length > 0);
   for (const match of contents.matchAll(/#(\d+)\s*=\s*AXIS2_PLACEMENT_3D\s*\(\s*'([^']*)'\s*,\s*#(\d+)/giu)) {
     const point = points.get(match[3] ?? '');
@@ -498,9 +503,94 @@ function stepNamedPoints(contents: string): StepNamedPoint[] {
       namedPoints.push({ ...point, name });
     }
   }
+  for (const [name, axisIds] of representationAxisPlacements(contents)) {
+    addNamedAxisPlacements(namedPoints, points, axisOrigins, name, axisIds);
+  }
+  for (const [representationId, name] of productRepresentationNames(contents)) {
+    const axisIds = representationAxisIds(contents).get(representationId) ?? [];
+    addNamedAxisPlacements(namedPoints, points, axisOrigins, name, axisIds);
+  }
   return namedPoints.filter(
     (point) => Number.isFinite(point.x) && Number.isFinite(point.y) && Number.isFinite(point.z),
   );
+}
+
+function representationAxisPlacements(contents: string): [string, string[]][] {
+  const placements: [string, string[]][] = [];
+  for (const match of contents.matchAll(/#(\d+)\s*=\s*SHAPE_REPRESENTATION\s*\(\s*'([^']*)'\s*,\s*\(([^)]*)\)/giu)) {
+    const name = match[2] ?? '';
+    const axisIds = idsInList(match[3] ?? '');
+    if (name.trim().length > 0 && axisIds.length > 0) {
+      placements.push([name, axisIds]);
+    }
+  }
+  return placements;
+}
+
+function productRepresentationNames(contents: string): Map<string, string> {
+  const productNames = new Map<string, string>();
+  for (const match of contents.matchAll(/#(\d+)\s*=\s*PRODUCT\s*\(\s*'([^']*)'/giu)) {
+    productNames.set(match[1] ?? '', match[2] ?? '');
+  }
+
+  const formationProductIds = new Map<string, string>();
+  for (const match of contents.matchAll(/#(\d+)\s*=\s*PRODUCT_DEFINITION_FORMATION\s*\([^;]*#(\d+)\s*\)/giu)) {
+    formationProductIds.set(match[1] ?? '', match[2] ?? '');
+  }
+
+  const definitionProductIds = new Map<string, string>();
+  for (const match of contents.matchAll(/#(\d+)\s*=\s*PRODUCT_DEFINITION\s*\([^,;]*,\s*[^,;]*,\s*#(\d+)/giu)) {
+    const productId = formationProductIds.get(match[2] ?? '');
+    if (productId) {
+      definitionProductIds.set(match[1] ?? '', productId);
+    }
+  }
+
+  const shapeProductNames = new Map<string, string>();
+  for (const match of contents.matchAll(/#(\d+)\s*=\s*PRODUCT_DEFINITION_SHAPE\s*\([^;]*#(\d+)\s*\)/giu)) {
+    const productId = definitionProductIds.get(match[2] ?? '');
+    const productName = productId ? productNames.get(productId) : undefined;
+    if (productName && productName.trim().length > 0) {
+      shapeProductNames.set(match[1] ?? '', productName);
+    }
+  }
+
+  const representationNames = new Map<string, string>();
+  for (const match of contents.matchAll(/#(\d+)\s*=\s*SHAPE_DEFINITION_REPRESENTATION\s*\(\s*#(\d+)\s*,\s*#(\d+)\s*\)/giu)) {
+    const productName = shapeProductNames.get(match[2] ?? '');
+    if (productName) {
+      representationNames.set(match[3] ?? '', productName);
+    }
+  }
+  return representationNames;
+}
+
+function representationAxisIds(contents: string): Map<string, string[]> {
+  const representations = new Map<string, string[]>();
+  for (const match of contents.matchAll(/#(\d+)\s*=\s*SHAPE_REPRESENTATION\s*\(\s*'[^']*'\s*,\s*\(([^)]*)\)/giu)) {
+    representations.set(match[1] ?? '', idsInList(match[2] ?? ''));
+  }
+  return representations;
+}
+
+function addNamedAxisPlacements(
+  namedPoints: StepNamedPoint[],
+  points: Map<string, StepNamedPoint>,
+  axisOrigins: Map<string, string>,
+  name: string,
+  axisIds: string[],
+): void {
+  for (const axisId of axisIds) {
+    const pointId = axisOrigins.get(axisId);
+    const point = pointId ? points.get(pointId) : undefined;
+    if (point) {
+      namedPoints.push({ ...point, name });
+    }
+  }
+}
+
+function idsInList(value: string): string[] {
+  return [...value.matchAll(/#(\d+)/gu)].map((match) => match[1] ?? '').filter((id) => id.length > 0);
 }
 
 function connectorSide(point: { x: number; y: number }, boardWidth: number, boardHeight: number): CutoutSide | undefined {

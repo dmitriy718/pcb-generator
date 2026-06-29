@@ -65,15 +65,7 @@ export const enclosureTemplates: EnclosureTemplate[] = [
     id: 'desktop-project-box',
     name: 'Desktop project box',
     description: 'Stable electronics project-box proportions for bench and desktop use.',
-    apply: (project) => ({
-      ...project.enclosure,
-      wallThickness: Math.max(project.enclosure.wallThickness, 2),
-      floorThickness: Math.max(project.enclosure.floorThickness, 2),
-      lidThickness: Math.max(project.enclosure.lidThickness, 2),
-      boardClearance: Math.max(project.enclosure.boardClearance, 2.5),
-      cornerRadius: Math.max(project.enclosure.cornerRadius, 5),
-      chamfer: Math.max(project.enclosure.chamfer, 0.7),
-    }),
+    apply: (project) => desktopProjectBoxParameters(project),
   },
 ];
 
@@ -129,6 +121,84 @@ function wallMountFeatures(project: EnclosureProject, enclosure: TwoPieceScrewCa
     columns: 1,
     text: '',
   }));
+}
+
+function desktopProjectBoxParameters(project: EnclosureProject): TwoPieceScrewCaseParameters {
+  const enclosure: TwoPieceScrewCaseParameters = {
+    ...project.enclosure,
+    wallThickness: Math.max(project.enclosure.wallThickness, 2),
+    floorThickness: Math.max(project.enclosure.floorThickness, 2),
+    lidThickness: Math.max(project.enclosure.lidThickness, 2),
+    boardClearance: Math.max(project.enclosure.boardClearance, 2.5),
+    cornerRadius: Math.max(project.enclosure.cornerRadius, 5),
+    chamfer: Math.max(project.enclosure.chamfer, 0.7),
+  };
+
+  return {
+    ...enclosure,
+    designFeatures: [
+      ...enclosure.designFeatures.filter((feature) => !feature.id.startsWith('template-desktop-')),
+      ...desktopProjectBoxFeatures(project, enclosure),
+    ],
+  };
+}
+
+function desktopProjectBoxFeatures(project: EnclosureProject, enclosure: TwoPieceScrewCaseParameters): DesignFeature[] {
+  const internalWidth = project.pcb.width + enclosure.boardClearance * 2;
+  const internalHeight = project.pcb.height + enclosure.boardClearance * 2;
+  const outerWidth = internalWidth + enclosure.wallThickness * 2;
+  const outerHeight = internalHeight + enclosure.wallThickness * 2;
+  const labelWidth = round(Math.min(22, Math.max(16, outerWidth * 0.28)));
+  const labelHeight = 6;
+  const cableWidth = round(Math.min(16, Math.max(10, outerWidth * 0.2)));
+  const cableHeight = 4;
+  const labelX = clamp(outerWidth * 0.68, enclosure.wallThickness + labelWidth / 2, outerWidth - enclosure.wallThickness - labelWidth / 2);
+  const labelY = clamp(outerHeight * 0.5, enclosure.wallThickness + labelHeight / 2, outerHeight - enclosure.wallThickness - labelHeight / 2);
+  const cableX = clamp(outerWidth * 0.5, enclosure.wallThickness + cableWidth / 2, outerWidth - enclosure.wallThickness - cableWidth / 2);
+  const cableY = clamp(
+    outerHeight - enclosure.wallThickness - cableHeight / 2,
+    enclosure.wallThickness + cableHeight / 2,
+    outerHeight - enclosure.wallThickness - cableHeight / 2,
+  );
+
+  return [
+    {
+      id: 'template-desktop-label-recess',
+      label: 'Desktop label recess',
+      kind: 'label_recess',
+      shape: 'rectangle',
+      operation: 'recess',
+      x: round(labelX),
+      y: round(labelY),
+      width: labelWidth,
+      height: labelHeight,
+      diameter: labelHeight,
+      depth: Math.min(0.4, enclosure.lidThickness * 0.3),
+      cornerRadius: 0,
+      spacing: 3,
+      rows: 1,
+      columns: 1,
+      text: 'LABEL',
+    },
+    {
+      id: 'template-desktop-cable-slot',
+      label: 'Rear cable slot',
+      kind: 'cable_slot',
+      shape: 'rectangle',
+      operation: 'through_cut',
+      x: round(cableX),
+      y: round(cableY),
+      width: cableWidth,
+      height: cableHeight,
+      diameter: cableHeight,
+      depth: enclosure.lidThickness,
+      cornerRadius: 0,
+      spacing: 3,
+      rows: 1,
+      columns: 1,
+      text: '',
+    },
+  ];
 }
 
 function clamp(value: number, min: number, max: number): number {

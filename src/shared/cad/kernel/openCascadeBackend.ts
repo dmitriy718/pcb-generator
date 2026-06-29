@@ -1030,6 +1030,7 @@ function buildTwoPieceScrewCaseStepModel(
     height: enclosure.lidThickness,
   });
   lid = filletOuterBlank(oc, lid, outerFilletDistance(enclosure), 'lid');
+  lid = chamfer(oc, lid, enclosure.chamfer, 'lid');
   for (const slot of ventilationSlotTools(
     enclosure.ventilationRegions,
     outerWidth + partSpacing,
@@ -1048,7 +1049,6 @@ function buildTwoPieceScrewCaseStepModel(
       lid = cut(oc, lid, featureTool);
     }
   }
-  lid = chamfer(oc, lid, enclosure.chamfer, 'lid');
   const lidPcbOrigin = {
     x: outerWidth + partSpacing + enclosure.wallThickness + enclosure.boardClearance,
     y: enclosure.wallThickness + enclosure.boardClearance,

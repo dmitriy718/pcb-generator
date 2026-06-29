@@ -37,7 +37,9 @@ documentation, and CI foundation with a usable manual PCB workflow.
 - Enclosure template presets for compact, handheld, tall-clearance, wall-mount, and
   desktop project-box variants of the validated two-piece screw case, including a
   rounded handheld template that exercises validated OpenCascade outer fillets and a
-  wall-mount template with generated editable through-hole features.
+  wall-mount template with generated editable through-hole features, plus a desktop
+  project-box template with generated editable label-recess and rear cable-slot
+  features.
 
 ## Current Scope
 

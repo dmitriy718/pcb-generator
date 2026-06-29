@@ -90,6 +90,9 @@ tested, documented, and usable before moving on.
     `ITEM_DEFINED_TRANSFORMATION` axis frames.
 52. Wall-mount enclosure template hardened with generated editable through-hole features
     and OpenCascade topology regression coverage.
+53. Desktop project-box template hardened with generated editable label-recess and rear
+    cable-slot features, plus lid CAD ordering that chamfers the stable blank before
+    cutting vents and editable lid features.
 
 ## Next Milestones
 

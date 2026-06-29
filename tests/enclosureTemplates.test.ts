@@ -54,6 +54,28 @@ describe('enclosureTemplates', () => {
     );
   });
 
+  it('adds editable label and cable-slot features to the desktop project-box template', () => {
+    const template = enclosureTemplateById('desktop-project-box');
+    const enclosure = template?.apply(defaultProject);
+
+    expect(enclosure?.designFeatures).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'template-desktop-label-recess',
+          label: 'Desktop label recess',
+          kind: 'label_recess',
+          operation: 'recess',
+        }),
+        expect.objectContaining({
+          id: 'template-desktop-cable-slot',
+          label: 'Rear cable slot',
+          kind: 'cable_slot',
+          operation: 'through_cut',
+        }),
+      ]),
+    );
+  });
+
   it('generates validated OpenCascade geometry for the rounded handheld fillet template', async () => {
     const template = enclosureTemplateById('rounded-handheld');
     if (!template) {
@@ -74,6 +96,22 @@ describe('enclosureTemplates', () => {
     const template = enclosureTemplateById('wall-mount-starter');
     if (!template) {
       throw new Error('Expected wall-mount template.');
+    }
+    const mesh = await generateTwoPieceScrewCaseKernelMesh({
+      ...defaultProject,
+      enclosure: template.apply(defaultProject),
+    });
+    const topology = analyzeMeshTopology(mesh);
+
+    expect(validateMesh(mesh, { checkTopology: true })).toEqual({ ok: true, issues: [] });
+    expect(topology.isClosed).toBe(true);
+    expect(topology.isEdgeManifold).toBe(true);
+  }, 30_000);
+
+  it('generates validated OpenCascade geometry for the desktop project-box feature template', async () => {
+    const template = enclosureTemplateById('desktop-project-box');
+    if (!template) {
+      throw new Error('Expected desktop project-box template.');
     }
     const mesh = await generateTwoPieceScrewCaseKernelMesh({
       ...defaultProject,

@@ -85,9 +85,13 @@ tested, documented, and usable before moving on.
     linked `PRODUCT` definition to shape-representation placement relationships.
 50. Rounded handheld enclosure template hardened against the OpenCascade production mesh
     path with selective outer fillets enabled and topology regression coverage.
+51. STEP text fallback assembly transform composition for nested
+    `REPRESENTATION_RELATIONSHIP_WITH_TRANSFORMATION` connector placements using
+    `ITEM_DEFINED_TRANSFORMATION` axis frames.
 
 ## Next Milestones
 
-1. Add full STEP assembly transform composition for nested product instances.
-2. Graduate additional enclosure families from presets into independent validated
+1. Graduate additional enclosure families from presets into independent validated
    generators.
+2. Add richer UI controls for selecting validated enclosure families once their
+   production geometry paths are available.

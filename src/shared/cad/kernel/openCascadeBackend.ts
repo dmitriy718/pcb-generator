@@ -205,6 +205,44 @@ interface StepNamedPoint {
   z: number;
 }
 
+interface StepVector {
+  x: number;
+  y: number;
+  z: number;
+}
+
+interface StepAxisFrame {
+  origin: StepVector;
+  xAxis: StepVector;
+  yAxis: StepVector;
+  zAxis: StepVector;
+}
+
+interface StepRepresentationTransform {
+  parentRepresentationId: string;
+  childRepresentationId: string;
+  matrix: StepMatrix;
+}
+
+type StepMatrix = [
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+];
+
 interface KernelStepModel {
   shapes: OcShape[];
 }
@@ -503,25 +541,33 @@ function stepNamedPoints(contents: string): StepNamedPoint[] {
       namedPoints.push({ ...point, name });
     }
   }
-  for (const [name, axisIds] of representationAxisPlacements(contents)) {
-    addNamedAxisPlacements(namedPoints, points, axisOrigins, name, axisIds);
+  const transformedChildIds = transformedChildRepresentationIds(contents, points);
+  for (const [representationId, name, axisIds] of representationAxisPlacements(contents)) {
+    if (!transformedChildIds.has(representationId)) {
+      addNamedAxisPlacements(namedPoints, points, axisOrigins, name, axisIds);
+    }
   }
   for (const [representationId, name] of productRepresentationNames(contents)) {
+    if (transformedChildIds.has(representationId)) {
+      continue;
+    }
     const axisIds = representationAxisIds(contents).get(representationId) ?? [];
     addNamedAxisPlacements(namedPoints, points, axisOrigins, name, axisIds);
   }
+  namedPoints.push(...transformedRepresentationNamedPoints(contents, points));
   return namedPoints.filter(
     (point) => Number.isFinite(point.x) && Number.isFinite(point.y) && Number.isFinite(point.z),
   );
 }
 
-function representationAxisPlacements(contents: string): [string, string[]][] {
-  const placements: [string, string[]][] = [];
+function representationAxisPlacements(contents: string): [string, string, string[]][] {
+  const placements: [string, string, string[]][] = [];
   for (const match of contents.matchAll(/#(\d+)\s*=\s*SHAPE_REPRESENTATION\s*\(\s*'([^']*)'\s*,\s*\(([^)]*)\)/giu)) {
+    const representationId = match[1] ?? '';
     const name = match[2] ?? '';
     const axisIds = idsInList(match[3] ?? '');
     if (name.trim().length > 0 && axisIds.length > 0) {
-      placements.push([name, axisIds]);
+      placements.push([representationId, name, axisIds]);
     }
   }
   return placements;
@@ -591,6 +637,269 @@ function addNamedAxisPlacements(
 
 function idsInList(value: string): string[] {
   return [...value.matchAll(/#(\d+)/gu)].map((match) => match[1] ?? '').filter((id) => id.length > 0);
+}
+
+function transformedRepresentationNamedPoints(
+  contents: string,
+  points: Map<string, StepNamedPoint>,
+): StepNamedPoint[] {
+  const axisFrames = stepAxisFrames(contents, points);
+  const relationships = representationTransforms(contents, axisFrames);
+  if (relationships.length === 0) {
+    return [];
+  }
+
+  const representationNames = representationConnectorNames(contents);
+  const representationAxes = representationAxisIds(contents);
+  const transformsByChild = new Map<string, StepRepresentationTransform[]>();
+  for (const relationship of relationships) {
+    transformsByChild.set(relationship.childRepresentationId, [
+      ...(transformsByChild.get(relationship.childRepresentationId) ?? []),
+      relationship,
+    ]);
+  }
+
+  const namedPoints: StepNamedPoint[] = [];
+  for (const [representationId, names] of representationNames) {
+    const axisIds = representationAxes.get(representationId) ?? [];
+    const transforms = representationWorldTransforms(representationId, transformsByChild, new Set());
+    for (const name of names) {
+      for (const axisId of axisIds) {
+        const frame = axisFrames.get(axisId);
+        if (!frame) {
+          continue;
+        }
+        for (const transform of transforms) {
+          const point = transformPoint(transform, frame.origin);
+          namedPoints.push({ name, ...point });
+        }
+      }
+    }
+  }
+  return namedPoints;
+}
+
+function representationConnectorNames(contents: string): Map<string, string[]> {
+  const names = new Map<string, string[]>();
+  for (const [representationId, name] of representationAxisPlacements(contents)) {
+    names.set(representationId, [...(names.get(representationId) ?? []), name]);
+  }
+  for (const [representationId, name] of productRepresentationNames(contents)) {
+    names.set(representationId, [...(names.get(representationId) ?? []), name]);
+  }
+  return names;
+}
+
+function transformedChildRepresentationIds(
+  contents: string,
+  points: Map<string, StepNamedPoint>,
+): Set<string> {
+  const axisFrames = stepAxisFrames(contents, points);
+  return new Set(representationTransforms(contents, axisFrames).map((relationship) => relationship.childRepresentationId));
+}
+
+function representationTransforms(
+  contents: string,
+  axisFrames: Map<string, StepAxisFrame>,
+): StepRepresentationTransform[] {
+  const itemTransforms = new Map<string, StepMatrix>();
+  for (const match of contents.matchAll(/#(\d+)\s*=\s*ITEM_DEFINED_TRANSFORMATION\s*\([^;]*#(\d+)\s*,\s*#(\d+)\s*\)/giu)) {
+    const from = axisFrames.get(match[2] ?? '');
+    const to = axisFrames.get(match[3] ?? '');
+    if (from && to) {
+      itemTransforms.set(match[1] ?? '', multiplyMatrix(frameMatrix(to), inverseFrameMatrix(from)));
+    }
+  }
+
+  const transforms: StepRepresentationTransform[] = [];
+  for (const match of contents.matchAll(
+    /REPRESENTATION_RELATIONSHIP_WITH_TRANSFORMATION\s*\(\s*'[^']*'\s*,\s*'[^']*'\s*,\s*#(\d+)\s*,\s*#(\d+)\s*,\s*#(\d+)\s*\)/giu,
+  )) {
+    const matrix = itemTransforms.get(match[3] ?? '');
+    if (matrix) {
+      transforms.push({
+        parentRepresentationId: match[1] ?? '',
+        childRepresentationId: match[2] ?? '',
+        matrix,
+      });
+    }
+  }
+  return transforms;
+}
+
+function representationWorldTransforms(
+  representationId: string,
+  transformsByChild: Map<string, StepRepresentationTransform[]>,
+  visiting: Set<string>,
+): StepMatrix[] {
+  if (visiting.has(representationId)) {
+    return [identityMatrix()];
+  }
+  const relationships = transformsByChild.get(representationId) ?? [];
+  if (relationships.length === 0) {
+    return [identityMatrix()];
+  }
+
+  const nextVisiting = new Set(visiting);
+  nextVisiting.add(representationId);
+  const transforms: StepMatrix[] = [];
+  for (const relationship of relationships) {
+    for (const parentTransform of representationWorldTransforms(
+      relationship.parentRepresentationId,
+      transformsByChild,
+      nextVisiting,
+    )) {
+      transforms.push(multiplyMatrix(parentTransform, relationship.matrix));
+    }
+  }
+  return transforms;
+}
+
+function stepAxisFrames(
+  contents: string,
+  points: Map<string, StepNamedPoint>,
+): Map<string, StepAxisFrame> {
+  const directions = stepDirections(contents);
+  const frames = new Map<string, StepAxisFrame>();
+  for (const match of contents.matchAll(
+    /#(\d+)\s*=\s*AXIS2_PLACEMENT_3D\s*\(\s*'[^']*'\s*,\s*#(\d+)(?:\s*,\s*#(\d+))?(?:\s*,\s*#(\d+))?\s*\)/giu,
+  )) {
+    const origin = points.get(match[2] ?? '');
+    if (!origin) {
+      continue;
+    }
+    const zAxis = normalizeVector(directions.get(match[3] ?? '') ?? { x: 0, y: 0, z: 1 });
+    const rawXAxis = directions.get(match[4] ?? '') ?? { x: 1, y: 0, z: 0 };
+    const xAxis = normalizedPerpendicular(rawXAxis, zAxis);
+    const yAxis = normalizeVector(crossVector(zAxis, xAxis));
+    frames.set(match[1] ?? '', {
+      origin,
+      xAxis,
+      yAxis,
+      zAxis,
+    });
+  }
+  return frames;
+}
+
+function stepDirections(contents: string): Map<string, StepVector> {
+  const directions = new Map<string, StepVector>();
+  for (const match of contents.matchAll(
+    /#(\d+)\s*=\s*DIRECTION\s*\(\s*'[^']*'\s*,\s*\(\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*,\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*,\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*\)\s*\)/giu,
+  )) {
+    directions.set(match[1] ?? '', {
+      x: Number(match[2]),
+      y: Number(match[3]),
+      z: Number(match[4]),
+    });
+  }
+  return directions;
+}
+
+function normalizedPerpendicular(vector: StepVector, normal: StepVector): StepVector {
+  const projected = subtractVector(vector, scaleVector(normal, dotVector(vector, normal)));
+  const normalized = normalizeVector(projected);
+  if (vectorLength(normalized) > 0) {
+    return normalized;
+  }
+  return Math.abs(normal.x) < 0.9 ? normalizeVector(crossVector({ x: 1, y: 0, z: 0 }, normal)) : normalizeVector(crossVector({ x: 0, y: 1, z: 0 }, normal));
+}
+
+function frameMatrix(frame: StepAxisFrame): StepMatrix {
+  return [
+    frame.xAxis.x,
+    frame.yAxis.x,
+    frame.zAxis.x,
+    frame.origin.x,
+    frame.xAxis.y,
+    frame.yAxis.y,
+    frame.zAxis.y,
+    frame.origin.y,
+    frame.xAxis.z,
+    frame.yAxis.z,
+    frame.zAxis.z,
+    frame.origin.z,
+    0,
+    0,
+    0,
+    1,
+  ];
+}
+
+function inverseFrameMatrix(frame: StepAxisFrame): StepMatrix {
+  return [
+    frame.xAxis.x,
+    frame.xAxis.y,
+    frame.xAxis.z,
+    -dotVector(frame.xAxis, frame.origin),
+    frame.yAxis.x,
+    frame.yAxis.y,
+    frame.yAxis.z,
+    -dotVector(frame.yAxis, frame.origin),
+    frame.zAxis.x,
+    frame.zAxis.y,
+    frame.zAxis.z,
+    -dotVector(frame.zAxis, frame.origin),
+    0,
+    0,
+    0,
+    1,
+  ];
+}
+
+function identityMatrix(): StepMatrix {
+  return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+}
+
+function multiplyMatrix(a: StepMatrix, b: StepMatrix): StepMatrix {
+  const result = Array.from({ length: 16 }, () => 0) as StepMatrix;
+  for (let row = 0; row < 4; row += 1) {
+    for (let column = 0; column < 4; column += 1) {
+      result[row * 4 + column] =
+        (a[row * 4] ?? 0) * (b[column] ?? 0) +
+        (a[row * 4 + 1] ?? 0) * (b[4 + column] ?? 0) +
+        (a[row * 4 + 2] ?? 0) * (b[8 + column] ?? 0) +
+        (a[row * 4 + 3] ?? 0) * (b[12 + column] ?? 0);
+    }
+  }
+  return result;
+}
+
+function transformPoint(matrix: StepMatrix, point: StepVector): StepVector {
+  return {
+    x: matrix[0] * point.x + matrix[1] * point.y + matrix[2] * point.z + matrix[3],
+    y: matrix[4] * point.x + matrix[5] * point.y + matrix[6] * point.z + matrix[7],
+    z: matrix[8] * point.x + matrix[9] * point.y + matrix[10] * point.z + matrix[11],
+  };
+}
+
+function dotVector(a: StepVector, b: StepVector): number {
+  return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+function crossVector(a: StepVector, b: StepVector): StepVector {
+  return {
+    x: a.y * b.z - a.z * b.y,
+    y: a.z * b.x - a.x * b.z,
+    z: a.x * b.y - a.y * b.x,
+  };
+}
+
+function subtractVector(a: StepVector, b: StepVector): StepVector {
+  return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+}
+
+function scaleVector(vector: StepVector, scale: number): StepVector {
+  return { x: vector.x * scale, y: vector.y * scale, z: vector.z * scale };
+}
+
+function normalizeVector(vector: StepVector): StepVector {
+  const length = vectorLength(vector);
+  return length > 0 ? { x: vector.x / length, y: vector.y / length, z: vector.z / length } : { x: 0, y: 0, z: 0 };
+}
+
+function vectorLength(vector: StepVector): number {
+  return Math.hypot(vector.x, vector.y, vector.z);
 }
 
 function connectorSide(point: { x: number; y: number }, boardWidth: number, boardHeight: number): CutoutSide | undefined {

@@ -435,4 +435,27 @@ END-ISO-10303-21;
       { id: 'step-cutout-hdmi-1', label: 'HDMI', side: 'right', offset: 25, z: 7, width: 15, height: 5 },
     ]);
   });
+
+  it('composes STEP representation transforms for nested connector placements', async () => {
+    const imported = await importStepPcbReference(`
+ISO-10303-21;
+DATA;
+#1=CARTESIAN_POINT('',(0,0,0));
+#2=CARTESIAN_POINT('',(100,50,1.6));
+#10=CARTESIAN_POINT('',(0,0,0));
+#11=CARTESIAN_POINT('',(100,25,1.6));
+#20=AXIS2_PLACEMENT_3D('',#10,#101,#102);
+#21=AXIS2_PLACEMENT_3D('',#11,#101,#102);
+#30=SHAPE_REPRESENTATION('Board assembly',(#21),#999);
+#31=SHAPE_REPRESENTATION('HDMI connector',(#20),#999);
+#40=ITEM_DEFINED_TRANSFORMATION('','',#20,#21);
+#41=REPRESENTATION_RELATIONSHIP_WITH_TRANSFORMATION('','',#30,#31,#40);
+ENDSEC;
+END-ISO-10303-21;
+`);
+
+    expect(imported.pcb.connectorCutouts).toEqual([
+      { id: 'step-cutout-hdmi-1', label: 'HDMI', side: 'right', offset: 25, z: 7, width: 15, height: 5 },
+    ]);
+  });
 });

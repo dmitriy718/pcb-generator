@@ -168,8 +168,10 @@ both board faces are imported as high-confidence mounting holes. Named
 `CARTESIAN_POINT`, `AXIS2_PLACEMENT_3D`, `SHAPE_REPRESENTATION`, and linked `PRODUCT`
 definition placements near board edges are also mapped to editable connector cutout
 candidates for common USB, Ethernet, HDMI, SMA, barrel jack, button, and switch labels.
-Tall STEP references use the same populated-assembly inference as STL imports so
-enclosure internal height can be raised without corrupting PCB board thickness.
+Nested `REPRESENTATION_RELATIONSHIP_WITH_TRANSFORMATION` assemblies using
+`ITEM_DEFINED_TRANSFORMATION` axis frames are composed before connector placement
+checks. Tall STEP references use the same populated-assembly inference as STL imports
+so enclosure internal height can be raised without corrupting PCB board thickness.
 
 ## Board Library
 

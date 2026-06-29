@@ -83,7 +83,9 @@ same center/radius on both board faces, keeping ambiguous vias, connector barrel
 single-face circles manual. The same fallback path can map named STEP points, axis
 placements, shape representations, and linked product-definition representations near
 board edges into editable connector cutout candidates for common port labels; internal
-component labels and off-edge placements remain manual.
+component labels and off-edge placements remain manual. Representation relationships
+with `ITEM_DEFINED_TRANSFORMATION` are composed through their `AXIS2_PLACEMENT_3D`
+frames before connector placement checks, which covers common nested assembly exports.
 
 ## Drawing Exporters
 

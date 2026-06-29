@@ -80,7 +80,9 @@ runtime-verified fillets and richer enclosure templates.
 STEP text fallback import includes a conservative mounting-hole detector. It only
 creates mounting holes from circular curve topology when matching circles share the
 same center/radius on both board faces, keeping ambiguous vias, connector barrels, and
-single-face circles manual.
+single-face circles manual. The same fallback path can map named STEP points or axis
+placements near board edges into editable connector cutout candidates for common port
+labels; internal component labels and off-edge placements remain manual.
 
 ## Drawing Exporters
 

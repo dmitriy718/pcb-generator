@@ -75,10 +75,12 @@ tested, documented, and usable before moving on.
     including relative line paths and elliptical arc rounded-corner outlines.
 45. Conservative DXF `SPLINE` outline import from control/fit point bounds with
     user-facing verification warnings and regression coverage.
+46. STEP text fallback connector candidate detection from named `CARTESIAN_POINT` and
+    `AXIS2_PLACEMENT_3D` placements near board edges for common connector labels.
 
 ## Next Milestones
 
 1. Broaden runtime-verified fillet selection to additional enclosure templates as those
    templates graduate from presets into independent validated generators.
 2. Add deeper importer feature extraction for SVG Bezier paths, exact DXF NURBS
-   evaluation, and semantic STEP connector recognition.
+   evaluation, and STEP assembly/product-to-placement relationships.

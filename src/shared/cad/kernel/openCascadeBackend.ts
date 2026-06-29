@@ -4,6 +4,7 @@ import { dirname, resolve } from 'node:path';
 
 import type {
   ConnectorCutout,
+  CutoutSide,
   DesignFeature,
   EnclosureProject,
   PcbSpecification,
@@ -189,9 +190,37 @@ interface FeatureTool {
   cornerRadius: number;
 }
 
+interface StepConnectorPreset {
+  match: RegExp;
+  label: string;
+  width: number;
+  height: number;
+  z: number;
+}
+
+interface StepNamedPoint {
+  name: string;
+  x: number;
+  y: number;
+  z: number;
+}
+
 interface KernelStepModel {
   shapes: OcShape[];
 }
+
+const stepConnectorPresets: StepConnectorPreset[] = [
+  { match: /rj45|ethernet/iu, label: 'Ethernet', width: 16, height: 14, z: 10 },
+  { match: /usb[_\s-]?c|type[_\s-]?c|usbc/iu, label: 'USB-C', width: 10, height: 4, z: 7 },
+  { match: /micro[_\s-]?usb|microusb/iu, label: 'Micro USB', width: 9, height: 4, z: 6 },
+  { match: /mini[_\s-]?usb|miniusb/iu, label: 'Mini USB', width: 9, height: 5, z: 6 },
+  { match: /usb[_\s-]?b|usbb/iu, label: 'USB-B', width: 13, height: 12, z: 9 },
+  { match: /usb[_\s-]?a|usba/iu, label: 'USB-A', width: 15, height: 8, z: 8 },
+  { match: /hdmi/iu, label: 'HDMI', width: 15, height: 5, z: 7 },
+  { match: /sma|rp[_\s-]?sma/iu, label: 'SMA', width: 7, height: 7, z: 9 },
+  { match: /barrel|dc[_\s-]?jack|power[_\s-]?jack/iu, label: 'Barrel jack', width: 11, height: 11, z: 9 },
+  { match: /button|switch/iu, label: 'Button/switch', width: 8, height: 5, z: 7 },
+];
 
 let openCascadePromise: Promise<OpenCascadeModule> | undefined;
 let stepFileCounter = 0;
@@ -328,16 +357,21 @@ function pcbFromStepTextBounds(contents: string, readerError: unknown): StepImpo
     z: bounds.maxZ - bounds.minZ,
   });
   const mountingHoles = detectStepTextMountingHoles(contents, bounds);
+  const connectorCutouts = detectStepTextConnectorCutouts(contents, bounds);
   return {
     pcb: {
       ...result.pcb,
       mountingHoles,
+      connectorCutouts,
     },
     warnings: [
       ...result.warnings,
       'OpenCascade could not transfer STEP topology; dimensions were recovered from STEP point coordinates.',
       ...(mountingHoles.length > 0
         ? [`Detected ${mountingHoles.length} high-confidence circular through-hole(s) from STEP curve topology.`]
+        : []),
+      ...(connectorCutouts.length > 0
+        ? [`Detected ${connectorCutouts.length} named connector cutout candidate(s) from STEP placement labels.`]
         : []),
     ],
   };
@@ -407,6 +441,82 @@ function detectStepTextMountingHoles(
   }
 
   return holes;
+}
+
+function detectStepTextConnectorCutouts(
+  contents: string,
+  bounds: { minX: number; maxX: number; minY: number; maxY: number },
+): ConnectorCutout[] {
+  const boardWidth = bounds.maxX - bounds.minX;
+  const boardHeight = bounds.maxY - bounds.minY;
+  const cutouts: ConnectorCutout[] = [];
+  for (const point of stepNamedPoints(contents)) {
+    const preset = stepConnectorPresets.find((candidate) => candidate.match.test(point.name));
+    if (!preset) {
+      continue;
+    }
+    const relative = { x: point.x - bounds.minX, y: point.y - bounds.minY };
+    const side = connectorSide(relative, boardWidth, boardHeight);
+    if (!side) {
+      continue;
+    }
+    const offset = side === 'front' || side === 'back' ? relative.x : relative.y;
+    if (cutouts.some((cutout) => cutout.side === side && Math.abs(cutout.offset - offset) < 1.5 && cutout.label === preset.label)) {
+      continue;
+    }
+    cutouts.push({
+      id: `step-cutout-${slugify(preset.label)}-${cutouts.length + 1}`,
+      label: preset.label,
+      side,
+      offset: round(offset),
+      z: preset.z,
+      width: preset.width,
+      height: preset.height,
+    });
+  }
+  return cutouts;
+}
+
+function stepNamedPoints(contents: string): StepNamedPoint[] {
+  const points = new Map<string, StepNamedPoint>();
+  for (const match of contents.matchAll(
+    /#(\d+)\s*=\s*CARTESIAN_POINT\s*\(\s*'([^']*)'\s*,\s*\(\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*,\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*,\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)\s*\)\s*\)/giu,
+  )) {
+    points.set(match[1] ?? '', {
+      name: match[2] ?? '',
+      x: Number(match[3]),
+      y: Number(match[4]),
+      z: Number(match[5]),
+    });
+  }
+
+  const namedPoints = [...points.values()].filter((point) => point.name.trim().length > 0);
+  for (const match of contents.matchAll(/#(\d+)\s*=\s*AXIS2_PLACEMENT_3D\s*\(\s*'([^']*)'\s*,\s*#(\d+)/giu)) {
+    const point = points.get(match[3] ?? '');
+    const name = match[2] ?? '';
+    if (point && name.trim().length > 0) {
+      namedPoints.push({ ...point, name });
+    }
+  }
+  return namedPoints.filter(
+    (point) => Number.isFinite(point.x) && Number.isFinite(point.y) && Number.isFinite(point.z),
+  );
+}
+
+function connectorSide(point: { x: number; y: number }, boardWidth: number, boardHeight: number): CutoutSide | undefined {
+  const edgeThreshold = Math.max(3, Math.min(boardWidth, boardHeight) * 0.08);
+  const distances: { side: CutoutSide; distance: number }[] = [
+    { side: 'front', distance: point.y },
+    { side: 'back', distance: boardHeight - point.y },
+    { side: 'left', distance: point.x },
+    { side: 'right', distance: boardWidth - point.x },
+  ];
+  const nearest = distances.sort((a, b) => a.distance - b.distance)[0];
+  return nearest && nearest.distance <= edgeThreshold ? nearest.side : undefined;
+}
+
+function slugify(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/gu, '-').replace(/^-+|-+$/gu, '') || 'connector';
 }
 
 function pcbFromBounds(extents: { x: number; y: number; z: number }): StepImportResult {

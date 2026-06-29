@@ -371,4 +371,27 @@ END-ISO-10303-21;
 
     expect(imported.pcb.mountingHoles).toEqual([]);
   });
+
+  it('detects named STEP text fallback connector placements near board edges', async () => {
+    const imported = await importStepPcbReference(`
+ISO-10303-21;
+DATA;
+#1=CARTESIAN_POINT('',(0,0,0));
+#2=CARTESIAN_POINT('',(80,40,1.6));
+#10=CARTESIAN_POINT('',(40,0,1.6));
+#11=CARTESIAN_POINT('RJ45 connector',(80,20,3));
+#12=CARTESIAN_POINT('USB-C internal',(40,20,3));
+#20=AXIS2_PLACEMENT_3D('USB-C receptacle',#10,#101,#102);
+ENDSEC;
+END-ISO-10303-21;
+`);
+
+    expect(imported.pcb.connectorCutouts).toEqual([
+      { id: 'step-cutout-ethernet-1', label: 'Ethernet', side: 'right', offset: 20, z: 10, width: 16, height: 14 },
+      { id: 'step-cutout-usb-c-2', label: 'USB-C', side: 'front', offset: 40, z: 7, width: 10, height: 4 },
+    ]);
+    expect(imported.warnings).toContain(
+      'Detected 2 named connector cutout candidate(s) from STEP placement labels.',
+    );
+  });
 });

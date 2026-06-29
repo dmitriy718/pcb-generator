@@ -162,9 +162,12 @@ board width, height, and thickness from model bounds. Generic STEP files do not 
 reliable PCB semantic labels for holes, connectors, or components, so those features
 must be verified or added manually after import. When OpenCascade cannot transfer STEP
 topology and the importer falls back to STEP text coordinates, paired circular edges on
-both board faces are imported as high-confidence mounting holes. Tall STEP references
-use the same populated-assembly inference as STL imports so enclosure internal height
-can be raised without corrupting PCB board thickness.
+both board faces are imported as high-confidence mounting holes. Named
+`CARTESIAN_POINT` or `AXIS2_PLACEMENT_3D` placements near board edges are also mapped
+to editable connector cutout candidates for common USB, Ethernet, HDMI, SMA, barrel
+jack, button, and switch labels. Tall STEP references use the same populated-assembly
+inference as STL imports so enclosure internal height can be raised without corrupting
+PCB board thickness.
 
 ## Board Library
 

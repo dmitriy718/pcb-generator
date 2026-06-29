@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { generateTwoPieceScrewCaseKernelMesh } from '../src/shared/cad/kernel/openCascadeBackend';
+import { analyzeMeshTopology, validateMesh } from '../src/shared/cad/meshValidation';
 import { enclosureTemplateById, enclosureTemplates } from '../src/shared/enclosureTemplates';
 import { defaultProject, validateProject } from '../src/shared/domain';
 
@@ -29,4 +31,20 @@ describe('enclosureTemplates', () => {
     const template = enclosureTemplateById('tall-component-clearance');
     expect(template?.apply(project).baseInternalHeight).toBeGreaterThan(25);
   });
+
+  it('generates validated OpenCascade geometry for the rounded handheld fillet template', async () => {
+    const template = enclosureTemplateById('rounded-handheld');
+    if (!template) {
+      throw new Error('Expected rounded handheld template.');
+    }
+    const mesh = await generateTwoPieceScrewCaseKernelMesh({
+      ...defaultProject,
+      enclosure: template.apply(defaultProject),
+    });
+    const topology = analyzeMeshTopology(mesh);
+
+    expect(validateMesh(mesh, { checkTopology: true })).toEqual({ ok: true, issues: [] });
+    expect(topology.isClosed).toBe(true);
+    expect(topology.isEdgeManifold).toBe(true);
+  }, 30_000);
 });

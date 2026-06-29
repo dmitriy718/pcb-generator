@@ -37,7 +37,7 @@ export const enclosureTemplates: EnclosureTemplate[] = [
         project.pcb.componentHeight + materialProfiles[project.enclosure.material].clearance + 1,
       ),
       cornerRadius: Math.max(project.enclosure.cornerRadius, 9),
-      chamfer: Math.max(project.enclosure.chamfer, 0.8),
+      chamfer: 0,
     }),
   },
   {

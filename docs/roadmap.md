@@ -83,9 +83,11 @@ tested, documented, and usable before moving on.
     weight data, with conservative warning fallback only for incomplete spline records.
 49. STEP text fallback connector detection through `SHAPE_REPRESENTATION` item names and
     linked `PRODUCT` definition to shape-representation placement relationships.
+50. Rounded handheld enclosure template hardened against the OpenCascade production mesh
+    path with selective outer fillets enabled and topology regression coverage.
 
 ## Next Milestones
 
-1. Broaden runtime-verified fillet selection to additional enclosure templates as those
-   templates graduate from presets into independent validated generators.
-2. Add full STEP assembly transform composition for nested product instances.
+1. Add full STEP assembly transform composition for nested product instances.
+2. Graduate additional enclosure families from presets into independent validated
+   generators.

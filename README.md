@@ -35,7 +35,8 @@ documentation, and CI foundation with a usable manual PCB workflow.
 - Offline design assistant that converts common natural-language enclosure phrases into
   editable material, cutout, vent, and lid-feature parameters.
 - Enclosure template presets for compact, handheld, tall-clearance, wall-mount, and
-  desktop project-box variants of the validated two-piece screw case.
+  desktop project-box variants of the validated two-piece screw case, including a
+  rounded handheld template that exercises validated OpenCascade outer fillets.
 
 ## Current Scope
 

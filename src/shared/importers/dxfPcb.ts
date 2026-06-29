@@ -48,6 +48,7 @@ interface SplineEntity {
   type: 'SPLINE';
   layer: string;
   points: Point[];
+  evaluated: boolean;
 }
 
 type OutlineEntity = ArcEntity | LineEntity | PolylineEntity | SplineEntity;
@@ -81,7 +82,7 @@ export function importDxfPcb(contents: string): DxfImportResult {
   if (outlineEntities.some((entity) => entity.type === 'LWPOLYLINE' && !entity.closed)) {
     warnings.push('At least one DXF outline polyline is open; dimensions were inferred from its bounds.');
   }
-  if (outlineEntities.some((entity) => entity.type === 'SPLINE')) {
+  if (outlineEntities.some((entity) => entity.type === 'SPLINE' && !entity.evaluated)) {
     warnings.push('At least one DXF outline spline was measured from control/fit point bounds; verify dimensions before production.');
   }
 
@@ -184,8 +185,16 @@ function parseEntity(type: string, pairs: DxfPair[]): DxfEntity | undefined {
   if (type === 'SPLINE') {
     const controlPoints = pointsFromCodes(pairs, 10, 20);
     const fitPoints = pointsFromCodes(pairs, 11, 21);
+    const degree = firstNumber(pairs, 71);
+    const knots = numbersFromCode(pairs, 40);
+    const weights = numbersFromCode(pairs, 41);
+    const evaluatedPoints =
+      degree !== undefined ? evaluateSplinePoints(controlPoints, degree, knots, weights) : undefined;
+    if (evaluatedPoints && evaluatedPoints.length >= 2) {
+      return { type, layer, points: evaluatedPoints, evaluated: true };
+    }
     const points = controlPoints.length > 0 ? controlPoints : fitPoints;
-    return points.length >= 2 ? { type, layer, points } : undefined;
+    return points.length >= 2 ? { type, layer, points, evaluated: false } : undefined;
   }
   return undefined;
 }
@@ -329,6 +338,13 @@ function firstString(pairs: DxfPair[], code: number): string | undefined {
   return pairs.find((pair) => pair.code === code)?.value;
 }
 
+function numbersFromCode(pairs: DxfPair[], code: number): number[] {
+  return pairs
+    .filter((pair) => pair.code === code)
+    .map((pair) => Number(pair.value))
+    .filter(Number.isFinite);
+}
+
 function findInsUnits(pairs: DxfPair[]): number | undefined {
   for (let index = 0; index < pairs.length - 1; index += 1) {
     if (pairs[index]?.code === 9 && pairs[index]?.value.toUpperCase() === '$INSUNITS') {
@@ -372,6 +388,92 @@ function pointInsideBounds(
 
 function isSupportedEntity(type: string): boolean {
   return type === 'LINE' || type === 'LWPOLYLINE' || type === 'CIRCLE' || type === 'ARC' || type === 'SPLINE';
+}
+
+function evaluateSplinePoints(
+  controlPoints: Point[],
+  degree: number,
+  knots: number[],
+  weights: number[],
+): Point[] | undefined {
+  if (
+    !Number.isInteger(degree) ||
+    degree < 1 ||
+    controlPoints.length < degree + 1 ||
+    knots.length < controlPoints.length + degree + 1
+  ) {
+    return undefined;
+  }
+
+  const start = knots[degree];
+  const end = knots[controlPoints.length];
+  if (start === undefined || end === undefined || !Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+    return undefined;
+  }
+
+  const splineWeights = controlPoints.map((_, index) => {
+    const weight = weights[index];
+    return weight !== undefined && Number.isFinite(weight) && weight > 0 ? weight : 1;
+  });
+  const points: Point[] = [];
+  const sampleCount = Math.max(64, controlPoints.length * 24);
+  for (let index = 0; index <= sampleCount; index += 1) {
+    const t = index === sampleCount ? end : start + ((end - start) * index) / sampleCount;
+    const point = evaluateRationalBasisPoint(controlPoints, splineWeights, degree, knots, t);
+    if (point) {
+      points.push(point);
+    }
+  }
+  return points.length >= 2 ? points : undefined;
+}
+
+function evaluateRationalBasisPoint(
+  controlPoints: Point[],
+  weights: number[],
+  degree: number,
+  knots: number[],
+  t: number,
+): Point | undefined {
+  let weightedX = 0;
+  let weightedY = 0;
+  let basisWeight = 0;
+  for (const [index, point] of controlPoints.entries()) {
+    const basis = splineBasis(index, degree, knots, t);
+    const weight = basis * (weights[index] ?? 1);
+    weightedX += point.x * weight;
+    weightedY += point.y * weight;
+    basisWeight += weight;
+  }
+  if (basisWeight <= 0) {
+    const lastPoint = controlPoints.at(-1);
+    return nearlyEqual(t, knots[controlPoints.length] ?? Number.NaN) && lastPoint ? lastPoint : undefined;
+  }
+  return { x: weightedX / basisWeight, y: weightedY / basisWeight };
+}
+
+function splineBasis(index: number, degree: number, knots: number[], t: number): number {
+  if (degree === 0) {
+    const start = knots[index];
+    const end = knots[index + 1];
+    const finalKnot = knots.at(-1);
+    if (start === undefined || end === undefined) {
+      return 0;
+    }
+    return (start <= t && t < end) || (finalKnot !== undefined && nearlyEqual(t, finalKnot) && start <= t && t <= end)
+      ? 1
+      : 0;
+  }
+
+  const leftDenominator = (knots[index + degree] ?? 0) - (knots[index] ?? 0);
+  const rightDenominator = (knots[index + degree + 1] ?? 0) - (knots[index + 1] ?? 0);
+  const left =
+    leftDenominator === 0 ? 0 : ((t - (knots[index] ?? 0)) / leftDenominator) * splineBasis(index, degree - 1, knots, t);
+  const right =
+    rightDenominator === 0
+      ? 0
+      : (((knots[index + degree + 1] ?? 0) - t) / rightDenominator) *
+        splineBasis(index + 1, degree - 1, knots, t);
+  return left + right;
 }
 
 function bulgeSegmentPoints(start: PolylineVertex, end: PolylineVertex): Point[] {
@@ -451,6 +553,10 @@ function degreesToRadians(degrees: number): number {
 
 function distance(a: Point, b: Point): number {
   return Math.hypot(b.x - a.x, b.y - a.y);
+}
+
+function nearlyEqual(a: number, b: number): boolean {
+  return Math.abs(a - b) < 0.000001;
 }
 
 function isOutlineLayer(layer: string): boolean {

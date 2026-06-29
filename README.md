@@ -139,9 +139,10 @@ or `pcb`.
 It reads `$INSUNITS` for inch, millimeter, centimeter, and meter scaling, infers board
 dimensions from outline bounds, and detects circular mounting holes on hole-like layers
 or small circles inside the board bounds. `LWPOLYLINE` bulge values are expanded when
-measuring rounded board outlines. `SPLINE` entities are measured conservatively from
-control/fit point bounds and produce a verification warning. Exact NURBS evaluation and
-mechanical STEP feature detection remain future importer milestones.
+measuring rounded board outlines. `SPLINE` entities with degree, knot, control-point,
+and optional weight data are sampled as NURBS curves; incomplete splines fall back to
+control/fit point bounds and produce a verification warning. Mechanical STEP feature
+detection remains a future importer milestone.
 
 ## STL Import Scope
 

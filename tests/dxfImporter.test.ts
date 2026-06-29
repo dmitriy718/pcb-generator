@@ -235,6 +235,64 @@ Edge.Cuts
     expect(result.pcb.height).toBe(10);
   });
 
+  it('evaluates SPLINE knot and control-point data before measuring bounds', () => {
+    const result = importDxfPcb(`
+0
+SPLINE
+8
+Edge.Cuts
+70
+8
+71
+2
+72
+6
+73
+3
+40
+0
+40
+0
+40
+0
+40
+1
+40
+1
+40
+1
+10
+0
+20
+0
+10
+50
+20
+50
+10
+100
+20
+0
+0
+CIRCLE
+8
+MountingHoles
+10
+5
+20
+5
+40
+1.5
+`);
+
+    expect(result.pcb.width).toBe(100);
+    expect(result.pcb.height).toBe(25);
+    expect(result.pcb.mountingHoles).toEqual([{ id: 'mh-1', x: 5, y: 5, diameter: 3 }]);
+    expect(result.warnings).not.toContain(
+      'At least one DXF outline spline was measured from control/fit point bounds; verify dimensions before production.',
+    );
+  });
+
   it('uses SPLINE control-point bounds with a production verification warning', () => {
     const result = importDxfPcb(`
 0

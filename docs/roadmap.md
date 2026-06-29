@@ -79,10 +79,12 @@ tested, documented, and usable before moving on.
     `AXIS2_PLACEMENT_3D` placements near board edges for common connector labels.
 47. SVG PCB outline Bezier path import for sampled `C`, `S`, `Q`, and `T` commands,
     including smooth-control reflection semantics.
+48. DXF `SPLINE` outline NURBS sampling from degree, knot, control-point, and optional
+    weight data, with conservative warning fallback only for incomplete spline records.
 
 ## Next Milestones
 
 1. Broaden runtime-verified fillet selection to additional enclosure templates as those
    templates graduate from presets into independent validated generators.
-2. Add deeper importer feature extraction for exact DXF NURBS evaluation and STEP
-   assembly/product-to-placement relationships.
+2. Add deeper importer feature extraction for STEP assembly/product-to-placement
+   relationships.

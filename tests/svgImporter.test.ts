@@ -67,10 +67,18 @@ describe('SVG PCB importer', () => {
     expect(result.pcb.mountingHoles).toEqual([{ id: 'mount-hole-a', x: 5, y: 5, diameter: 2 }]);
   });
 
-  it('rejects unsupported SVG path curves when no other dimensions are available', () => {
-    expect(() => importSvgPcb('<svg><path id="board-outline" d="M0 0 C10 0 10 10 20 10 Z"/></svg>')).toThrow(
-      'positive board width and height',
-    );
+  it('imports board dimensions from cubic Bezier path outlines', () => {
+    const result = importSvgPcb('<svg><path id="board-outline" d="M0 0 C0 40 60 40 60 0 Z"/></svg>');
+
+    expect(result.pcb.width).toBe(60);
+    expect(result.pcb.height).toBe(30);
+  });
+
+  it('imports board dimensions from quadratic and smooth Bezier path outlines', () => {
+    const result = importSvgPcb('<svg><path id="board-outline" d="M0 0 Q20 40 40 0 T80 0 V20 H0 Z"/></svg>');
+
+    expect(result.pcb.width).toBe(80);
+    expect(result.pcb.height).toBe(40);
   });
 
   it('rejects non-SVG input', () => {

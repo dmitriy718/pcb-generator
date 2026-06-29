@@ -241,6 +241,7 @@ function parseSvgPathPoints(path: string): Point[] | undefined {
   let command = '';
   let current: Point = { x: 0, y: 0 };
   let subpathStart: Point = { x: 0, y: 0 };
+  let lastControl: { kind: 'cubic' | 'quadratic'; point: Point } | undefined;
 
   const isCommand = (token: string | undefined): boolean => token !== undefined && /^[A-Za-z]$/u.test(token);
   const readNumber = (): number | undefined => {
@@ -275,6 +276,7 @@ function parseSvgPathPoints(path: string): Point[] | undefined {
         subpathStart = current;
         points.push(current);
         command = relative ? 'l' : 'L';
+        lastControl = undefined;
         break;
       }
       case 'l': {
@@ -286,6 +288,7 @@ function parseSvgPathPoints(path: string): Point[] | undefined {
           }
           current = relativePoint(current, { x, y }, relative);
           points.push(current);
+          lastControl = undefined;
         }
         break;
       }
@@ -297,6 +300,7 @@ function parseSvgPathPoints(path: string): Point[] | undefined {
           }
           current = { x: relative ? current.x + x : x, y: current.y };
           points.push(current);
+          lastControl = undefined;
         }
         break;
       }
@@ -308,6 +312,61 @@ function parseSvgPathPoints(path: string): Point[] | undefined {
           }
           current = { x: current.x, y: relative ? current.y + y : y };
           points.push(current);
+          lastControl = undefined;
+        }
+        break;
+      }
+      case 'c': {
+        while (hasNumber()) {
+          const control1 = readPoint(relative, current, readNumber);
+          const control2 = readPoint(relative, current, readNumber);
+          const end = readPoint(relative, current, readNumber);
+          if (!control1 || !control2 || !end) {
+            return undefined;
+          }
+          points.push(...cubicBezierPoints(current, control1, control2, end));
+          current = end;
+          lastControl = { kind: 'cubic', point: control2 };
+        }
+        break;
+      }
+      case 's': {
+        while (hasNumber()) {
+          const control1 = lastControl?.kind === 'cubic' ? reflectedPoint(current, lastControl.point) : current;
+          const control2 = readPoint(relative, current, readNumber);
+          const end = readPoint(relative, current, readNumber);
+          if (!control2 || !end) {
+            return undefined;
+          }
+          points.push(...cubicBezierPoints(current, control1, control2, end));
+          current = end;
+          lastControl = { kind: 'cubic', point: control2 };
+        }
+        break;
+      }
+      case 'q': {
+        while (hasNumber()) {
+          const control = readPoint(relative, current, readNumber);
+          const end = readPoint(relative, current, readNumber);
+          if (!control || !end) {
+            return undefined;
+          }
+          points.push(...quadraticBezierPoints(current, control, end));
+          current = end;
+          lastControl = { kind: 'quadratic', point: control };
+        }
+        break;
+      }
+      case 't': {
+        while (hasNumber()) {
+          const control = lastControl?.kind === 'quadratic' ? reflectedPoint(current, lastControl.point) : current;
+          const end = readPoint(relative, current, readNumber);
+          if (!end) {
+            return undefined;
+          }
+          points.push(...quadraticBezierPoints(current, control, end));
+          current = end;
+          lastControl = { kind: 'quadratic', point: control };
         }
         break;
       }
@@ -334,6 +393,7 @@ function parseSvgPathPoints(path: string): Point[] | undefined {
           const end = relativePoint(current, { x, y }, relative);
           points.push(...svgArcPoints(current, end, rx, ry, rotation, largeArcFlag !== 0, sweepFlag !== 0));
           current = end;
+          lastControl = undefined;
         }
         break;
       }
@@ -341,6 +401,7 @@ function parseSvgPathPoints(path: string): Point[] | undefined {
         current = subpathStart;
         points.push(current);
         command = '';
+        lastControl = undefined;
         break;
       }
       default:
@@ -353,6 +414,60 @@ function parseSvgPathPoints(path: string): Point[] | undefined {
 
 function relativePoint(current: Point, point: Point, relative: boolean): Point {
   return relative ? { x: current.x + point.x, y: current.y + point.y } : point;
+}
+
+function readPoint(
+  relative: boolean,
+  current: Point,
+  readNumber: () => number | undefined,
+): Point | undefined {
+  const x = readNumber();
+  const y = readNumber();
+  if (x === undefined || y === undefined) {
+    return undefined;
+  }
+  return relativePoint(current, { x, y }, relative);
+}
+
+function reflectedPoint(current: Point, control: Point): Point {
+  return {
+    x: current.x * 2 - control.x,
+    y: current.y * 2 - control.y,
+  };
+}
+
+function cubicBezierPoints(start: Point, control1: Point, control2: Point, end: Point): Point[] {
+  const points: Point[] = [];
+  for (let index = 0; index <= 32; index += 1) {
+    const t = index / 32;
+    const inverse = 1 - t;
+    points.push({
+      x:
+        inverse ** 3 * start.x +
+        3 * inverse ** 2 * t * control1.x +
+        3 * inverse * t ** 2 * control2.x +
+        t ** 3 * end.x,
+      y:
+        inverse ** 3 * start.y +
+        3 * inverse ** 2 * t * control1.y +
+        3 * inverse * t ** 2 * control2.y +
+        t ** 3 * end.y,
+    });
+  }
+  return points;
+}
+
+function quadraticBezierPoints(start: Point, control: Point, end: Point): Point[] {
+  const points: Point[] = [];
+  for (let index = 0; index <= 32; index += 1) {
+    const t = index / 32;
+    const inverse = 1 - t;
+    points.push({
+      x: inverse ** 2 * start.x + 2 * inverse * t * control.x + t ** 2 * end.x,
+      y: inverse ** 2 * start.y + 2 * inverse * t * control.y + t ** 2 * end.y,
+    });
+  }
+  return points;
 }
 
 function svgArcPoints(

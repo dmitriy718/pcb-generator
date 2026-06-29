@@ -3,6 +3,7 @@ import { generateTwoPieceScrewCaseKernelMesh } from '../src/shared/cad/kernel/op
 import { analyzeMeshTopology, validateMesh } from '../src/shared/cad/meshValidation';
 import { enclosureTemplateById, enclosureTemplates } from '../src/shared/enclosureTemplates';
 import { defaultProject, validateProject } from '../src/shared/domain';
+import { builtInFastenerProfiles } from '../src/shared/fasteners';
 
 describe('enclosureTemplates', () => {
   it('has unique ids and resolves templates by id', () => {
@@ -21,6 +22,94 @@ describe('enclosureTemplates', () => {
 
       expect(project.enclosure.type, template.id).toBe('two_piece_screw_case');
       expect(validateProject(project).issues, template.id).toEqual([]);
+    }
+  });
+
+  it('keeps every template valid on compact and large common board sizes', () => {
+    const boardVariants = [
+      {
+        name: 'compact',
+        pcb: {
+          ...defaultProject.pcb,
+          width: 36,
+          height: 24,
+          mountingHoles: [
+            { id: 'mh-1', x: 4, y: 4, diameter: 3 },
+            { id: 'mh-2', x: 32, y: 4, diameter: 3 },
+            { id: 'mh-3', x: 4, y: 20, diameter: 3 },
+            { id: 'mh-4', x: 32, y: 20, diameter: 3 },
+          ],
+          connectorCutouts: [
+            {
+              id: 'cutout-usb-c',
+              label: 'USB-C',
+              side: 'front' as const,
+              offset: 18,
+              z: 7,
+              width: 10,
+              height: 4,
+            },
+          ],
+        },
+        ventilationRegions: [
+          {
+            id: 'vent-lid-compact',
+            label: 'Compact lid vents',
+            x: 24,
+            y: 12,
+            width: 12,
+            height: 6,
+            slotWidth: 2,
+            slotHeight: 4,
+            spacing: 2,
+          },
+        ],
+      },
+      {
+        name: 'large',
+        pcb: {
+          ...defaultProject.pcb,
+          width: 100,
+          height: 70,
+          mountingHoles: [
+            { id: 'mh-1', x: 5, y: 5, diameter: 3 },
+            { id: 'mh-2', x: 95, y: 5, diameter: 3 },
+            { id: 'mh-3', x: 5, y: 65, diameter: 3 },
+            { id: 'mh-4', x: 95, y: 65, diameter: 3 },
+          ],
+          connectorCutouts: [
+            {
+              id: 'cutout-usb-c',
+              label: 'USB-C',
+              side: 'front' as const,
+              offset: 50,
+              z: 7,
+              width: 10,
+              height: 4,
+            },
+          ],
+        },
+        ventilationRegions: defaultProject.enclosure.ventilationRegions,
+      },
+    ];
+
+    for (const variant of boardVariants) {
+      for (const template of enclosureTemplates) {
+        const baseProject = {
+          ...defaultProject,
+          pcb: variant.pcb,
+          enclosure: {
+            ...defaultProject.enclosure,
+            ventilationRegions: variant.ventilationRegions,
+          },
+        };
+        const project = {
+          ...baseProject,
+          enclosure: template.apply(baseProject),
+        };
+
+        expect(validateProject(project).issues, `${template.id} ${variant.name}`).toEqual([]);
+      }
     }
   });
 
@@ -76,6 +165,95 @@ describe('enclosureTemplates', () => {
     );
   });
 
+  it('adds editable lanyard and status-light openings to the portable handheld template', () => {
+    const template = enclosureTemplateById('portable-handheld');
+    const enclosure = template?.apply(defaultProject);
+
+    expect(enclosure?.designFeatures).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'template-handheld-lanyard-hole',
+          label: 'Lanyard hole',
+          kind: 'antenna_hole',
+          shape: 'circle',
+          operation: 'through_cut',
+        }),
+        expect.objectContaining({
+          id: 'template-handheld-status-light',
+          label: 'Status light opening',
+          kind: 'button_opening',
+          shape: 'circle',
+          operation: 'through_cut',
+        }),
+      ]),
+    );
+  });
+
+  it('preserves unrelated user features with template-like id prefixes', () => {
+    const template = enclosureTemplateById('portable-handheld');
+    const project = structuredClone(defaultProject);
+    project.enclosure.ventilationRegions = [];
+    project.enclosure.designFeatures = [
+      {
+        id: 'template-handheld-user-extra',
+        label: 'User serial text',
+        kind: 'text_engraving',
+        shape: 'rectangle',
+        operation: 'recess',
+        x: 24,
+        y: 14,
+        width: 10,
+        height: 4,
+        diameter: 4,
+        depth: 0.25,
+        cornerRadius: 0,
+        spacing: 2,
+        rows: 1,
+        columns: 1,
+        text: 'U1',
+      },
+    ];
+
+    const enclosure = template?.apply(project);
+
+    expect(enclosure?.designFeatures).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'template-handheld-user-extra',
+          label: 'User serial text',
+        }),
+      ]),
+    );
+  });
+
+  it('keeps portable handheld generated openings clear across built-in fastener profiles', () => {
+    const template = enclosureTemplateById('portable-handheld');
+    if (!template) {
+      throw new Error('Expected portable handheld template.');
+    }
+
+    for (const profile of builtInFastenerProfiles) {
+      const baseProject = {
+        ...defaultProject,
+        enclosure: {
+          ...defaultProject.enclosure,
+          fastenerProfileId: profile.id,
+          standoffDiameter: profile.standoffDiameter,
+          standoffHoleDiameter: profile.standoffHoleDiameter,
+          standoffHeight: profile.recommendedStandoffHeight,
+          screwBossDiameter: profile.screwBossDiameter,
+          screwHoleDiameter: profile.screwHoleDiameter,
+        },
+      };
+      const project = {
+        ...baseProject,
+        enclosure: template.apply(baseProject),
+      };
+
+      expect(validateProject(project).issues, profile.id).toEqual([]);
+    }
+  });
+
   it('generates validated OpenCascade geometry for the rounded handheld fillet template', async () => {
     const template = enclosureTemplateById('rounded-handheld');
     if (!template) {
@@ -116,6 +294,51 @@ describe('enclosureTemplates', () => {
     const mesh = await generateTwoPieceScrewCaseKernelMesh({
       ...defaultProject,
       enclosure: template.apply(defaultProject),
+    });
+    const topology = analyzeMeshTopology(mesh);
+
+    expect(validateMesh(mesh, { checkTopology: true })).toEqual({ ok: true, issues: [] });
+    expect(topology.isClosed).toBe(true);
+    expect(topology.isEdgeManifold).toBe(true);
+  }, 30_000);
+
+  it('generates validated OpenCascade geometry for the portable handheld feature template', async () => {
+    const template = enclosureTemplateById('portable-handheld');
+    if (!template) {
+      throw new Error('Expected portable handheld template.');
+    }
+    const mesh = await generateTwoPieceScrewCaseKernelMesh({
+      ...defaultProject,
+      enclosure: template.apply(defaultProject),
+    });
+    const topology = analyzeMeshTopology(mesh);
+
+    expect(validateMesh(mesh, { checkTopology: true })).toEqual({ ok: true, issues: [] });
+    expect(topology.isClosed).toBe(true);
+    expect(topology.isEdgeManifold).toBe(true);
+  }, 30_000);
+
+  it('generates validated OpenCascade geometry for portable handheld with large heat-set inserts', async () => {
+    const template = enclosureTemplateById('portable-handheld');
+    const profile = builtInFastenerProfiles.find((candidate) => candidate.id === 'm3_long_heat_set_insert');
+    if (!template || !profile) {
+      throw new Error('Expected portable handheld template and M3 long heat-set insert profile.');
+    }
+    const project = {
+      ...defaultProject,
+      enclosure: {
+        ...defaultProject.enclosure,
+        fastenerProfileId: profile.id,
+        standoffDiameter: profile.standoffDiameter,
+        standoffHoleDiameter: profile.standoffHoleDiameter,
+        standoffHeight: profile.recommendedStandoffHeight,
+        screwBossDiameter: profile.screwBossDiameter,
+        screwHoleDiameter: profile.screwHoleDiameter,
+      },
+    };
+    const mesh = await generateTwoPieceScrewCaseKernelMesh({
+      ...project,
+      enclosure: template.apply(project),
     });
     const topology = analyzeMeshTopology(mesh);
 

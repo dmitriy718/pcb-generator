@@ -34,12 +34,13 @@ documentation, and CI foundation with a usable manual PCB workflow.
   board-library and enclosure-template contributions.
 - Offline design assistant that converts common natural-language enclosure phrases into
   editable material, cutout, vent, and lid-feature parameters.
-- Enclosure template presets for compact, handheld, tall-clearance, wall-mount, and
-  desktop project-box variants of the validated two-piece screw case, including a
-  rounded handheld template that exercises validated OpenCascade outer fillets and a
-  wall-mount template with generated editable through-hole features, plus a desktop
-  project-box template with generated editable label-recess and rear cable-slot
-  features.
+- Enclosure template presets for compact, rounded handheld, portable handheld,
+  tall-clearance, wall-mount, and desktop project-box variants of the validated
+  two-piece screw case, including a rounded handheld template that exercises validated
+  OpenCascade outer fillets, a portable handheld template with generated editable
+  lanyard/status-light openings, a wall-mount template with generated editable
+  through-hole features, and a desktop project-box template with generated editable
+  label-recess and rear cable-slot features.
 
 ## Current Scope
 

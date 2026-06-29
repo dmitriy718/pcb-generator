@@ -528,12 +528,21 @@ export function App(): ReactElement {
     if (!template) {
       return;
     }
-    setProject((current) => ({
-      ...current,
-      enclosure: template.apply(current),
-    }));
+    const nextProject: EnclosureProject = {
+      ...project,
+      enclosure: template.apply(project),
+    };
+    const templateValidation = validateProject(nextProject);
+
+    setProject(nextProject);
     setImportWarnings([template.description]);
-    setExportMessage(`Applied ${template.name} enclosure template.`);
+    setExportMessage(
+      templateValidation.ok
+        ? `Applied ${template.name} enclosure template.`
+        : `Applied ${template.name} enclosure template with ${templateValidation.issues.length} validation issue${
+            templateValidation.issues.length === 1 ? '' : 's'
+          } to review.`,
+    );
   }
 
   function updateMountingHole(id: string, patch: Partial<Omit<MountingHole, 'id'>>): void {

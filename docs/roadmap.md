@@ -93,6 +93,9 @@ tested, documented, and usable before moving on.
 53. Desktop project-box template hardened with generated editable label-recess and rear
     cable-slot features, plus lid CAD ordering that chamfers the stable blank before
     cutting vents and editable lid features.
+54. Portable handheld template added with generated editable lanyard and status-light
+    through-cut openings, OpenCascade topology regression coverage, and GUI template
+    application feedback when validation needs review.
 
 ## Next Milestones
 

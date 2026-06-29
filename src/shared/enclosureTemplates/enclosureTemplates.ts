@@ -28,17 +28,13 @@ export const enclosureTemplates: EnclosureTemplate[] = [
     id: 'rounded-handheld',
     name: 'Rounded handheld',
     description: 'Larger ergonomic shell with rounded corners and extra grip clearance.',
-    apply: (project) => ({
-      ...project.enclosure,
-      wallThickness: Math.max(project.enclosure.wallThickness, 2.2),
-      boardClearance: Math.max(project.enclosure.boardClearance, 3),
-      baseInternalHeight: Math.max(
-        project.enclosure.baseInternalHeight,
-        project.pcb.componentHeight + materialProfiles[project.enclosure.material].clearance + 1,
-      ),
-      cornerRadius: Math.max(project.enclosure.cornerRadius, 9),
-      chamfer: 0,
-    }),
+    apply: (project) => roundedHandheldParameters(project),
+  },
+  {
+    id: 'portable-handheld',
+    name: 'Portable handheld',
+    description: 'Handheld proportions with generated lanyard and status-light openings.',
+    apply: (project) => portableHandheldParameters(project),
   },
   {
     id: 'tall-component-clearance',
@@ -73,6 +69,104 @@ export function enclosureTemplateById(id: string): EnclosureTemplate | undefined
   return enclosureTemplates.find((template) => template.id === id);
 }
 
+function roundedHandheldParameters(project: EnclosureProject): TwoPieceScrewCaseParameters {
+  return {
+    ...project.enclosure,
+    wallThickness: Math.max(project.enclosure.wallThickness, 2.2),
+    boardClearance: Math.max(project.enclosure.boardClearance, 3),
+    baseInternalHeight: Math.max(
+      project.enclosure.baseInternalHeight,
+      project.pcb.componentHeight + materialProfiles[project.enclosure.material].clearance + 1,
+    ),
+    cornerRadius: Math.max(project.enclosure.cornerRadius, 9),
+    chamfer: 0,
+  };
+}
+
+function portableHandheldParameters(project: EnclosureProject): TwoPieceScrewCaseParameters {
+  const enclosure: TwoPieceScrewCaseParameters = {
+    ...roundedHandheldParameters(project),
+    wallThickness: Math.max(project.enclosure.wallThickness, 2.4),
+    boardClearance: Math.max(project.enclosure.boardClearance, 3.5),
+    baseInternalHeight: Math.max(
+      project.enclosure.baseInternalHeight,
+      project.pcb.componentHeight + materialProfiles[project.enclosure.material].clearance + 2,
+    ),
+    cornerRadius: Math.max(project.enclosure.cornerRadius, 10),
+  };
+
+  return {
+    ...enclosure,
+    designFeatures: replaceGeneratedFeatures(enclosure.designFeatures, portableHandheldFeatures(project, enclosure)),
+  };
+}
+
+function portableHandheldFeatures(project: EnclosureProject, enclosure: TwoPieceScrewCaseParameters): DesignFeature[] {
+  const { outerWidth, outerHeight } = enclosureOuterDimensions(project, enclosure);
+  const lanyardDiameter = round(Math.max(4, enclosure.screwHoleDiameter + 1.2));
+  const indicatorDiameter = 3.2;
+  const featureWallMargin = 0.25;
+  const lanyardX = clamp(
+    outerWidth / 2,
+    enclosure.wallThickness + lanyardDiameter / 2 + featureWallMargin,
+    outerWidth - enclosure.wallThickness - lanyardDiameter / 2 - featureWallMargin,
+  );
+  const lanyardY = clamp(
+    outerHeight - enclosure.wallThickness - lanyardDiameter / 2 - featureWallMargin,
+    enclosure.wallThickness + lanyardDiameter / 2 + featureWallMargin,
+    outerHeight - enclosure.wallThickness - lanyardDiameter / 2 - featureWallMargin,
+  );
+  const indicatorX = clamp(
+    outerWidth * 0.5,
+    enclosure.wallThickness + indicatorDiameter / 2 + featureWallMargin,
+    outerWidth - enclosure.wallThickness - indicatorDiameter / 2 - featureWallMargin,
+  );
+  const indicatorY = clamp(
+    outerHeight * 0.62,
+    enclosure.wallThickness + indicatorDiameter / 2 + featureWallMargin,
+    outerHeight - enclosure.wallThickness - indicatorDiameter / 2 - featureWallMargin,
+  );
+
+  return [
+    {
+      id: 'template-handheld-lanyard-hole',
+      label: 'Lanyard hole',
+      kind: 'antenna_hole',
+      shape: 'circle',
+      operation: 'through_cut',
+      x: round(lanyardX),
+      y: round(lanyardY),
+      width: lanyardDiameter,
+      height: lanyardDiameter,
+      diameter: lanyardDiameter,
+      depth: enclosure.lidThickness,
+      cornerRadius: 0,
+      spacing: 3,
+      rows: 1,
+      columns: 1,
+      text: '',
+    },
+    {
+      id: 'template-handheld-status-light',
+      label: 'Status light opening',
+      kind: 'button_opening',
+      shape: 'circle',
+      operation: 'through_cut',
+      x: round(indicatorX),
+      y: round(indicatorY),
+      width: indicatorDiameter,
+      height: indicatorDiameter,
+      diameter: indicatorDiameter,
+      depth: enclosure.lidThickness,
+      cornerRadius: 0,
+      spacing: 3,
+      rows: 1,
+      columns: 1,
+      text: '',
+    },
+  ];
+}
+
 function wallMountParameters(project: EnclosureProject): TwoPieceScrewCaseParameters {
   const enclosure: TwoPieceScrewCaseParameters = {
     ...project.enclosure,
@@ -85,20 +179,18 @@ function wallMountParameters(project: EnclosureProject): TwoPieceScrewCaseParame
 
   return {
     ...enclosure,
-    designFeatures: [
-      ...enclosure.designFeatures.filter((feature) => !feature.id.startsWith('template-wall-mount-')),
-      ...wallMountFeatures(project, enclosure),
-    ],
+    designFeatures: replaceGeneratedFeatures(enclosure.designFeatures, wallMountFeatures(project, enclosure)),
   };
 }
 
 function wallMountFeatures(project: EnclosureProject, enclosure: TwoPieceScrewCaseParameters): DesignFeature[] {
-  const internalWidth = project.pcb.width + enclosure.boardClearance * 2;
-  const internalHeight = project.pcb.height + enclosure.boardClearance * 2;
-  const outerWidth = internalWidth + enclosure.wallThickness * 2;
-  const outerHeight = internalHeight + enclosure.wallThickness * 2;
+  const { outerWidth, outerHeight } = enclosureOuterDimensions(project, enclosure);
   const diameter = round(Math.max(4.5, enclosure.screwHoleDiameter + 1.8));
-  const y = clamp(outerHeight / 2, enclosure.wallThickness + diameter / 2, outerHeight - enclosure.wallThickness - diameter / 2);
+  const y = clamp(
+    outerHeight * 0.72,
+    enclosure.wallThickness + diameter / 2,
+    outerHeight - enclosure.wallThickness - diameter / 2,
+  );
   const xs = [outerWidth * 0.35, outerWidth * 0.65].map((x) =>
     clamp(x, enclosure.wallThickness + diameter / 2, outerWidth - enclosure.wallThickness - diameter / 2),
   );
@@ -136,24 +228,22 @@ function desktopProjectBoxParameters(project: EnclosureProject): TwoPieceScrewCa
 
   return {
     ...enclosure,
-    designFeatures: [
-      ...enclosure.designFeatures.filter((feature) => !feature.id.startsWith('template-desktop-')),
-      ...desktopProjectBoxFeatures(project, enclosure),
-    ],
+    designFeatures: replaceGeneratedFeatures(enclosure.designFeatures, desktopProjectBoxFeatures(project, enclosure)),
   };
 }
 
 function desktopProjectBoxFeatures(project: EnclosureProject, enclosure: TwoPieceScrewCaseParameters): DesignFeature[] {
-  const internalWidth = project.pcb.width + enclosure.boardClearance * 2;
-  const internalHeight = project.pcb.height + enclosure.boardClearance * 2;
-  const outerWidth = internalWidth + enclosure.wallThickness * 2;
-  const outerHeight = internalHeight + enclosure.wallThickness * 2;
+  const { outerWidth, outerHeight } = enclosureOuterDimensions(project, enclosure);
   const labelWidth = round(Math.min(22, Math.max(16, outerWidth * 0.28)));
   const labelHeight = 6;
   const cableWidth = round(Math.min(16, Math.max(10, outerWidth * 0.2)));
   const cableHeight = 4;
-  const labelX = clamp(outerWidth * 0.68, enclosure.wallThickness + labelWidth / 2, outerWidth - enclosure.wallThickness - labelWidth / 2);
-  const labelY = clamp(outerHeight * 0.5, enclosure.wallThickness + labelHeight / 2, outerHeight - enclosure.wallThickness - labelHeight / 2);
+  const labelX = clamp(outerWidth * 0.5, enclosure.wallThickness + labelWidth / 2, outerWidth - enclosure.wallThickness - labelWidth / 2);
+  const labelY = clamp(
+    outerHeight * 0.7,
+    enclosure.wallThickness + labelHeight / 2,
+    outerHeight - enclosure.wallThickness - labelHeight / 2,
+  );
   const cableX = clamp(outerWidth * 0.5, enclosure.wallThickness + cableWidth / 2, outerWidth - enclosure.wallThickness - cableWidth / 2);
   const cableY = clamp(
     outerHeight - enclosure.wallThickness - cableHeight / 2,
@@ -199,6 +289,23 @@ function desktopProjectBoxFeatures(project: EnclosureProject, enclosure: TwoPiec
       text: '',
     },
   ];
+}
+
+function enclosureOuterDimensions(
+  project: EnclosureProject,
+  enclosure: TwoPieceScrewCaseParameters,
+): { outerWidth: number; outerHeight: number } {
+  const internalWidth = project.pcb.width + enclosure.boardClearance * 2;
+  const internalHeight = project.pcb.height + enclosure.boardClearance * 2;
+  return {
+    outerWidth: internalWidth + enclosure.wallThickness * 2,
+    outerHeight: internalHeight + enclosure.wallThickness * 2,
+  };
+}
+
+function replaceGeneratedFeatures(existingFeatures: DesignFeature[], generatedFeatures: DesignFeature[]): DesignFeature[] {
+  const generatedIds = new Set(generatedFeatures.map((feature) => feature.id));
+  return [...existingFeatures.filter((feature) => !generatedIds.has(feature.id)), ...generatedFeatures];
 }
 
 function clamp(value: number, min: number, max: number): number {

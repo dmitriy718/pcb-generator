@@ -88,6 +88,8 @@ tested, documented, and usable before moving on.
 51. STEP text fallback assembly transform composition for nested
     `REPRESENTATION_RELATIONSHIP_WITH_TRANSFORMATION` connector placements using
     `ITEM_DEFINED_TRANSFORMATION` axis frames.
+52. Wall-mount enclosure template hardened with generated editable through-hole features
+    and OpenCascade topology regression coverage.
 
 ## Next Milestones
 

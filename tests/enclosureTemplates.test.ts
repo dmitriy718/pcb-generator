@@ -32,10 +32,48 @@ describe('enclosureTemplates', () => {
     expect(template?.apply(project).baseInternalHeight).toBeGreaterThan(25);
   });
 
+  it('adds editable wall-mount through holes to the wall-mount template', () => {
+    const template = enclosureTemplateById('wall-mount-starter');
+    const enclosure = template?.apply(defaultProject);
+
+    expect(enclosure?.designFeatures).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'template-wall-mount-1',
+          label: 'Wall mount hole 1',
+          shape: 'circle',
+          operation: 'through_cut',
+        }),
+        expect.objectContaining({
+          id: 'template-wall-mount-2',
+          label: 'Wall mount hole 2',
+          shape: 'circle',
+          operation: 'through_cut',
+        }),
+      ]),
+    );
+  });
+
   it('generates validated OpenCascade geometry for the rounded handheld fillet template', async () => {
     const template = enclosureTemplateById('rounded-handheld');
     if (!template) {
       throw new Error('Expected rounded handheld template.');
+    }
+    const mesh = await generateTwoPieceScrewCaseKernelMesh({
+      ...defaultProject,
+      enclosure: template.apply(defaultProject),
+    });
+    const topology = analyzeMeshTopology(mesh);
+
+    expect(validateMesh(mesh, { checkTopology: true })).toEqual({ ok: true, issues: [] });
+    expect(topology.isClosed).toBe(true);
+    expect(topology.isEdgeManifold).toBe(true);
+  }, 30_000);
+
+  it('generates validated OpenCascade geometry for the wall-mount through-hole template', async () => {
+    const template = enclosureTemplateById('wall-mount-starter');
+    if (!template) {
+      throw new Error('Expected wall-mount template.');
     }
     const mesh = await generateTwoPieceScrewCaseKernelMesh({
       ...defaultProject,

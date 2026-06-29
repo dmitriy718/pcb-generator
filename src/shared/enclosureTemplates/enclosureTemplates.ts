@@ -1,4 +1,4 @@
-import type { EnclosureProject, TwoPieceScrewCaseParameters } from '../domain';
+import type { DesignFeature, EnclosureProject, TwoPieceScrewCaseParameters } from '../domain';
 import { materialProfiles } from '../domain';
 
 export interface EnclosureTemplate {
@@ -59,14 +59,7 @@ export const enclosureTemplates: EnclosureTemplate[] = [
     id: 'wall-mount-starter',
     name: 'Wall mount starter',
     description: 'Screw-case parameters with extra wall thickness and clearance for wall-mount features.',
-    apply: (project) => ({
-      ...project.enclosure,
-      wallThickness: Math.max(project.enclosure.wallThickness, 2.4),
-      floorThickness: Math.max(project.enclosure.floorThickness, 2),
-      boardClearance: Math.max(project.enclosure.boardClearance, 3),
-      cornerRadius: Math.max(project.enclosure.cornerRadius, 6),
-      chamfer: Math.max(project.enclosure.chamfer, 0.6),
-    }),
+    apply: (project) => wallMountParameters(project),
   },
   {
     id: 'desktop-project-box',
@@ -86,4 +79,62 @@ export const enclosureTemplates: EnclosureTemplate[] = [
 
 export function enclosureTemplateById(id: string): EnclosureTemplate | undefined {
   return enclosureTemplates.find((template) => template.id === id);
+}
+
+function wallMountParameters(project: EnclosureProject): TwoPieceScrewCaseParameters {
+  const enclosure: TwoPieceScrewCaseParameters = {
+    ...project.enclosure,
+    wallThickness: Math.max(project.enclosure.wallThickness, 2.4),
+    floorThickness: Math.max(project.enclosure.floorThickness, 2),
+    boardClearance: Math.max(project.enclosure.boardClearance, 3),
+    cornerRadius: Math.max(project.enclosure.cornerRadius, 6),
+    chamfer: Math.max(project.enclosure.chamfer, 0.6),
+  };
+
+  return {
+    ...enclosure,
+    designFeatures: [
+      ...enclosure.designFeatures.filter((feature) => !feature.id.startsWith('template-wall-mount-')),
+      ...wallMountFeatures(project, enclosure),
+    ],
+  };
+}
+
+function wallMountFeatures(project: EnclosureProject, enclosure: TwoPieceScrewCaseParameters): DesignFeature[] {
+  const internalWidth = project.pcb.width + enclosure.boardClearance * 2;
+  const internalHeight = project.pcb.height + enclosure.boardClearance * 2;
+  const outerWidth = internalWidth + enclosure.wallThickness * 2;
+  const outerHeight = internalHeight + enclosure.wallThickness * 2;
+  const diameter = round(Math.max(4.5, enclosure.screwHoleDiameter + 1.8));
+  const y = clamp(outerHeight / 2, enclosure.wallThickness + diameter / 2, outerHeight - enclosure.wallThickness - diameter / 2);
+  const xs = [outerWidth * 0.35, outerWidth * 0.65].map((x) =>
+    clamp(x, enclosure.wallThickness + diameter / 2, outerWidth - enclosure.wallThickness - diameter / 2),
+  );
+
+  return xs.map((x, index) => ({
+    id: `template-wall-mount-${index + 1}`,
+    label: `Wall mount hole ${index + 1}`,
+    kind: 'antenna_hole',
+    shape: 'circle',
+    operation: 'through_cut',
+    x: round(x),
+    y: round(y),
+    width: diameter,
+    height: diameter,
+    diameter,
+    depth: enclosure.lidThickness,
+    cornerRadius: 0,
+    spacing: diameter,
+    rows: 1,
+    columns: 1,
+    text: '',
+  }));
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+function round(value: number): number {
+  return Math.round(value * 1000) / 1000;
 }

@@ -33,7 +33,7 @@ import { defaultProject, materialProfiles, validateProject } from '../../shared/
 import { enclosureTemplateById, enclosureTemplates } from '../../shared/enclosureTemplates';
 import { builtInFastenerProfiles, fastenerProfileById } from '../../shared/fasteners';
 import {
-  autoArrangeDesignFeatures,
+  autoArrangeLidLayout,
   placeDesignFeaturePreset,
   placeVentilationPreset,
 } from '../../shared/layout/lidPlacement';
@@ -738,17 +738,17 @@ export function App(): ReactElement {
     }));
   }
 
-  function autoArrangeLidFeatures(): void {
-    if (project.enclosure.designFeatures.length === 0) {
-      setExportMessage('There are no lid features to arrange.');
+  function autoArrangeLidLayoutItems(): void {
+    if (project.enclosure.designFeatures.length === 0 && project.enclosure.ventilationRegions.length === 0) {
+      setExportMessage('There are no lid features or vents to arrange.');
       return;
     }
-    const result = autoArrangeDesignFeatures(project);
+    const result = autoArrangeLidLayout(project);
     setProject(result.project);
     setExportMessage(
       result.unresolvedLabels.length > 0
-        ? `Arranged ${result.movedCount} lid feature${result.movedCount === 1 ? '' : 's'}; ${result.unresolvedLabels.length} still need manual placement: ${result.unresolvedLabels.join(', ')}.`
-        : `Arranged ${result.movedCount} lid feature${result.movedCount === 1 ? '' : 's'}.`,
+        ? `Arranged ${result.movedCount} lid item${result.movedCount === 1 ? '' : 's'}; ${result.unresolvedLabels.length} still need manual placement: ${result.unresolvedLabels.join(', ')}.`
+        : `Arranged ${result.movedCount} lid item${result.movedCount === 1 ? '' : 's'}.`,
     );
   }
 
@@ -1355,8 +1355,8 @@ export function App(): ReactElement {
             <button type="button" className="secondary-button" onClick={() => void importLogoSvg()}>
               Import SVG logo
             </button>
-            <button type="button" className="secondary-button" onClick={autoArrangeLidFeatures}>
-              Auto arrange lid features
+            <button type="button" className="secondary-button" onClick={autoArrangeLidLayoutItems}>
+              Auto arrange lid layout
             </button>
             {project.enclosure.designFeatures.length > 0 ? (
               <div className="feature-list">

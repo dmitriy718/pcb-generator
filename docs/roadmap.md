@@ -108,6 +108,9 @@ tested, documented, and usable before moving on.
 58. Shared lid-placement utility and GUI auto-arrange command added so crowded existing
     design-feature layouts can be repositioned into available lid space with regression
     coverage.
+59. Lid auto-arrange extended to ventilation regions and design features together, so
+    feature-versus-vent collisions in existing projects can be resolved by the same GUI
+    recovery action.
 
 ## Next Milestones
 

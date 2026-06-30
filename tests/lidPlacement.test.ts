@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { defaultProject, validateProject, type DesignFeature } from '../src/shared/domain';
-import { autoArrangeDesignFeatures, placeDesignFeaturePreset } from '../src/shared/layout/lidPlacement';
+import {
+  autoArrangeDesignFeatures,
+  autoArrangeLidLayout,
+  placeDesignFeaturePreset,
+} from '../src/shared/layout/lidPlacement';
 
 describe('lid feature placement', () => {
   it('places new feature presets away from existing lid features', () => {
@@ -61,6 +65,35 @@ describe('lid feature placement', () => {
     expect(validateProject(project).issues.map((issue) => issue.code)).toContain('design_feature_overlaps_feature');
 
     const result = autoArrangeDesignFeatures(project);
+
+    expect(result.unresolvedLabels).toEqual([]);
+    expect(result.movedCount).toBeGreaterThan(0);
+    expect(validateProject(result.project).issues).toEqual([]);
+  });
+
+  it('auto-arranges existing vents and features into a valid combined lid layout', () => {
+    const project = structuredClone(defaultProject);
+    project.enclosure.ventilationRegions = [
+      {
+        id: 'vent-crowded',
+        label: 'Crowded vent',
+        x: 32,
+        y: 18,
+        width: 24,
+        height: 10,
+        slotWidth: 3,
+        slotHeight: 8,
+        spacing: 3,
+      },
+    ];
+    project.enclosure.designFeatures = [
+      buttonFeature('feature-button', 32, 18),
+      batteryFeature('feature-battery', 32, 18),
+    ];
+
+    expect(validateProject(project).issues.map((issue) => issue.code)).toContain('design_feature_overlaps_vent');
+
+    const result = autoArrangeLidLayout(project);
 
     expect(result.unresolvedLabels).toEqual([]);
     expect(result.movedCount).toBeGreaterThan(0);

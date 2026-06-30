@@ -240,8 +240,9 @@ other design features, and screw boss footprints using the selected material
 clearance. Invalid overlaps produce actionable messages before preview generation or
 export.
 The Design Features panel also provides an auto-arrange command that repositions
-existing lid features into available lid space where possible, which is useful after
-adding several palette presets or loading an older crowded project.
+existing lid features and ventilation regions into available lid space where possible,
+which is useful after adding several palette presets or loading an older crowded
+project.
 
 ## STEP Export Scope
 

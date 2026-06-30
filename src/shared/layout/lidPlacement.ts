@@ -28,39 +28,36 @@ export function placeVentilationPreset(
   preset: VentilationPlacementPreset,
   id: string,
 ): VentilationRegion | undefined {
-  const dims = outerLidDimensions(project);
-  const newIndex = project.enclosure.ventilationRegions.length;
+  return placeVentilationRegion(project, { id, x: 0, y: 0, ...preset }, 0.5, 0.5);
+}
 
-  for (const center of placementCenters(0.5, 0.5)) {
-    const candidate: VentilationRegion = {
-      id,
-      label: preset.label,
-      x: roundPlacement(clampToLid(center.xRatio * dims.outerWidth, project.enclosure.wallThickness, dims.outerWidth, preset.width)),
-      y: roundPlacement(clampToLid(center.yRatio * dims.outerHeight, project.enclosure.wallThickness, dims.outerHeight, preset.height)),
-      width: preset.width,
-      height: preset.height,
-      slotWidth: preset.slotWidth,
-      slotHeight: preset.slotHeight,
-      spacing: preset.spacing,
-    };
-    const candidateProject: EnclosureProject = {
+export function autoArrangeLidLayout(project: EnclosureProject): AutoArrangeResult {
+  const dims = outerLidDimensions(project);
+  const arrangedVents: VentilationRegion[] = [];
+  const unresolvedVents: VentilationRegion[] = [];
+
+  for (const vent of project.enclosure.ventilationRegions) {
+    const baseProject: EnclosureProject = {
       ...project,
       enclosure: {
         ...project.enclosure,
-        ventilationRegions: [...project.enclosure.ventilationRegions, candidate],
+        ventilationRegions: arrangedVents,
+        designFeatures: [],
       },
     };
-
-    if (!hasBlockingPlacementIssue(candidateProject, `enclosure.ventilationRegions.${newIndex}`, candidate.label)) {
-      return candidate;
+    const placed = placeVentilationRegion(
+      baseProject,
+      vent,
+      clampRatio(vent.x / dims.outerWidth),
+      clampRatio(vent.y / dims.outerHeight),
+    );
+    if (placed) {
+      arrangedVents.push(placed);
+    } else {
+      unresolvedVents.push(vent);
     }
   }
 
-  return undefined;
-}
-
-export function autoArrangeDesignFeatures(project: EnclosureProject): AutoArrangeResult {
-  const dims = outerLidDimensions(project);
   const arrangedFeatures: DesignFeature[] = [];
   const unresolvedFeatures: DesignFeature[] = [];
 
@@ -69,6 +66,7 @@ export function autoArrangeDesignFeatures(project: EnclosureProject): AutoArrang
       ...project,
       enclosure: {
         ...project.enclosure,
+        ventilationRegions: arrangedVents,
         designFeatures: arrangedFeatures,
       },
     };
@@ -89,18 +87,63 @@ export function autoArrangeDesignFeatures(project: EnclosureProject): AutoArrang
     ...project,
     enclosure: {
       ...project.enclosure,
+      ventilationRegions: [...arrangedVents, ...unresolvedVents],
       designFeatures: [...arrangedFeatures, ...unresolvedFeatures],
     },
   };
 
   return {
     project: arrangedProject,
-    movedCount: arrangedFeatures.filter((feature) => {
-      const original = project.enclosure.designFeatures.find((current) => current.id === feature.id);
-      return original !== undefined && (original.x !== feature.x || original.y !== feature.y);
-    }).length,
-    unresolvedLabels: unresolvedFeatures.map((feature) => feature.label),
+    movedCount:
+      movedVentCount(project.enclosure.ventilationRegions, arrangedVents) +
+      movedFeatureCount(project.enclosure.designFeatures, arrangedFeatures),
+    unresolvedLabels: [
+      ...unresolvedVents.map((vent) => vent.label),
+      ...unresolvedFeatures.map((feature) => feature.label),
+    ],
   };
+}
+
+export function autoArrangeDesignFeatures(project: EnclosureProject): AutoArrangeResult {
+  const arrangedProject = autoArrangeLidLayout({
+    ...project,
+    enclosure: {
+      ...project.enclosure,
+      ventilationRegions: project.enclosure.ventilationRegions,
+    },
+  });
+  return arrangedProject;
+}
+
+function placeVentilationRegion(
+  project: EnclosureProject,
+  region: VentilationRegion,
+  preferredXRatio: number,
+  preferredYRatio: number,
+): VentilationRegion | undefined {
+  const dims = outerLidDimensions(project);
+  const newIndex = project.enclosure.ventilationRegions.length;
+
+  for (const center of placementCenters(preferredXRatio, preferredYRatio)) {
+    const candidate: VentilationRegion = {
+      ...region,
+      x: roundPlacement(clampToLid(center.xRatio * dims.outerWidth, project.enclosure.wallThickness, dims.outerWidth, region.width)),
+      y: roundPlacement(clampToLid(center.yRatio * dims.outerHeight, project.enclosure.wallThickness, dims.outerHeight, region.height)),
+    };
+    const candidateProject: EnclosureProject = {
+      ...project,
+      enclosure: {
+        ...project.enclosure,
+        ventilationRegions: [...project.enclosure.ventilationRegions, candidate],
+      },
+    };
+
+    if (!hasBlockingPlacementIssue(candidateProject, `enclosure.ventilationRegions.${newIndex}`, candidate.label)) {
+      return candidate;
+    }
+  }
+
+  return undefined;
 }
 
 function placeDesignFeature(
@@ -133,6 +176,20 @@ function placeDesignFeature(
   }
 
   return undefined;
+}
+
+function movedVentCount(originalVents: VentilationRegion[], arrangedVents: VentilationRegion[]): number {
+  return arrangedVents.filter((vent) => {
+    const original = originalVents.find((current) => current.id === vent.id);
+    return original !== undefined && (original.x !== vent.x || original.y !== vent.y);
+  }).length;
+}
+
+function movedFeatureCount(originalFeatures: DesignFeature[], arrangedFeatures: DesignFeature[]): number {
+  return arrangedFeatures.filter((feature) => {
+    const original = originalFeatures.find((current) => current.id === feature.id);
+    return original !== undefined && (original.x !== feature.x || original.y !== feature.y);
+  }).length;
 }
 
 function hasBlockingPlacementIssue(project: EnclosureProject, path: string, label: string): boolean {

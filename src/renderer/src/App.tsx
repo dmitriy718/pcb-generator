@@ -390,6 +390,29 @@ const shapePalette: ShapePaletteItem[] = [
       text: '',
     },
   },
+  {
+    id: 'din-rail-clip',
+    label: 'DIN rail',
+    Icon: Anchor,
+    action: 'feature',
+    feature: {
+      label: 'DIN rail ribs',
+      kind: 'din_rail_clip',
+      shape: 'rounded_rectangle',
+      operation: 'emboss',
+      xRatio: 0.5,
+      yRatio: 0.52,
+      width: 34,
+      height: 3.2,
+      diameter: 3.2,
+      depth: 1.2,
+      cornerRadius: 0.8,
+      spacing: 10.5,
+      rows: 2,
+      columns: 1,
+      text: '',
+    },
+  },
 ];
 
 const featurePaletteCount = shapePalette.filter((item) => item.action === 'feature').length;

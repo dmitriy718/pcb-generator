@@ -58,7 +58,8 @@ export type DesignFeatureKind =
   | 'logo_badge'
   | 'cable_slot'
   | 'zip_tie_anchor'
-  | 'qr_recess';
+  | 'qr_recess'
+  | 'din_rail_clip';
 
 export type DesignFeatureShape = 'rectangle' | 'rounded_rectangle' | 'circle';
 

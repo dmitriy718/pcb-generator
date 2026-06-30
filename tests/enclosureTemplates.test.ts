@@ -151,6 +151,23 @@ describe('enclosureTemplates', () => {
     );
   });
 
+  it('adds editable DIN rail backplate ribs to the DIN rail template', () => {
+    const template = enclosureTemplateById('din-rail-backplate');
+    const enclosure = template?.apply(defaultProject);
+
+    expect(enclosure?.designFeatures).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'template-din-rail-ribs',
+          label: 'DIN rail backplate ribs',
+          kind: 'din_rail_clip',
+          operation: 'emboss',
+          rows: 2,
+        }),
+      ]),
+    );
+  });
+
   it('adds editable label and cable-slot features to the desktop project-box template', () => {
     const template = enclosureTemplateById('desktop-project-box');
     const enclosure = template?.apply(defaultProject);
@@ -304,6 +321,22 @@ describe('enclosureTemplates', () => {
     const template = enclosureTemplateById('wall-mount-starter');
     if (!template) {
       throw new Error('Expected wall-mount template.');
+    }
+    const mesh = await generateTwoPieceScrewCaseKernelMesh({
+      ...defaultProject,
+      enclosure: template.apply(defaultProject),
+    });
+    const topology = analyzeMeshTopology(mesh);
+
+    expect(validateMesh(mesh, { checkTopology: true })).toEqual({ ok: true, issues: [] });
+    expect(topology.isClosed).toBe(true);
+    expect(topology.isEdgeManifold).toBe(true);
+  }, 30_000);
+
+  it('generates validated OpenCascade geometry for the DIN rail backplate template', async () => {
+    const template = enclosureTemplateById('din-rail-backplate');
+    if (!template) {
+      throw new Error('Expected DIN rail backplate template.');
     }
     const mesh = await generateTwoPieceScrewCaseKernelMesh({
       ...defaultProject,

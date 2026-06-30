@@ -50,6 +50,7 @@ const designFeatureSchema = z.object({
     'cable_slot',
     'zip_tie_anchor',
     'qr_recess',
+    'din_rail_clip',
   ]),
   shape: z.enum(['rectangle', 'rounded_rectangle', 'circle']),
   operation: z.enum(['through_cut', 'recess', 'emboss']),

@@ -117,6 +117,9 @@ tested, documented, and usable before moving on.
 61. Enclosure template metadata now identifies family, closure, and validated production
     path, and the GUI selector groups templates by family with selected-template
     context.
+62. DIN-rail backplate starter template added with editable raised rail-rib features,
+    palette access, project-file schema support, and OpenCascade topology regression
+    coverage.
 
 ## Next Milestones
 

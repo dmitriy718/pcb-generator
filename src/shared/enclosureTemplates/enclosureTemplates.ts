@@ -76,6 +76,15 @@ export const enclosureTemplates: EnclosureTemplate[] = [
     apply: (project) => wallMountParameters(project),
   },
   {
+    id: 'din-rail-backplate',
+    name: 'DIN rail backplate',
+    family: 'Mounted enclosures',
+    closure: 'DIN rail backplate ribs plus screw-case closure',
+    productionStatus: 'validated_two_piece_generator',
+    description: 'Starter backplate layout with editable raised DIN rail reference ribs.',
+    apply: (project) => dinRailBackplateParameters(project),
+  },
+  {
     id: 'desktop-project-box',
     name: 'Desktop project box',
     family: 'Electronics project boxes',
@@ -243,6 +252,85 @@ function wallMountFeatures(project: EnclosureProject, enclosure: TwoPieceScrewCa
     columns: 1,
     text: '',
   }));
+}
+
+function dinRailBackplateParameters(project: EnclosureProject): TwoPieceScrewCaseParameters {
+  const enclosure: TwoPieceScrewCaseParameters = {
+    ...project.enclosure,
+    wallThickness: Math.max(project.enclosure.wallThickness, 2.4),
+    floorThickness: Math.max(project.enclosure.floorThickness, 2),
+    lidThickness: Math.max(project.enclosure.lidThickness, 2.2),
+    boardClearance: Math.max(project.enclosure.boardClearance, 3),
+    cornerRadius: Math.max(project.enclosure.cornerRadius, 4),
+    chamfer: Math.max(project.enclosure.chamfer, 0.6),
+    ventilationRegions: [],
+  };
+
+  return {
+    ...enclosure,
+    designFeatures: replaceGeneratedFeatures(enclosure.designFeatures, dinRailBackplateFeatures(project, enclosure)),
+  };
+}
+
+function dinRailBackplateFeatures(project: EnclosureProject, enclosure: TwoPieceScrewCaseParameters): DesignFeature[] {
+  const { outerWidth, outerHeight } = enclosureOuterDimensions(project, enclosure);
+  const bossClearance = materialProfiles[enclosure.material].clearance;
+  const bossPlacementMargin = 0.6;
+  const bossKeepout = enclosure.screwBossDiameter + bossClearance * 2 + bossPlacementMargin;
+  const holeXs = project.pcb.mountingHoles.map((hole) => hole.x);
+  const holeYs = project.pcb.mountingHoles.map((hole) => hole.y);
+  const availableBossGapX =
+    holeXs.length >= 2
+      ? Math.max(12, Math.max(...holeXs) - Math.min(...holeXs) - bossKeepout)
+      : outerWidth - enclosure.wallThickness * 2;
+  const availableBossGapY =
+    holeYs.length >= 2
+      ? Math.max(7, Math.max(...holeYs) - Math.min(...holeYs) - bossKeepout)
+      : outerHeight - enclosure.wallThickness * 2;
+  const ribWidth = round(Math.min(42, Math.max(12, outerWidth * 0.46), availableBossGapX));
+  const ribHeight = round(Math.min(3.2, Math.max(1.6, availableBossGapY * 0.24)));
+  const ribSpacing = round(Math.min(10.5, Math.max(3, availableBossGapY - ribHeight * 2)));
+  const patternHeight = ribHeight * 2 + ribSpacing;
+  const featureWallMargin = 0.35;
+  const bossCenterX =
+    holeXs.length >= 2
+      ? enclosure.wallThickness + enclosure.boardClearance + (Math.min(...holeXs) + Math.max(...holeXs)) / 2
+      : outerWidth * 0.5;
+  const bossCenterY =
+    holeYs.length >= 2
+      ? enclosure.wallThickness + enclosure.boardClearance + (Math.min(...holeYs) + Math.max(...holeYs)) / 2
+      : outerHeight * 0.5;
+  const x = clamp(
+    bossCenterX,
+    enclosure.wallThickness + ribWidth / 2 + featureWallMargin,
+    outerWidth - enclosure.wallThickness - ribWidth / 2 - featureWallMargin,
+  );
+  const y = clamp(
+    bossCenterY,
+    enclosure.wallThickness + patternHeight / 2 + featureWallMargin,
+    outerHeight - enclosure.wallThickness - patternHeight / 2 - featureWallMargin,
+  );
+
+  return [
+    {
+      id: 'template-din-rail-ribs',
+      label: 'DIN rail backplate ribs',
+      kind: 'din_rail_clip',
+      shape: 'rounded_rectangle',
+      operation: 'emboss',
+      x: round(x),
+      y: round(y),
+      width: ribWidth,
+      height: ribHeight,
+      diameter: ribHeight,
+      depth: 1.2,
+      cornerRadius: 0.8,
+      spacing: ribSpacing,
+      rows: 2,
+      columns: 1,
+      text: '',
+    },
+  ];
 }
 
 function desktopProjectBoxParameters(project: EnclosureProject): TwoPieceScrewCaseParameters {

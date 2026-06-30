@@ -102,6 +102,9 @@ tested, documented, and usable before moving on.
 56. SVG and DXF technical drawings now include lid ventilation slots and editable lid
     feature footprints/labels in addition to enclosure, PCB, mounting-hole, and front
     cutout geometry.
+57. Lid feature validation and palette placement hardened so patterned features report
+    one actionable overlap per feature pair and palette presets search for a clear lid
+    location before adding new vents or design features.
 
 ## Next Milestones
 

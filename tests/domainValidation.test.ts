@@ -227,6 +227,58 @@ describe('validateProject', () => {
     expect(result.issues.map((issue) => issue.code)).toContain('design_feature_overlaps_feature');
   });
 
+  it('reports one overlap issue per design feature pair for repeated patterns', () => {
+    const project = structuredClone(defaultProject);
+    project.enclosure.ventilationRegions = [];
+    project.enclosure.designFeatures = [
+      {
+        id: 'feature-battery',
+        label: 'Battery tray',
+        kind: 'battery_tray',
+        shape: 'rounded_rectangle',
+        operation: 'recess',
+        x: 34,
+        y: 24,
+        width: 24,
+        height: 10,
+        diameter: 10,
+        depth: 0.4,
+        cornerRadius: 1,
+        spacing: 3,
+        rows: 1,
+        columns: 1,
+        text: 'BAT',
+      },
+      {
+        id: 'feature-fan',
+        label: 'Fan grill',
+        kind: 'fan_grill',
+        shape: 'circle',
+        operation: 'through_cut',
+        x: 34,
+        y: 24,
+        width: 3,
+        height: 3,
+        diameter: 3,
+        depth: project.enclosure.lidThickness,
+        cornerRadius: 0,
+        spacing: 4,
+        rows: 5,
+        columns: 5,
+        text: '',
+      },
+    ];
+
+    const result = validateProject(project);
+    const featureOverlapIssues = result.issues.filter(
+      (issue) =>
+        issue.code === 'design_feature_overlaps_feature' &&
+        issue.message.includes('Fan grill overlaps Battery tray'),
+    );
+
+    expect(featureOverlapIssues).toHaveLength(1);
+  });
+
   it('rejects design features that overlap ventilation regions', () => {
     const project = structuredClone(defaultProject);
     project.enclosure.designFeatures = [

@@ -407,12 +407,15 @@ export function validateProject(project: EnclosureProject): ValidationResult {
     label: hole.id,
     rect: bossFootprint(hole, enclosure.wallThickness, enclosure.boardClearance, enclosure.screwBossDiameter),
   }));
+  const reportedOverlaps = new Set<string>();
 
   for (let firstIndex = 0; firstIndex < ventFootprints.length; firstIndex += 1) {
     for (let secondIndex = firstIndex + 1; secondIndex < ventFootprints.length; secondIndex += 1) {
       const first = ventFootprints[firstIndex];
       const second = ventFootprints[secondIndex];
-      if (first && second && rectanglesOverlap(first.rect, second.rect, lidCollisionClearance)) {
+      const key = first && second ? `vent:${first.index}:${second.index}` : '';
+      if (first && second && !reportedOverlaps.has(key) && rectanglesOverlap(first.rect, second.rect, lidCollisionClearance)) {
+        reportedOverlaps.add(key);
         issues.push(
           issue(
             'vent_region_overlaps_vent',
@@ -426,7 +429,9 @@ export function validateProject(project: EnclosureProject): ValidationResult {
 
   for (const vent of ventFootprints) {
     for (const boss of bossFootprints) {
-      if (rectanglesOverlap(vent.rect, boss.rect, lidCollisionClearance)) {
+      const key = `vent-boss:${vent.index}:${boss.index}`;
+      if (!reportedOverlaps.has(key) && rectanglesOverlap(vent.rect, boss.rect, lidCollisionClearance)) {
+        reportedOverlaps.add(key);
         issues.push(
           issue(
             'vent_region_overlaps_screw_boss',
@@ -442,12 +447,15 @@ export function validateProject(project: EnclosureProject): ValidationResult {
     for (let secondIndex = firstIndex + 1; secondIndex < designFootprints.length; secondIndex += 1) {
       const first = designFootprints[firstIndex];
       const second = designFootprints[secondIndex];
+      const key = first && second ? `feature:${first.index}:${second.index}` : '';
       if (
         first &&
         second &&
         first.index !== second.index &&
+        !reportedOverlaps.has(key) &&
         rectanglesOverlap(first.rect, second.rect, lidCollisionClearance)
       ) {
+        reportedOverlaps.add(key);
         issues.push(
           issue(
             'design_feature_overlaps_feature',
@@ -461,7 +469,9 @@ export function validateProject(project: EnclosureProject): ValidationResult {
 
   for (const feature of designFootprints) {
     for (const vent of ventFootprints) {
-      if (rectanglesOverlap(feature.rect, vent.rect, lidCollisionClearance)) {
+      const key = `feature-vent:${feature.index}:${vent.index}`;
+      if (!reportedOverlaps.has(key) && rectanglesOverlap(feature.rect, vent.rect, lidCollisionClearance)) {
+        reportedOverlaps.add(key);
         issues.push(
           issue(
             'design_feature_overlaps_vent',
@@ -473,7 +483,9 @@ export function validateProject(project: EnclosureProject): ValidationResult {
     }
 
     for (const boss of bossFootprints) {
-      if (rectanglesOverlap(feature.rect, boss.rect, lidCollisionClearance)) {
+      const key = `feature-boss:${feature.index}:${boss.index}`;
+      if (!reportedOverlaps.has(key) && rectanglesOverlap(feature.rect, boss.rect, lidCollisionClearance)) {
+        reportedOverlaps.add(key);
         issues.push(
           issue(
             'design_feature_overlaps_screw_boss',

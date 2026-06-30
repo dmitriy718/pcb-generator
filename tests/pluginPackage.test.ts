@@ -63,6 +63,8 @@ describe('declarative plugin package loader', () => {
     expect(loaded.boardProfiles[0]?.name).toBe('ACME Sensor Board');
     const template = loaded.enclosureTemplates[0];
     expect(template?.id).toBe('acme.declarative-pack.rugged');
+    expect(template?.family).toBe('Plugin templates');
+    expect(template?.productionStatus).toBe('validated_two_piece_generator');
     expect(template).toBeDefined();
     if (!template) {
       throw new Error('Expected plugin enclosure template.');

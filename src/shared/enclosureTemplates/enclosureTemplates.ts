@@ -4,6 +4,9 @@ import { materialProfiles } from '../domain';
 export interface EnclosureTemplate {
   id: string;
   name: string;
+  family: string;
+  closure: string;
+  productionStatus: 'validated_two_piece_generator';
   description: string;
   apply(project: EnclosureProject): TwoPieceScrewCaseParameters;
 }
@@ -12,6 +15,9 @@ export const enclosureTemplates: EnclosureTemplate[] = [
   {
     id: 'compact-screw-case',
     name: 'Compact screw case',
+    family: 'Two-piece screw cases',
+    closure: 'Machine-screw or insert closure',
+    productionStatus: 'validated_two_piece_generator',
     description: 'Tight two-piece screw case for low-profile boards.',
     apply: (project) => ({
       ...project.enclosure,
@@ -27,18 +33,27 @@ export const enclosureTemplates: EnclosureTemplate[] = [
   {
     id: 'rounded-handheld',
     name: 'Rounded handheld',
+    family: 'Handheld enclosures',
+    closure: 'Machine-screw or insert closure',
+    productionStatus: 'validated_two_piece_generator',
     description: 'Larger ergonomic shell with rounded corners and extra grip clearance.',
     apply: (project) => roundedHandheldParameters(project),
   },
   {
     id: 'portable-handheld',
     name: 'Portable handheld',
+    family: 'Handheld enclosures',
+    closure: 'Machine-screw or insert closure',
+    productionStatus: 'validated_two_piece_generator',
     description: 'Handheld proportions with generated lanyard and status-light openings.',
     apply: (project) => portableHandheldParameters(project),
   },
   {
     id: 'tall-component-clearance',
     name: 'Tall component clearance',
+    family: 'Electronics project boxes',
+    closure: 'Machine-screw or insert closure',
+    productionStatus: 'validated_two_piece_generator',
     description: 'More internal height for headers, radios, heat sinks, and stacked modules.',
     apply: (project) => ({
       ...project.enclosure,
@@ -54,18 +69,27 @@ export const enclosureTemplates: EnclosureTemplate[] = [
   {
     id: 'wall-mount-starter',
     name: 'Wall mount starter',
+    family: 'Mounted enclosures',
+    closure: 'Machine-screw or insert closure',
+    productionStatus: 'validated_two_piece_generator',
     description: 'Screw-case parameters with extra wall thickness and clearance for wall-mount features.',
     apply: (project) => wallMountParameters(project),
   },
   {
     id: 'desktop-project-box',
     name: 'Desktop project box',
+    family: 'Electronics project boxes',
+    closure: 'Machine-screw or insert closure',
+    productionStatus: 'validated_two_piece_generator',
     description: 'Stable electronics project-box proportions for bench and desktop use.',
     apply: (project) => desktopProjectBoxParameters(project),
   },
   {
     id: 'battery-access-case',
     name: 'Battery access case',
+    family: 'Battery enclosures',
+    closure: 'Machine-screw or insert closure',
+    productionStatus: 'validated_two_piece_generator',
     description: 'Two-piece case proportions with generated editable battery tray and cable-exit features.',
     apply: (project) => batteryAccessParameters(project),
   },

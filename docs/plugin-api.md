@@ -81,7 +81,9 @@ Declarative plugin packages use this wrapper:
 
 Board profiles are validated with the same domain rules as normal board profile files.
 Enclosure templates are converted into parameter patches for the existing validated
-two-piece screw-case generator.
+two-piece screw-case generator. Declarative plugin templates are surfaced under the
+`Plugin templates` family with production status `validated_two_piece_generator` after
+their patch passes domain validation.
 
 ## TypeScript API
 

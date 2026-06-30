@@ -99,6 +99,9 @@ export function loadDeclarativePluginPackage(
   const enclosureTemplates = parsed.contributions.enclosureTemplates.map((template): EnclosureTemplate => ({
     id: `${manifest.id}.${template.id}`,
     name: template.name,
+    family: 'Plugin templates',
+    closure: 'Declarative two-piece screw-case patch',
+    productionStatus: 'validated_two_piece_generator',
     description: template.description,
     apply: (project) => {
       const patch = definedPatch(template.patch) as Partial<TwoPieceScrewCaseParameters>;

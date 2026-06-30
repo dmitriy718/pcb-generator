@@ -114,6 +114,9 @@ tested, documented, and usable before moving on.
 60. Validation inspector now groups repeated issue messages with affected paths and
     repeat counts, reducing overlap-report noise while keeping exact editable fields
     visible.
+61. Enclosure template metadata now identifies family, closure, and validated production
+    path, and the GUI selector groups templates by family with selected-template
+    context.
 
 ## Next Milestones
 

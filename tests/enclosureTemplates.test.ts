@@ -13,6 +13,14 @@ describe('enclosureTemplates', () => {
     expect(enclosureTemplateById('rounded-handheld')?.name).toBe('Rounded handheld');
   });
 
+  it('exposes family and production-path metadata for the GUI selector', () => {
+    for (const template of enclosureTemplates) {
+      expect(template.family, template.id).toMatch(/\S/);
+      expect(template.closure, template.id).toMatch(/\S/);
+      expect(template.productionStatus, template.id).toBe('validated_two_piece_generator');
+    }
+  });
+
   it('applies every template as a valid two-piece screw case parameter patch', () => {
     for (const template of enclosureTemplates) {
       const project = {

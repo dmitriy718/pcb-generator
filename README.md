@@ -42,6 +42,8 @@ documentation, and CI foundation with a usable manual PCB workflow.
   through-hole features, a desktop project-box template with generated editable
   label-recess and rear cable-slot features, and a battery-access template with
   generated editable battery-tray and cable-exit features.
+- Enclosure template selector groups validated templates by family and displays closure
+  context for the selected production-path template.
 
 ## Current Scope
 

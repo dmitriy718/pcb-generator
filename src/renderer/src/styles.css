@@ -259,6 +259,24 @@ input[type='number'] {
   color: #842018;
 }
 
+.template-summary {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 4px;
+  margin: -2px 0 2px;
+  border: 1px solid #d7dce0;
+  border-radius: 4px;
+  background: #f8fafc;
+  padding: 8px;
+  color: #3f4b53;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.template-summary strong {
+  color: #263037;
+}
+
 .shape-palette-fieldset {
   gap: 8px;
 }

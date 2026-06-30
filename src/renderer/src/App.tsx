@@ -35,7 +35,11 @@ import {
   summarizeValidationIssues,
   validateProject,
 } from '../../shared/domain';
-import { enclosureTemplateById, enclosureTemplates } from '../../shared/enclosureTemplates';
+import {
+  enclosureTemplateById,
+  enclosureTemplates,
+  type EnclosureTemplate,
+} from '../../shared/enclosureTemplates';
 import { builtInFastenerProfiles, fastenerProfileById } from '../../shared/fasteners';
 import {
   autoArrangeLidLayout,
@@ -394,6 +398,7 @@ export function App(): ReactElement {
   const [project, setProject] = useState<EnclosureProject>(defaultProject);
   const [exportMessage, setExportMessage] = useState<string>('');
   const [importWarnings, setImportWarnings] = useState<string[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [designPrompt, setDesignPrompt] = useState<string>(
     'Handheld PETG enclosure with rounded corners, USB-C on the left, OLED, speaker holes, ventilation, and logo.',
   );
@@ -406,6 +411,17 @@ export function App(): ReactElement {
     (total, current) => total + current.count,
     0,
   );
+  const selectedTemplate = useMemo(
+    () => enclosureTemplateById(selectedTemplateId),
+    [selectedTemplateId],
+  );
+  const enclosureTemplateGroups = useMemo(() => {
+    const groups = new Map<string, EnclosureTemplate[]>();
+    for (const template of enclosureTemplates) {
+      groups.set(template.family, [...(groups.get(template.family) ?? []), template]);
+    }
+    return [...groups.entries()].map(([family, templates]) => ({ family, templates }));
+  }, []);
   const generated = useMemo(() => {
     if (!validation.ok) {
       return undefined;
@@ -566,6 +582,7 @@ export function App(): ReactElement {
   }
 
   function applyEnclosureTemplate(templateId: string): void {
+    setSelectedTemplateId(templateId);
     const template = enclosureTemplateById(templateId);
     if (!template) {
       return;
@@ -575,14 +592,15 @@ export function App(): ReactElement {
       enclosure: template.apply(project),
     };
     const templateValidation = validateProject(nextProject);
+    const issueGroups = summarizeValidationIssues(templateValidation.issues);
 
     setProject(nextProject);
-    setImportWarnings([template.description]);
+    setImportWarnings([`${template.family}: ${template.description}`]);
     setExportMessage(
       templateValidation.ok
         ? `Applied ${template.name} enclosure template.`
-        : `Applied ${template.name} enclosure template with ${templateValidation.issues.length} validation issue${
-            templateValidation.issues.length === 1 ? '' : 's'
+        : `Applied ${template.name} enclosure template with ${issueGroups.length} validation issue group${
+            issueGroups.length === 1 ? '' : 's'
           } to review.`,
     );
   }
@@ -1505,17 +1523,27 @@ export function App(): ReactElement {
             <legend>Enclosure</legend>
             <label className="field wide">
               <span>Template</span>
-              <select defaultValue="" onChange={(event) => applyEnclosureTemplate(event.target.value)}>
+              <select value={selectedTemplateId} onChange={(event) => applyEnclosureTemplate(event.target.value)}>
                 <option value="" disabled>
                   Select an enclosure template
                 </option>
-                {enclosureTemplates.map((template) => (
-                  <option value={template.id} key={template.id}>
-                    {template.name}
-                  </option>
+                {enclosureTemplateGroups.map((group) => (
+                  <optgroup label={group.family} key={group.family}>
+                    {group.templates.map((template) => (
+                      <option value={template.id} key={template.id}>
+                        {template.name}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </label>
+            {selectedTemplate ? (
+              <p className="template-summary">
+                <strong>{selectedTemplate.closure}</strong>
+                <span>{selectedTemplate.description}</span>
+              </p>
+            ) : null}
             <NumberField
               label="Wall"
               value={project.enclosure.wallThickness}

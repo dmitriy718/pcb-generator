@@ -2,6 +2,7 @@ import JSZip from 'jszip';
 import { describe, expect, it } from 'vitest';
 import { generateTwoPieceScrewCase } from '../src/shared/cad';
 import { defaultProject } from '../src/shared/domain';
+import { enclosureTemplateById } from '../src/shared/enclosureTemplates';
 import {
   exportAsciiStl,
   buildBillOfMaterials,
@@ -79,7 +80,26 @@ describe('exporters', () => {
     expect(svg).toContain('class="pcb"');
     expect(svg).toContain('class="hole"');
     expect(svg).toContain('class="cutout"');
+    expect(svg).toContain('class="vent"');
     expect(svg).toContain('USB-C');
+  });
+
+  it('exports SVG drawing lid feature footprints and labels', () => {
+    const template = enclosureTemplateById('battery-access-case');
+    if (!template) {
+      throw new Error('Expected battery access template.');
+    }
+    const project = {
+      ...defaultProject,
+      enclosure: template.apply(defaultProject),
+    };
+
+    const svg = exportSvgDrawing(project);
+
+    expect(svg).toContain('class="feature"');
+    expect(svg).toContain('class="feature feature-cut"');
+    expect(svg).toContain('Battery tray recess');
+    expect(svg).toContain('Battery cable exit');
   });
 
   it('exports a DXF drawing with millimeter units and manufacturing layers', () => {
@@ -91,7 +111,58 @@ describe('exporters', () => {
     expect(dxf).toContain('PCB');
     expect(dxf).toContain('HOLES');
     expect(dxf).toContain('CUTOUTS');
+    expect(dxf).toContain('VENTS');
     expect(dxf.endsWith('EOF\n')).toBe(true);
+  });
+
+  it('exports DXF drawing lid feature layers and labels', () => {
+    const template = enclosureTemplateById('battery-access-case');
+    if (!template) {
+      throw new Error('Expected battery access template.');
+    }
+    const project = {
+      ...defaultProject,
+      enclosure: template.apply(defaultProject),
+    };
+
+    const dxf = exportDxfDrawing(project);
+
+    expect(dxf).toContain('LID_FEATURES');
+    expect(dxf).toContain('Battery tray recess');
+    expect(dxf).toContain('Battery cable exit');
+  });
+
+  it('exports module-based lid feature footprints in technical drawings', () => {
+    const project = structuredClone(defaultProject);
+    project.enclosure.ventilationRegions = [];
+    project.enclosure.designFeatures = [
+      {
+        id: 'feature-qr',
+        label: 'Serial QR',
+        kind: 'qr_recess',
+        shape: 'rectangle',
+        operation: 'recess',
+        x: 32,
+        y: 18,
+        width: 12,
+        height: 12,
+        diameter: 12,
+        depth: 0.35,
+        cornerRadius: 0,
+        spacing: 2,
+        rows: 1,
+        columns: 1,
+        text: 'PCB-001',
+      },
+    ];
+
+    const svg = exportSvgDrawing(project);
+    const dxf = exportDxfDrawing(project);
+
+    expect(svg).toContain('Serial QR');
+    expect(svg.match(/class="feature"/gu)?.length).toBeGreaterThan(10);
+    expect(dxf).toContain('LID_FEATURES');
+    expect(dxf).toContain('Serial QR');
   });
 
   it('exports a GLTF 2.0 mesh with embedded buffer data and manufacturing extras', () => {

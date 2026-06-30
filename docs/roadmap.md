@@ -99,6 +99,9 @@ tested, documented, and usable before moving on.
 55. Battery-access two-piece template added with generated editable battery-tray recess
     and cable-exit features, project-file schema support, palette access, and
     OpenCascade topology regression coverage.
+56. SVG and DXF technical drawings now include lid ventilation slots and editable lid
+    feature footprints/labels in addition to enclosure, PCB, mounting-hole, and front
+    cutout geometry.
 
 ## Next Milestones
 

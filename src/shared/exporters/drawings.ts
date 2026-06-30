@@ -1,4 +1,5 @@
-import type { ConnectorCutout, EnclosureProject } from '../domain';
+import { designFeatureFootprints } from '../cad/designFeatureGeometry';
+import type { ConnectorCutout, DesignFeature, EnclosureProject, VentilationRegion } from '../domain';
 
 interface DrawingDimensions {
   internalWidth: number;
@@ -20,6 +21,21 @@ export function exportSvgDrawing(project: EnclosureProject): string {
   const elevationOrigin = { x: margin, y: margin + dims.outerHeight + elevationGap };
 
   const frontCutouts = project.pcb.connectorCutouts.filter((cutout) => cutout.side === 'front');
+  const ventElements = project.enclosure.ventilationRegions
+    .flatMap((region) => ventilationSlotFootprints(region))
+    .map((slot) => {
+      const x = topOrigin.x + slot.x - slot.width / 2;
+      const y = topOrigin.y + slot.y - slot.height / 2;
+      return `  <rect class="vent" x="${format(x)}" y="${format(y)}" width="${format(slot.width)}" height="${format(
+        slot.height,
+      )}" />`;
+    })
+    .join('\n');
+  const featureElements = project.enclosure.designFeatures
+    .flatMap((feature) =>
+      designFeatureFootprints(feature).map((footprint, index) => svgFeatureFootprint(topOrigin.x, topOrigin.y, feature, footprint, index)),
+    )
+    .join('\n');
   const holeElements = project.pcb.mountingHoles
     .map((hole) => {
       const cx = topOrigin.x + dims.pcbOriginX + hole.x;
@@ -52,6 +68,10 @@ export function exportSvgDrawing(project: EnclosureProject): string {
     '    .pcb{fill:#d9f99d;stroke:#3f6212;stroke-width:0.25}',
     '    .hole{fill:none;stroke:#0f172a;stroke-width:0.25}',
     '    .cutout{fill:#fee2e2;stroke:#991b1b;stroke-width:0.25}',
+    '    .vent{fill:#e0f2fe;stroke:#0369a1;stroke-width:0.2}',
+    '    .feature{fill:#fef3c7;stroke:#92400e;stroke-width:0.2}',
+    '    .feature-cut{fill:#fee2e2;stroke:#991b1b;stroke-width:0.2}',
+    '    .feature-emboss{fill:#dcfce7;stroke:#166534;stroke-width:0.2}',
     '    .label{font-family:Arial,sans-serif;font-size:3px;fill:#111827}',
     '  </style>',
     `  <text class="label" x="${margin}" y="6">${escapeXml(project.name)} - top view and front elevation - units mm</text>`,
@@ -65,6 +85,8 @@ export function exportSvgDrawing(project: EnclosureProject): string {
       topOrigin.y + dims.pcbOriginY,
     )}" width="${format(project.pcb.width)}" height="${format(project.pcb.height)}" />`,
     holeElements,
+    ventElements,
+    featureElements,
     `  <rect class="outer" x="${format(elevationOrigin.x)}" y="${format(elevationOrigin.y)}" width="${format(
       dims.outerWidth,
     )}" height="${format(dims.baseHeight)}" />`,
@@ -114,6 +136,28 @@ export function exportDxfDrawing(project: EnclosureProject): string {
   for (const hole of project.pcb.mountingHoles) {
     addCircle(lines, dims.pcbOriginX + hole.x, dims.pcbOriginY + hole.y, hole.diameter / 2, 'HOLES');
   }
+  for (const region of project.enclosure.ventilationRegions) {
+    for (const slot of ventilationSlotFootprints(region)) {
+      addRectangle(lines, slot.x - slot.width / 2, slot.y - slot.height / 2, slot.width, slot.height, 'VENTS');
+    }
+  }
+  for (const feature of project.enclosure.designFeatures) {
+    for (const footprint of designFeatureFootprints(feature)) {
+      if (feature.shape === 'circle') {
+        addCircle(lines, footprint.x, footprint.y, footprint.diameter / 2, 'LID_FEATURES');
+      } else {
+        addRectangle(
+          lines,
+          footprint.x - footprint.width / 2,
+          footprint.y - footprint.height / 2,
+          footprint.width,
+          footprint.height,
+          'LID_FEATURES',
+        );
+      }
+    }
+    addText(lines, feature.x - feature.width / 2, feature.y + feature.height / 2 + 1.5, feature.label, 2.5, 'ANNOTATION');
+  }
 
   addText(lines, 0, elevationY + 5, 'Front elevation', 3, 'ANNOTATION');
   addRectangle(lines, 0, elevationY - dims.baseHeight, dims.outerWidth, dims.baseHeight, 'ENCLOSURE');
@@ -123,6 +167,70 @@ export function exportDxfDrawing(project: EnclosureProject): string {
 
   lines.push('0', 'ENDSEC', '0', 'EOF');
   return `${lines.join('\n')}\n`;
+}
+
+interface Footprint {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  diameter: number;
+}
+
+function svgFeatureFootprint(
+  originX: number,
+  originY: number,
+  feature: DesignFeature,
+  footprint: Footprint,
+  index: number,
+): string {
+  const className =
+    feature.operation === 'through_cut'
+      ? 'feature feature-cut'
+      : feature.operation === 'emboss'
+        ? 'feature feature-emboss'
+        : 'feature';
+  const label =
+    index === 0
+      ? `\n  <text class="label" x="${format(originX + feature.x - feature.width / 2)}" y="${format(
+          originY + feature.y + feature.height / 2 + 3,
+        )}">${escapeXml(feature.label)}</text>`
+      : '';
+  if (feature.shape === 'circle') {
+    return `  <circle class="${className}" cx="${format(originX + footprint.x)}" cy="${format(
+      originY + footprint.y,
+    )}" r="${format(footprint.diameter / 2)}" />${label}`;
+  }
+  return `  <rect class="${className}" x="${format(originX + footprint.x - footprint.width / 2)}" y="${format(
+    originY + footprint.y - footprint.height / 2,
+  )}" width="${format(footprint.width)}" height="${format(footprint.height)}" />${label}`;
+}
+
+function ventilationSlotFootprints(region: VentilationRegion): Footprint[] {
+  const columnCount = Math.floor((region.width + region.spacing) / (region.slotWidth + region.spacing));
+  const rowCount = Math.floor((region.height + region.spacing) / (region.slotHeight + region.spacing));
+  if (columnCount < 1 || rowCount < 1) {
+    return [];
+  }
+
+  const totalWidth = columnCount * region.slotWidth + (columnCount - 1) * region.spacing;
+  const totalHeight = rowCount * region.slotHeight + (rowCount - 1) * region.spacing;
+  const startX = region.x - totalWidth / 2 + region.slotWidth / 2;
+  const startY = region.y - totalHeight / 2 + region.slotHeight / 2;
+  const slots: Footprint[] = [];
+
+  for (let column = 0; column < columnCount; column += 1) {
+    for (let row = 0; row < rowCount; row += 1) {
+      slots.push({
+        x: startX + column * (region.slotWidth + region.spacing),
+        y: startY + row * (region.slotHeight + region.spacing),
+        width: region.slotWidth,
+        height: region.slotHeight,
+        diameter: Math.min(region.slotWidth, region.slotHeight),
+      });
+    }
+  }
+  return slots;
 }
 
 function addCutoutElevation(

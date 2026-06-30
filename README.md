@@ -255,9 +255,10 @@ Generated user models are not licensed by the dependency.
 
 ## Drawing Exports
 
-SVG and DXF exports include a top view with enclosure, PCB, and mounting-hole geometry
-plus a front elevation with front-wall connector cutouts. DXF output uses millimeter
-units and separates major entities into layers for downstream CAD review.
+SVG and DXF exports include a top view with enclosure, PCB, mounting-hole geometry,
+lid ventilation slots, and editable lid-feature footprints plus a front elevation with
+front-wall connector cutouts. DXF output uses millimeter units and separates major
+entities into layers for downstream CAD review.
 
 ## BOM Export
 

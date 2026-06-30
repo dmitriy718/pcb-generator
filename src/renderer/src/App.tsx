@@ -32,6 +32,11 @@ import { boardProfileById, builtInBoardProfiles } from '../../shared/boards';
 import { defaultProject, materialProfiles, validateProject } from '../../shared/domain';
 import { enclosureTemplateById, enclosureTemplates } from '../../shared/enclosureTemplates';
 import { builtInFastenerProfiles, fastenerProfileById } from '../../shared/fasteners';
+import {
+  autoArrangeDesignFeatures,
+  placeDesignFeaturePreset,
+  placeVentilationPreset,
+} from '../../shared/layout/lidPlacement';
 import type {
   ConnectorCutout,
   CutoutSide,
@@ -380,118 +385,6 @@ const shapePalette: ShapePaletteItem[] = [
 
 const featurePaletteCount = shapePalette.filter((item) => item.action === 'feature').length;
 
-type FeaturePreset = Extract<ShapePaletteItem, { action: 'feature' }>['feature'];
-type VentPreset = Extract<ShapePaletteItem, { action: 'vent' }>['vent'];
-
-function placeDesignFeaturePreset(project: EnclosureProject, preset: FeaturePreset): DesignFeature | undefined {
-  const dims = outerLidDimensions(project);
-  const { xRatio, yRatio, ...feature } = preset;
-  const id = `feature-${crypto.randomUUID().slice(0, 8)}`;
-  const size = featurePatternSize(feature);
-  const newIndex = project.enclosure.designFeatures.length;
-
-  for (const center of placementCenters(xRatio, yRatio)) {
-    const candidate: DesignFeature = {
-      id,
-      ...feature,
-      x: roundPlacement(clampToLid(center.xRatio * dims.outerWidth, project.enclosure.wallThickness, dims.outerWidth, size.width)),
-      y: roundPlacement(clampToLid(center.yRatio * dims.outerHeight, project.enclosure.wallThickness, dims.outerHeight, size.height)),
-    };
-    const candidateProject: EnclosureProject = {
-      ...project,
-      enclosure: {
-        ...project.enclosure,
-        designFeatures: [...project.enclosure.designFeatures, candidate],
-      },
-    };
-
-    if (!hasBlockingPlacementIssue(candidateProject, `enclosure.designFeatures.${newIndex}`, candidate.label)) {
-      return candidate;
-    }
-  }
-
-  return undefined;
-}
-
-function placeVentilationPreset(project: EnclosureProject, preset: VentPreset): VentilationRegion | undefined {
-  const dims = outerLidDimensions(project);
-  const id = `vent-${crypto.randomUUID().slice(0, 8)}`;
-  const newIndex = project.enclosure.ventilationRegions.length;
-
-  for (const center of placementCenters(0.5, 0.5)) {
-    const candidate: VentilationRegion = {
-      id,
-      label: preset.label,
-      x: roundPlacement(clampToLid(center.xRatio * dims.outerWidth, project.enclosure.wallThickness, dims.outerWidth, preset.width)),
-      y: roundPlacement(clampToLid(center.yRatio * dims.outerHeight, project.enclosure.wallThickness, dims.outerHeight, preset.height)),
-      width: preset.width,
-      height: preset.height,
-      slotWidth: preset.slotWidth,
-      slotHeight: preset.slotHeight,
-      spacing: preset.spacing,
-    };
-    const candidateProject: EnclosureProject = {
-      ...project,
-      enclosure: {
-        ...project.enclosure,
-        ventilationRegions: [...project.enclosure.ventilationRegions, candidate],
-      },
-    };
-
-    if (!hasBlockingPlacementIssue(candidateProject, `enclosure.ventilationRegions.${newIndex}`, candidate.label)) {
-      return candidate;
-    }
-  }
-
-  return undefined;
-}
-
-function hasBlockingPlacementIssue(project: EnclosureProject, path: string, label: string): boolean {
-  return validateProject(project).issues.some((issue) => issue.path === path || issue.message.includes(label));
-}
-
-function placementCenters(primaryX: number, primaryY: number): { xRatio: number; yRatio: number }[] {
-  const xRatios = uniqueRatios([primaryX, 0.5, 0.25, 0.75, 0.35, 0.65, 0.15, 0.85]);
-  const yRatios = uniqueRatios([primaryY, 0.5, 0.25, 0.75, 0.35, 0.65, 0.15, 0.85]);
-  return xRatios.flatMap((xRatio) => yRatios.map((yRatio) => ({ xRatio, yRatio })));
-}
-
-function uniqueRatios(values: number[]): number[] {
-  return [...new Set(values.map((value) => Number(value.toFixed(3))))];
-}
-
-function featurePatternSize(feature: Omit<DesignFeature, 'id' | 'x' | 'y'>): { width: number; height: number } {
-  const footprintWidth = feature.shape === 'circle' ? feature.diameter : feature.width;
-  const footprintHeight = feature.shape === 'circle' ? feature.diameter : feature.height;
-  return {
-    width: feature.columns * footprintWidth + (feature.columns - 1) * feature.spacing,
-    height: feature.rows * footprintHeight + (feature.rows - 1) * feature.spacing,
-  };
-}
-
-function outerLidDimensions(project: EnclosureProject): { outerWidth: number; outerHeight: number } {
-  const internalWidth = project.pcb.width + project.enclosure.boardClearance * 2;
-  const internalHeight = project.pcb.height + project.enclosure.boardClearance * 2;
-  return {
-    outerWidth: internalWidth + project.enclosure.wallThickness * 2,
-    outerHeight: internalHeight + project.enclosure.wallThickness * 2,
-  };
-}
-
-function clampToLid(value: number, wallThickness: number, outerSize: number, featureSize: number): number {
-  const margin = 0.25;
-  const min = wallThickness + featureSize / 2 + margin;
-  const max = outerSize - wallThickness - featureSize / 2 - margin;
-  if (max < min) {
-    return value;
-  }
-  return Math.min(Math.max(value, min), max);
-}
-
-function roundPlacement(value: number): number {
-  return Number(value.toFixed(1));
-}
-
 export function App(): ReactElement {
   const [project, setProject] = useState<EnclosureProject>(defaultProject);
   const [exportMessage, setExportMessage] = useState<string>('');
@@ -779,7 +672,7 @@ export function App(): ReactElement {
   function addDesignFeaturePreset(
     preset: Extract<ShapePaletteItem, { action: 'feature' }>['feature'],
   ): void {
-    const placedFeature = placeDesignFeaturePreset(project, preset);
+    const placedFeature = placeDesignFeaturePreset(project, preset, `feature-${crypto.randomUUID().slice(0, 8)}`);
     if (!placedFeature) {
       setExportMessage(`Could not place ${preset.label} without collisions. Move or remove an existing lid feature first.`);
       return;
@@ -845,6 +738,20 @@ export function App(): ReactElement {
     }));
   }
 
+  function autoArrangeLidFeatures(): void {
+    if (project.enclosure.designFeatures.length === 0) {
+      setExportMessage('There are no lid features to arrange.');
+      return;
+    }
+    const result = autoArrangeDesignFeatures(project);
+    setProject(result.project);
+    setExportMessage(
+      result.unresolvedLabels.length > 0
+        ? `Arranged ${result.movedCount} lid feature${result.movedCount === 1 ? '' : 's'}; ${result.unresolvedLabels.length} still need manual placement: ${result.unresolvedLabels.join(', ')}.`
+        : `Arranged ${result.movedCount} lid feature${result.movedCount === 1 ? '' : 's'}.`,
+    );
+  }
+
   function updateVentilationRegion(
     id: string,
     patch: Partial<Omit<VentilationRegion, 'id'>>,
@@ -890,7 +797,7 @@ export function App(): ReactElement {
   function addVentilationRegionPreset(
     preset: Extract<ShapePaletteItem, { action: 'vent' }>['vent'],
   ): void {
-    const placedVent = placeVentilationPreset(project, preset);
+    const placedVent = placeVentilationPreset(project, preset, `vent-${crypto.randomUUID().slice(0, 8)}`);
     if (!placedVent) {
       setExportMessage(`Could not place ${preset.label} without collisions. Move or remove an existing vent or lid feature first.`);
       return;
@@ -1447,6 +1354,9 @@ export function App(): ReactElement {
             </div>
             <button type="button" className="secondary-button" onClick={() => void importLogoSvg()}>
               Import SVG logo
+            </button>
+            <button type="button" className="secondary-button" onClick={autoArrangeLidFeatures}>
+              Auto arrange lid features
             </button>
             {project.enclosure.designFeatures.length > 0 ? (
               <div className="feature-list">

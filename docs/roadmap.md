@@ -105,6 +105,9 @@ tested, documented, and usable before moving on.
 57. Lid feature validation and palette placement hardened so patterned features report
     one actionable overlap per feature pair and palette presets search for a clear lid
     location before adding new vents or design features.
+58. Shared lid-placement utility and GUI auto-arrange command added so crowded existing
+    design-feature layouts can be repositioned into available lid space with regression
+    coverage.
 
 ## Next Milestones
 

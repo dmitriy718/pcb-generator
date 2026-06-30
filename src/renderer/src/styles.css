@@ -537,6 +537,11 @@ dd {
   font-size: 11px;
 }
 
+.issue-count {
+  color: #5c120d;
+  font-weight: 800;
+}
+
 .export-actions {
   display: grid;
   gap: 8px;

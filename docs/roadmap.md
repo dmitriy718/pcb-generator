@@ -111,6 +111,9 @@ tested, documented, and usable before moving on.
 59. Lid auto-arrange extended to ventilation regions and design features together, so
     feature-versus-vent collisions in existing projects can be resolved by the same GUI
     recovery action.
+60. Validation inspector now groups repeated issue messages with affected paths and
+    repeat counts, reducing overlap-report noise while keeping exact editable fields
+    visible.
 
 ## Next Milestones
 

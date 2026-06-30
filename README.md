@@ -24,7 +24,7 @@ documentation, and CI foundation with a usable manual PCB workflow.
 - Parametric two-piece screw enclosure mesh generation from structured dimensions.
 - Material tolerance profiles for PLA, PETG, ABS, ASA, TPU, CF PLA, and Nylon.
 - Three.js real-time preview.
-- Validation with actionable user-facing errors.
+- Validation with actionable user-facing errors and grouped repeated issue messages.
 - OpenCascade.js-backed STEP, STL, OBJ, GLTF, and 3MF export for base shell, lid,
   standoffs, screw bosses, connector cutouts, rectangular vents, editable chamfers,
   and selective outer fillets when chamfers are disabled.
@@ -238,7 +238,9 @@ OpenCascade exports. Complex SVG paths remain future importer work.
 Validation checks lid feature placement against wall boundaries, ventilation regions,
 other design features, and screw boss footprints using the selected material
 clearance. Invalid overlaps produce actionable messages before preview generation or
-export.
+export. Repeated validation messages are grouped in the inspector with affected
+parameter paths and repeat counts, so crowded designs remain readable while retaining
+exact fields to edit.
 The Design Features panel also provides an auto-arrange command that repositions
 existing lid features and ventilation regions into available lid space where possible,
 which is useful after adding several palette presets or loading an older crowded

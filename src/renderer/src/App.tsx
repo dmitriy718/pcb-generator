@@ -29,7 +29,12 @@ import { useMemo, useState } from 'react';
 import { applyDesignPrompt } from '../../shared/assistant';
 import { generateTwoPieceScrewCase } from '../../shared/cad';
 import { boardProfileById, builtInBoardProfiles } from '../../shared/boards';
-import { defaultProject, materialProfiles, validateProject } from '../../shared/domain';
+import {
+  defaultProject,
+  materialProfiles,
+  summarizeValidationIssues,
+  validateProject,
+} from '../../shared/domain';
 import { enclosureTemplateById, enclosureTemplates } from '../../shared/enclosureTemplates';
 import { builtInFastenerProfiles, fastenerProfileById } from '../../shared/fasteners';
 import {
@@ -393,6 +398,14 @@ export function App(): ReactElement {
     'Handheld PETG enclosure with rounded corners, USB-C on the left, OLED, speaker holes, ventilation, and logo.',
   );
   const validation = useMemo(() => validateProject(project), [project]);
+  const validationIssueSummaries = useMemo(
+    () => summarizeValidationIssues(validation.issues),
+    [validation.issues],
+  );
+  const validationIssueCount = validationIssueSummaries.reduce(
+    (total, current) => total + current.count,
+    0,
+  );
   const generated = useMemo(() => {
     if (!validation.ok) {
       return undefined;
@@ -1051,8 +1064,11 @@ export function App(): ReactElement {
             </span>
           ) : (
             <span className="status-pill error">
-              <AlertTriangle size={16} aria-hidden="true" /> {validation.issues.length} issue
-              {validation.issues.length === 1 ? '' : 's'}
+              <AlertTriangle size={16} aria-hidden="true" /> {validationIssueSummaries.length} issue
+              group{validationIssueSummaries.length === 1 ? '' : 's'}
+              {validationIssueCount === validationIssueSummaries.length
+                ? ''
+                : ` (${validationIssueCount} total)`}
             </span>
           )}
           <span className="unit-pill">mm</span>
@@ -1737,11 +1753,16 @@ export function App(): ReactElement {
               </p>
             ) : (
               <ul className="validation-list">
-                {validation.issues.map((current) => (
-                  <li key={`${current.code}-${current.path}`}>
+                {validationIssueSummaries.map((current) => (
+                  <li key={`${current.code}-${current.message}`}>
                     <AlertTriangle size={16} aria-hidden="true" />
-                    <span>{current.message}</span>
-                    <code>{current.path}</code>
+                    <span>
+                      {current.message}
+                      {current.count > 1 ? (
+                        <strong className="issue-count"> {current.count}x</strong>
+                      ) : null}
+                    </span>
+                    <code>{current.paths.join(', ')}</code>
                   </li>
                 ))}
               </ul>

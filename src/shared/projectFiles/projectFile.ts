@@ -43,6 +43,7 @@ const designFeatureSchema = z.object({
     'antenna_hole',
     'speaker_grill',
     'fan_grill',
+    'battery_tray',
     'label_recess',
     'text_engraving',
     'logo_badge',

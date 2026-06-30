@@ -35,12 +35,13 @@ documentation, and CI foundation with a usable manual PCB workflow.
 - Offline design assistant that converts common natural-language enclosure phrases into
   editable material, cutout, vent, and lid-feature parameters.
 - Enclosure template presets for compact, rounded handheld, portable handheld,
-  tall-clearance, wall-mount, and desktop project-box variants of the validated
-  two-piece screw case, including a rounded handheld template that exercises validated
-  OpenCascade outer fillets, a portable handheld template with generated editable
-  lanyard/status-light openings, a wall-mount template with generated editable
-  through-hole features, and a desktop project-box template with generated editable
-  label-recess and rear cable-slot features.
+  tall-clearance, wall-mount, desktop project-box, and battery-access variants of the
+  validated two-piece screw case, including a rounded handheld template that exercises
+  validated OpenCascade outer fillets, a portable handheld template with generated
+  editable lanyard/status-light openings, a wall-mount template with generated editable
+  through-hole features, a desktop project-box template with generated editable
+  label-recess and rear cable-slot features, and a battery-access template with
+  generated editable battery-tray and cable-exit features.
 
 ## Current Scope
 
@@ -52,12 +53,12 @@ feature by feature with tests and documentation.
 ## Design Assistant
 
 The renderer includes an offline prompt box that maps common phrases such as `USB-C on
-the left`, `OLED`, `speaker holes`, `ventilation`, `rounded`, `handheld`, and material
-names into normal editable project parameters. Generated assistant changes appear in
-the same connector, ventilation, material, and design-feature editors as manual
-changes. The shared assistant also exposes an optional provider interface for local or
-cloud parsers; provider output is constrained to a structured intent object and still
-flows through the same editable parameter generator.
+the left`, `OLED`, `battery`, `speaker holes`, `ventilation`, `rounded`, `handheld`,
+and material names into normal editable project parameters. Generated assistant changes
+appear in the same connector, ventilation, material, and design-feature editors as
+manual changes. The shared assistant also exposes an optional provider interface for
+local or cloud parsers; provider output is constrained to a structured intent object
+and still flows through the same editable parameter generator.
 
 ## Development
 
@@ -221,10 +222,11 @@ presets that generate repeated through-cut feature patterns.
 ## Design Feature Palette
 
 The Design Features palette adds editable lid features for display openings, button
-holes, antenna holes, speaker grilles, fan grilles, label recesses, QR recesses,
-logo badges, cable slots, and zip-tie anchors. Each feature is stored as structured
-parameters with operation, shape, position, size, depth, radius, spacing, rows,
-columns, and optional label text. Through-cuts and recesses remove lid material;
+holes, antenna holes, speaker grilles, fan grilles, battery tray recesses, label
+recesses, QR recesses, logo badges, cable slots, and zip-tie anchors. Each feature is
+stored as structured parameters with operation, shape, position, size, depth, radius,
+spacing, rows, columns, and optional label text. Through-cuts and recesses remove lid
+material;
 embosses add raised geometry. Text engraving features use an offline 5x7 vector-module
 alphabet for real recessed or raised text geometry. QR recesses with text generate
 true QR module geometry in OpenCascade production exports. Logo badge features generate

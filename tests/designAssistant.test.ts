@@ -50,6 +50,23 @@ describe('applyDesignPrompt', () => {
     );
   });
 
+  it('adds editable battery features from battery enclosure prompts', () => {
+    const result = applyDesignPrompt(defaultProject, 'Make a portable battery enclosure with an 18650 tray.');
+
+    expect(result.warnings).toEqual([]);
+    expect(result.applied).toEqual(expect.arrayContaining(['Rounded handheld ergonomics', 'Battery tray']));
+    expect(result.project.enclosure.designFeatures).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          label: 'Battery tray',
+          kind: 'battery_tray',
+          operation: 'recess',
+        }),
+      ]),
+    );
+    expect(validateProject(result.project).issues).toEqual([]);
+  });
+
   it('applies structured provider intent through the same editable parameter model', async () => {
     const result = await applyDesignPromptWithProvider(
       defaultProject,
@@ -59,6 +76,7 @@ describe('applyDesignPrompt', () => {
         style: 'handheld',
         connectors: [{ type: 'usb-c', side: 'left' }],
         display: 'oled',
+        battery: true,
         speaker: true,
         ventilation: true,
       }),
@@ -73,6 +91,9 @@ describe('applyDesignPrompt', () => {
     expect(result.project.enclosure.material).toBe('asa');
     expect(result.project.pcb.connectorCutouts).toEqual(
       expect.arrayContaining([expect.objectContaining({ label: 'USB-C', side: 'left' })]),
+    );
+    expect(result.project.enclosure.designFeatures).toEqual(
+      expect.arrayContaining([expect.objectContaining({ kind: 'battery_tray' })]),
     );
     expect(validateProject(result.project).issues).toEqual([]);
   });

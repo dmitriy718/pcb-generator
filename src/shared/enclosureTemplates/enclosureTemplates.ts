@@ -63,6 +63,12 @@ export const enclosureTemplates: EnclosureTemplate[] = [
     description: 'Stable electronics project-box proportions for bench and desktop use.',
     apply: (project) => desktopProjectBoxParameters(project),
   },
+  {
+    id: 'battery-access-case',
+    name: 'Battery access case',
+    description: 'Two-piece case proportions with generated editable battery tray and cable-exit features.',
+    apply: (project) => batteryAccessParameters(project),
+  },
 ];
 
 export function enclosureTemplateById(id: string): EnclosureTemplate | undefined {
@@ -232,6 +238,27 @@ function desktopProjectBoxParameters(project: EnclosureProject): TwoPieceScrewCa
   };
 }
 
+function batteryAccessParameters(project: EnclosureProject): TwoPieceScrewCaseParameters {
+  const enclosure: TwoPieceScrewCaseParameters = {
+    ...project.enclosure,
+    wallThickness: Math.max(project.enclosure.wallThickness, 2.2),
+    floorThickness: Math.max(project.enclosure.floorThickness, 2),
+    lidThickness: Math.max(project.enclosure.lidThickness, 2),
+    boardClearance: Math.max(project.enclosure.boardClearance, 3),
+    baseInternalHeight: Math.max(
+      project.enclosure.baseInternalHeight,
+      project.pcb.componentHeight + materialProfiles[project.enclosure.material].clearance + 2,
+    ),
+    cornerRadius: Math.max(project.enclosure.cornerRadius, 6),
+    chamfer: Math.max(project.enclosure.chamfer, 0.6),
+  };
+
+  return {
+    ...enclosure,
+    designFeatures: replaceGeneratedFeatures(enclosure.designFeatures, batteryAccessFeatures(project, enclosure)),
+  };
+}
+
 function desktopProjectBoxFeatures(project: EnclosureProject, enclosure: TwoPieceScrewCaseParameters): DesignFeature[] {
   const { outerWidth, outerHeight } = enclosureOuterDimensions(project, enclosure);
   const labelWidth = round(Math.min(22, Math.max(16, outerWidth * 0.28)));
@@ -273,6 +300,74 @@ function desktopProjectBoxFeatures(project: EnclosureProject, enclosure: TwoPiec
     {
       id: 'template-desktop-cable-slot',
       label: 'Rear cable slot',
+      kind: 'cable_slot',
+      shape: 'rectangle',
+      operation: 'through_cut',
+      x: round(cableX),
+      y: round(cableY),
+      width: cableWidth,
+      height: cableHeight,
+      diameter: cableHeight,
+      depth: enclosure.lidThickness,
+      cornerRadius: 0,
+      spacing: 3,
+      rows: 1,
+      columns: 1,
+      text: '',
+    },
+  ];
+}
+
+function batteryAccessFeatures(project: EnclosureProject, enclosure: TwoPieceScrewCaseParameters): DesignFeature[] {
+  const { outerWidth, outerHeight } = enclosureOuterDimensions(project, enclosure);
+  const trayWidth = round(Math.min(32, Math.max(18, outerWidth * 0.34)));
+  const trayHeight = round(Math.min(14, Math.max(9, outerHeight * 0.28)));
+  const cableWidth = round(Math.min(14, Math.max(8, outerWidth * 0.18)));
+  const cableHeight = 4;
+  const featureWallMargin = 0.35;
+  const trayX = clamp(
+    outerWidth * 0.5,
+    enclosure.wallThickness + trayWidth / 2 + featureWallMargin,
+    outerWidth - enclosure.wallThickness - trayWidth / 2 - featureWallMargin,
+  );
+  const trayY = clamp(
+    outerHeight * 0.62,
+    enclosure.wallThickness + trayHeight / 2 + featureWallMargin,
+    outerHeight - enclosure.wallThickness - trayHeight / 2 - featureWallMargin,
+  );
+  const cableX = clamp(
+    outerWidth * 0.5,
+    enclosure.wallThickness + cableWidth / 2 + featureWallMargin,
+    outerWidth - enclosure.wallThickness - cableWidth / 2 - featureWallMargin,
+  );
+  const cableY = clamp(
+    outerHeight - enclosure.wallThickness - cableHeight / 2 - featureWallMargin,
+    enclosure.wallThickness + cableHeight / 2 + featureWallMargin,
+    outerHeight - enclosure.wallThickness - cableHeight / 2 - featureWallMargin,
+  );
+
+  return [
+    {
+      id: 'template-battery-tray-recess',
+      label: 'Battery tray recess',
+      kind: 'battery_tray',
+      shape: 'rounded_rectangle',
+      operation: 'recess',
+      x: round(trayX),
+      y: round(trayY),
+      width: trayWidth,
+      height: trayHeight,
+      diameter: trayHeight,
+      depth: Math.min(0.6, enclosure.lidThickness * 0.35),
+      cornerRadius: 1.5,
+      spacing: 3,
+      rows: 1,
+      columns: 1,
+      text: 'BAT',
+    },
+    {
+      id: 'template-battery-cable-exit',
+      label: 'Battery cable exit',
       kind: 'cable_slot',
       shape: 'rectangle',
       operation: 'through_cut',

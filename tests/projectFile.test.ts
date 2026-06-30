@@ -110,6 +110,35 @@ describe('project files', () => {
     expect(parsed.enclosure.designFeatures).toEqual([]);
   });
 
+  it('round-trips battery tray design features through project files', () => {
+    const project = structuredClone(defaultProject);
+    project.enclosure.ventilationRegions = [];
+    project.enclosure.designFeatures = [
+      {
+        id: 'feature-battery-tray',
+        label: 'Battery tray',
+        kind: 'battery_tray',
+        shape: 'rounded_rectangle',
+        operation: 'recess',
+        x: 34,
+        y: 24,
+        width: 24,
+        height: 10,
+        diameter: 10,
+        depth: 0.5,
+        cornerRadius: 1.5,
+        spacing: 3,
+        rows: 1,
+        columns: 1,
+        text: 'BAT',
+      },
+    ];
+
+    const parsed = parseProjectFile(serializeProjectFile(project));
+
+    expect(parsed.enclosure.designFeatures).toEqual(project.enclosure.designFeatures);
+  });
+
   it('rejects non-project JSON', () => {
     expect(() => parseProjectFile('{"hello": "world"}')).toThrow('Project file schema is invalid');
   });

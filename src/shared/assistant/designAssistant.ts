@@ -22,6 +22,7 @@ export interface DesignPromptIntent {
   display?: 'oled' | 'touchscreen';
   button?: boolean;
   switch?: boolean;
+  battery?: boolean;
   speaker?: boolean;
   ventilation?: boolean;
   logo?: string;
@@ -148,6 +149,26 @@ export function applyDesignPrompt(project: EnclosureProject, prompt: string): De
     });
   }
 
+  if (hasAny(normalizedPrompt, ['battery', 'lipo', 'li-po', '18650'])) {
+    addFeature(next, applied, {
+      label: 'Battery tray',
+      kind: 'battery_tray',
+      shape: 'rounded_rectangle',
+      operation: 'recess',
+      x: round(outer.width * 0.68),
+      y: round(outer.height * 0.82),
+      width: Math.min(16, round(outer.width * 0.25)),
+      height: Math.min(7, round(outer.height * 0.2)),
+      diameter: 7,
+      depth: Math.min(0.55, next.enclosure.lidThickness * 0.35),
+      cornerRadius: 1.5,
+      spacing: 3,
+      rows: 1,
+      columns: 1,
+      text: 'BAT',
+    });
+  }
+
   if (hasAny(normalizedPrompt, ['speaker', 'audio holes'])) {
     addFeature(next, applied, {
       label: 'Speaker grill',
@@ -206,7 +227,7 @@ export function applyDesignPrompt(project: EnclosureProject, prompt: string): De
   }
 
   if (applied.length === 0) {
-    warnings.push('No supported design phrases were found. Try words like USB-C, OLED, speaker, ventilation, button, rounded, handheld, or material names.');
+    warnings.push('No supported design phrases were found. Try words like USB-C, OLED, battery, speaker, ventilation, button, rounded, handheld, or material names.');
   }
 
   return { project: next, applied, warnings };
@@ -257,6 +278,9 @@ function sanitizeIntent(intent: DesignPromptIntent): DesignPromptIntent {
   if (intent.switch === true) {
     sanitized.switch = true;
   }
+  if (intent.battery === true) {
+    sanitized.battery = true;
+  }
   if (intent.speaker === true) {
     sanitized.speaker = true;
   }
@@ -283,6 +307,7 @@ function intentToPrompt(intent: DesignPromptIntent): string {
   if (intent.display === 'oled') phrases.push('oled');
   if (intent.button) phrases.push('button');
   if (intent.switch) phrases.push('switch');
+  if (intent.battery) phrases.push('battery');
   if (intent.speaker) phrases.push('speaker holes');
   if (intent.ventilation) phrases.push('ventilation');
   if (intent.logo) phrases.push('logo');

@@ -165,6 +165,28 @@ describe('enclosureTemplates', () => {
     );
   });
 
+  it('adds editable battery tray and cable-exit features to the battery access template', () => {
+    const template = enclosureTemplateById('battery-access-case');
+    const enclosure = template?.apply(defaultProject);
+
+    expect(enclosure?.designFeatures).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'template-battery-tray-recess',
+          label: 'Battery tray recess',
+          kind: 'battery_tray',
+          operation: 'recess',
+        }),
+        expect.objectContaining({
+          id: 'template-battery-cable-exit',
+          label: 'Battery cable exit',
+          kind: 'cable_slot',
+          operation: 'through_cut',
+        }),
+      ]),
+    );
+  });
+
   it('adds editable lanyard and status-light openings to the portable handheld template', () => {
     const template = enclosureTemplateById('portable-handheld');
     const enclosure = template?.apply(defaultProject);
@@ -306,6 +328,22 @@ describe('enclosureTemplates', () => {
     const template = enclosureTemplateById('portable-handheld');
     if (!template) {
       throw new Error('Expected portable handheld template.');
+    }
+    const mesh = await generateTwoPieceScrewCaseKernelMesh({
+      ...defaultProject,
+      enclosure: template.apply(defaultProject),
+    });
+    const topology = analyzeMeshTopology(mesh);
+
+    expect(validateMesh(mesh, { checkTopology: true })).toEqual({ ok: true, issues: [] });
+    expect(topology.isClosed).toBe(true);
+    expect(topology.isEdgeManifold).toBe(true);
+  }, 30_000);
+
+  it('generates validated OpenCascade geometry for the battery access template', async () => {
+    const template = enclosureTemplateById('battery-access-case');
+    if (!template) {
+      throw new Error('Expected battery access template.');
     }
     const mesh = await generateTwoPieceScrewCaseKernelMesh({
       ...defaultProject,

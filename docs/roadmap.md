@@ -96,6 +96,9 @@ tested, documented, and usable before moving on.
 54. Portable handheld template added with generated editable lanyard and status-light
     through-cut openings, OpenCascade topology regression coverage, and GUI template
     application feedback when validation needs review.
+55. Battery-access two-piece template added with generated editable battery-tray recess
+    and cable-exit features, project-file schema support, palette access, and
+    OpenCascade topology regression coverage.
 
 ## Next Milestones
 

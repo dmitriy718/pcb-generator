@@ -53,6 +53,24 @@ describe('fastener profiles', () => {
     }
   });
 
+  it('defines modeled magnet pocket dimensions for magnetic closure profiles', () => {
+    const magneticProfiles = builtInFastenerProfiles.filter((profile) => profile.kind === 'magnetic_closure');
+
+    expect(magneticProfiles.length).toBeGreaterThan(0);
+    for (const profile of magneticProfiles) {
+      expect(profile.magnetDiameter, profile.id).toBeGreaterThan(0);
+      expect(profile.magnetDepth, profile.id).toBeGreaterThan(0);
+      expect(profile.magnetDepth, profile.id).toBeLessThan(profile.recommendedStandoffHeight);
+      expect(profile.magnetRetentionLip, profile.id).toBeGreaterThan(0);
+      expect((profile.screwBossDiameter - (profile.magnetDiameter ?? 0)) / 2, profile.id).toBeGreaterThan(
+        profile.minimumWallAroundHole,
+      );
+      expect((profile.standoffDiameter - (profile.magnetDiameter ?? 0)) / 2, profile.id).toBeGreaterThan(
+        profile.minimumWallAroundHole,
+      );
+    }
+  });
+
   it('generates valid preview mesh geometry for a heat-set insert boss profile', () => {
     const profile = fastenerProfileById('m3_heat_set_insert');
     expect(profile).toBeDefined();
@@ -87,6 +105,24 @@ describe('fastener profiles', () => {
 
     expect(result.ok).toBe(false);
     expect(result.issues.map((issue) => issue.code)).toContain('heat_set_insert_lead_in_too_wide');
+  });
+
+  it('rejects magnetic closure pockets that leave too little boss wall', () => {
+    const profile = fastenerProfileById('d6x2_magnet_closure');
+    expect(profile).toBeDefined();
+    const project = structuredClone(defaultProject);
+    project.enclosure.fastenerProfileId = profile?.id ?? '';
+    project.enclosure.standoffDiameter = profile?.standoffDiameter ?? project.enclosure.standoffDiameter;
+    project.enclosure.standoffHoleDiameter =
+      profile?.standoffHoleDiameter ?? project.enclosure.standoffHoleDiameter;
+    project.enclosure.standoffHeight = profile?.recommendedStandoffHeight ?? project.enclosure.standoffHeight;
+    project.enclosure.screwBossDiameter = 7;
+    project.enclosure.screwHoleDiameter = profile?.screwHoleDiameter ?? project.enclosure.screwHoleDiameter;
+
+    const result = validateProject(project);
+
+    expect(result.ok).toBe(false);
+    expect(result.issues.map((issue) => issue.code)).toContain('magnet_lid_pocket_wall_too_thin');
   });
 
   it('rejects unknown fastener profile ids', () => {

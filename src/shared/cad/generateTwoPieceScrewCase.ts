@@ -56,12 +56,28 @@ export function generateTwoPieceScrewCase(project: EnclosureProject): GeneratedE
 
   builder.addGroup('base-standoffs', () => {
     for (const hole of pcb.mountingHoles) {
+      const center = {
+        x: pcbOriginX + hole.x,
+        y: pcbOriginY + hole.y,
+        z: enclosure.floorThickness,
+      };
+      if (
+        fastenerProfile.kind === 'magnetic_closure' &&
+        fastenerProfile.magnetDiameter &&
+        fastenerProfile.magnetDepth
+      ) {
+        builder.addBlindSocketCylinder(
+          center,
+          enclosure.standoffDiameter / 2,
+          (fastenerProfile.magnetDiameter + material.holeCompensation) / 2,
+          enclosure.standoffHeight,
+          fastenerProfile.magnetDepth,
+          40,
+        );
+        continue;
+      }
       builder.addTube(
-        {
-          x: pcbOriginX + hole.x,
-          y: pcbOriginY + hole.y,
-          z: enclosure.floorThickness,
-        },
+        center,
         enclosure.standoffDiameter / 2,
         (enclosure.standoffHoleDiameter + material.holeCompensation) / 2,
         enclosure.standoffHeight,
@@ -101,6 +117,12 @@ export function generateTwoPieceScrewCase(project: EnclosureProject): GeneratedE
       if (fastenerProfile.kind === 'heat_set_insert' && fastenerProfile.insertOuterDiameter) {
         lidBossOptions.insertRadius = (fastenerProfile.insertOuterDiameter + material.holeCompensation) / 2;
       }
+      if (fastenerProfile.kind === 'magnetic_closure' && fastenerProfile.magnetDiameter) {
+        lidBossOptions.magnetRadius = (fastenerProfile.magnetDiameter + material.holeCompensation) / 2;
+      }
+      if (fastenerProfile.magnetDepth) {
+        lidBossOptions.magnetDepth = fastenerProfile.magnetDepth;
+      }
       if (fastenerProfile.insertDepth) {
         lidBossOptions.insertDepth = fastenerProfile.insertDepth;
       }
@@ -135,9 +157,13 @@ export function generateTwoPieceScrewCase(project: EnclosureProject): GeneratedE
       estimatedFilamentGrams: Math.max(1, Math.round(roughVolumeMm3 * 0.00124 * 100) / 100),
       estimatedPrintMinutes: Math.max(10, Math.round(roughVolumeMm3 / 650)),
       assemblyInstructions: [
-        `Install the PCB on the standoffs using ${fastenerProfile.name}.`,
+        fastenerProfile.kind === 'magnetic_closure'
+          ? `Press matching ${fastenerProfile.name} magnets into the base and lid pockets with opposing polarity.`
+          : `Install the PCB on the standoffs using ${fastenerProfile.name}.`,
         'Inspect all connector openings for clearance before final assembly.',
-        'Inspect screw boss alignment before tightening the lid.',
+        fastenerProfile.kind === 'magnetic_closure'
+          ? 'Verify lid retention and magnet polarity before installing electronics.'
+          : 'Inspect screw boss alignment before tightening the lid.',
         fastenerProfile.notes,
       ],
       makerWorld: {
@@ -148,7 +174,10 @@ export function generateTwoPieceScrewCase(project: EnclosureProject): GeneratedE
       layout: {
         modelArrangement:
           'Build-plate layout with base and lid separated. Base is open-side up; lid outer face is on the build plate with bosses upward.',
-        printableParts: ['base-shell', 'base-standoffs', 'lid-panel', 'lid-screw-bosses'],
+        printableParts:
+          fastenerProfile.kind === 'magnetic_closure'
+            ? ['base-shell', 'base-magnet-pockets', 'lid-panel', 'lid-magnet-pockets']
+            : ['base-shell', 'base-standoffs', 'lid-panel', 'lid-screw-bosses'],
       },
       meshTopology,
       printability,
@@ -165,6 +194,8 @@ interface LidBossOptions {
   insertDepth?: number;
   leadInRadius?: number;
   leadInDepth?: number;
+  magnetRadius?: number;
+  magnetDepth?: number;
 }
 
 function addLidBoss(
@@ -172,6 +203,22 @@ function addLidBoss(
   fastenerProfile: FastenerProfile,
   options: LidBossOptions,
 ): void {
+  if (
+    fastenerProfile.kind === 'magnetic_closure' &&
+    options.magnetRadius !== undefined &&
+    options.magnetDepth !== undefined
+  ) {
+    builder.addBlindSocketCylinder(
+      options.center,
+      options.outerRadius,
+      options.magnetRadius,
+      options.height,
+      options.magnetDepth,
+      40,
+    );
+    return;
+  }
+
   if (
     fastenerProfile.kind === 'heat_set_insert' &&
     options.insertRadius !== undefined &&

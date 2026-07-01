@@ -1,6 +1,10 @@
 import type { Millimeters } from '../domain';
 
-export type FastenerKind = 'self_tapping_screw' | 'machine_screw' | 'heat_set_insert';
+export type FastenerKind =
+  | 'self_tapping_screw'
+  | 'machine_screw'
+  | 'heat_set_insert'
+  | 'magnetic_closure';
 
 export interface FastenerProfile {
   id: string;
@@ -17,6 +21,9 @@ export interface FastenerProfile {
   insertDepth?: Millimeters;
   insertLeadInDiameter?: Millimeters;
   insertLeadInDepth?: Millimeters;
+  magnetDiameter?: Millimeters;
+  magnetDepth?: Millimeters;
+  magnetRetentionLip?: Millimeters;
   vendorStyle?: string;
   notes: string;
 }
@@ -132,6 +139,23 @@ export const builtInFastenerProfiles: FastenerProfile[] = [
     insertLeadInDepth: 0.8,
     vendorStyle: 'Long knurled brass insert',
     notes: 'Longer insert preset for repeated service access. Requires taller bosses and careful heat control.',
+  },
+  {
+    id: 'd6x2_magnet_closure',
+    name: '6 x 2 mm magnetic closure',
+    kind: 'magnetic_closure',
+    nominalSize: 'D6x2',
+    screwHoleDiameter: 1.2,
+    standoffHoleDiameter: 1.2,
+    standoffDiameter: 9,
+    screwBossDiameter: 9,
+    recommendedStandoffHeight: 3.2,
+    minimumWallAroundHole: 1.1,
+    magnetDiameter: 6,
+    magnetDepth: 2.1,
+    magnetRetentionLip: 0.35,
+    vendorStyle: 'Round neodymium magnet pair',
+    notes: 'Creates blind press-fit magnet pockets at mounting-hole positions. Verify polarity before installing magnets.',
   },
 ];
 

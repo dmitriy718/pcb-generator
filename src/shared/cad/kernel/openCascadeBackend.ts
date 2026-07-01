@@ -1006,13 +1006,36 @@ function buildTwoPieceScrewCaseStepModel(
     y: enclosure.wallThickness + enclosure.boardClearance,
   };
   for (const hole of pcb.mountingHoles) {
+    const x = basePcbOrigin.x + hole.x;
+    const y = basePcbOrigin.y + hole.y;
+    if (
+      fastenerProfile.kind === 'magnetic_closure' &&
+      fastenerProfile.magnetDiameter &&
+      fastenerProfile.magnetDepth
+    ) {
+      base = fuse(
+        oc,
+        base,
+        magnetSocketBoss(
+          oc,
+          x,
+          y,
+          enclosure.floorThickness,
+          enclosure.standoffDiameter / 2,
+          (fastenerProfile.magnetDiameter + material.holeCompensation) / 2,
+          enclosure.standoffHeight,
+          fastenerProfile.magnetDepth,
+        ),
+      );
+      continue;
+    }
     base = fuse(
       oc,
       base,
       tube(
         oc,
-        basePcbOrigin.x + hole.x,
-        basePcbOrigin.y + hole.y,
+        x,
+        y,
         enclosure.floorThickness,
         enclosure.standoffDiameter / 2,
         (enclosure.standoffHoleDiameter + material.holeCompensation) / 2,
@@ -1064,6 +1087,12 @@ function buildTwoPieceScrewCaseStepModel(
     };
     if (fastenerProfile.kind === 'heat_set_insert' && fastenerProfile.insertOuterDiameter) {
       lidBossOptions.insertRadius = (fastenerProfile.insertOuterDiameter + material.holeCompensation) / 2;
+    }
+    if (fastenerProfile.kind === 'magnetic_closure' && fastenerProfile.magnetDiameter) {
+      lidBossOptions.magnetRadius = (fastenerProfile.magnetDiameter + material.holeCompensation) / 2;
+    }
+    if (fastenerProfile.magnetDepth) {
+      lidBossOptions.magnetDepth = fastenerProfile.magnetDepth;
     }
     if (fastenerProfile.insertDepth) {
       lidBossOptions.insertDepth = fastenerProfile.insertDepth;
@@ -1565,6 +1594,24 @@ function tube(
   );
 }
 
+function magnetSocketBoss(
+  oc: OpenCascadeModule,
+  x: number,
+  y: number,
+  z: number,
+  outerRadius: number,
+  socketRadius: number,
+  height: number,
+  socketDepth: number,
+): OcShape {
+  const depth = Math.min(socketDepth, height);
+  return cut(
+    oc,
+    cylinder(oc, x, y, z, outerRadius, height),
+    cylinder(oc, x, y, z + height - depth, socketRadius, depth + 0.5),
+  );
+}
+
 interface LidBossKernelOptions {
   x: number;
   y: number;
@@ -1575,6 +1622,8 @@ interface LidBossKernelOptions {
   insertDepth?: number;
   leadInRadius?: number;
   leadInDepth?: number;
+  magnetRadius?: number;
+  magnetDepth?: number;
   height: number;
 }
 
@@ -1583,6 +1632,23 @@ function lidBoss(
   fastenerProfile: FastenerProfile,
   options: LidBossKernelOptions,
 ): OcShape {
+  if (
+    fastenerProfile.kind === 'magnetic_closure' &&
+    options.magnetRadius !== undefined &&
+    options.magnetDepth !== undefined
+  ) {
+    return magnetSocketBoss(
+      oc,
+      options.x,
+      options.y,
+      options.z,
+      options.outerRadius,
+      options.magnetRadius,
+      options.height,
+      options.magnetDepth,
+    );
+  }
+
   const boss = tube(
     oc,
     options.x,

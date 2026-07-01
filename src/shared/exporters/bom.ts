@@ -18,7 +18,7 @@ export function buildBillOfMaterials(project: EnclosureProject): BomItem[] {
     throw new Error(`Unknown fastener profile: ${project.enclosure.fastenerProfileId}`);
   }
 
-  const screwCount = Math.max(project.pcb.mountingHoles.length, 0);
+  const closureCount = Math.max(project.pcb.mountingHoles.length, 0);
   const items: BomItem[] = [
     {
       item: 'Base enclosure',
@@ -47,7 +47,7 @@ export function buildBillOfMaterials(project: EnclosureProject): BomItem[] {
     {
       item: fastener.name,
       category: 'hardware',
-      quantity: screwCount,
+      quantity: fastener.kind === 'magnetic_closure' ? closureCount * 2 : closureCount,
       unit: 'piece',
       specification: `${fastener.nominalSize}, ${fastener.kind.replaceAll('_', ' ')}`,
       notes: fastener.notes,
@@ -58,10 +58,21 @@ export function buildBillOfMaterials(project: EnclosureProject): BomItem[] {
     items.push({
       item: `${fastener.nominalSize} heat-set inserts`,
       category: 'hardware',
-      quantity: screwCount,
+      quantity: closureCount,
       unit: 'piece',
       specification: `${fastener.insertOuterDiameter} mm socket x ${fastener.insertDepth} mm depth, ${fastener.insertLeadInDiameter ?? fastener.insertOuterDiameter} mm lead-in x ${fastener.insertLeadInDepth ?? 0} mm, ${fastener.screwHoleDiameter} mm through clearance`,
       notes: 'Verify insert manufacturer drill and boss recommendations before production.',
+    });
+  }
+
+  if (fastener.kind === 'magnetic_closure') {
+    items.push({
+      item: 'Magnet installation',
+      category: 'process',
+      quantity: closureCount,
+      unit: 'pair',
+      specification: `${fastener.magnetDiameter} mm diameter x ${fastener.magnetDepth} mm pocket depth`,
+      notes: 'Dry-fit and mark polarity before pressing magnets into the printed pockets.',
     });
   }
 

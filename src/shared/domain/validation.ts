@@ -178,6 +178,46 @@ export function validateProject(project: EnclosureProject): ValidationResult {
     );
   }
 
+  if (fastenerProfile?.kind === 'magnetic_closure') {
+    if (!fastenerProfile.magnetDiameter || !fastenerProfile.magnetDepth) {
+      issues.push(
+        issue(
+          'magnet_profile_missing_dimensions',
+          'enclosure.fastenerProfileId',
+          'Magnetic closure profile must define magnet diameter and pocket depth.',
+        ),
+      );
+    } else {
+      if ((enclosure.screwBossDiameter - fastenerProfile.magnetDiameter) / 2 < fastenerProfile.minimumWallAroundHole) {
+        issues.push(
+          issue(
+            'magnet_lid_pocket_wall_too_thin',
+            'enclosure.screwBossDiameter',
+            'Magnet lid pocket leaves too little radial wall thickness.',
+          ),
+        );
+      }
+      if ((enclosure.standoffDiameter - fastenerProfile.magnetDiameter) / 2 < fastenerProfile.minimumWallAroundHole) {
+        issues.push(
+          issue(
+            'magnet_base_pocket_wall_too_thin',
+            'enclosure.standoffDiameter',
+            'Magnet base pocket leaves too little radial wall thickness.',
+          ),
+        );
+      }
+      if (enclosure.standoffHeight <= fastenerProfile.magnetDepth + 0.4) {
+        issues.push(
+          issue(
+            'magnet_pocket_too_deep',
+            'enclosure.standoffHeight',
+            'Magnet pocket depth must leave at least 0.4 mm of printed material below the magnet.',
+          ),
+        );
+      }
+    }
+  }
+
   if (
     fastenerProfile?.kind === 'heat_set_insert' &&
     fastenerProfile.insertLeadInDiameter !== undefined &&

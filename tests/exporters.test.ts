@@ -230,4 +230,16 @@ describe('exporters', () => {
 
     expect(csv).toContain('5 mm lead-in x 0.7 mm');
   });
+
+  it('includes magnetic closure hardware and polarity process guidance in BOM output', () => {
+    const project = structuredClone(defaultProject);
+    project.enclosure.fastenerProfileId = 'd6x2_magnet_closure';
+
+    const items = buildBillOfMaterials(project);
+    const csv = exportBomCsv(project);
+
+    expect(items.some((item) => item.item === '6 x 2 mm magnetic closure' && item.quantity === 8)).toBe(true);
+    expect(csv).toContain('Magnet installation,process,4,pair');
+    expect(csv).toContain('Dry-fit and mark polarity');
+  });
 });

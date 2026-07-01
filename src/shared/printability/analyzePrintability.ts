@@ -68,6 +68,15 @@ export function analyzePrintability(project: EnclosureProject): PrintabilityRepo
     });
   }
 
+  if (fastener?.kind === 'magnetic_closure') {
+    issues.push({
+      severity: 'info',
+      code: 'magnet_polarity_check',
+      message: 'Magnetic closure pockets require matched magnet polarity.',
+      recommendation: 'Dry-fit magnets, mark polarity, and use a small adhesive amount only after confirming lid retention.',
+    });
+  }
+
   const hasError = issues.some((issue) => issue.severity === 'error');
   const hasWarning = issues.some((issue) => issue.severity === 'warning');
 

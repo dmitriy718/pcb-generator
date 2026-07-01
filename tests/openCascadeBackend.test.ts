@@ -85,6 +85,30 @@ describe('OpenCascade backend', () => {
     expect(topology.isEdgeManifold).toBe(true);
   });
 
+  it('generates valid OpenCascade magnetic closure pocket geometry', async () => {
+    const profile = fastenerProfileById('d6x2_magnet_closure');
+    expect(profile).toBeDefined();
+    const mesh = await generateTwoPieceScrewCaseKernelMesh({
+      ...defaultProject,
+      enclosure: {
+        ...defaultProject.enclosure,
+        fastenerProfileId: profile?.id ?? '',
+        standoffDiameter: profile?.standoffDiameter ?? defaultProject.enclosure.standoffDiameter,
+        standoffHoleDiameter:
+          profile?.standoffHoleDiameter ?? defaultProject.enclosure.standoffHoleDiameter,
+        standoffHeight: profile?.recommendedStandoffHeight ?? defaultProject.enclosure.standoffHeight,
+        screwBossDiameter: profile?.screwBossDiameter ?? defaultProject.enclosure.screwBossDiameter,
+        screwHoleDiameter: profile?.screwHoleDiameter ?? defaultProject.enclosure.screwHoleDiameter,
+        lidThickness: Math.max(defaultProject.enclosure.lidThickness, (profile?.magnetDepth ?? 0) + 0.6),
+      },
+    });
+    const topology = analyzeMeshTopology(mesh);
+
+    expect(validateMesh(mesh, { checkTopology: true })).toEqual({ ok: true, issues: [] });
+    expect(topology.isClosed).toBe(true);
+    expect(topology.isEdgeManifold).toBe(true);
+  }, 30_000);
+
   it('generates valid OpenCascade lid design feature geometry', async () => {
     const mesh = await generateTwoPieceScrewCaseKernelMesh({
       ...defaultProject,

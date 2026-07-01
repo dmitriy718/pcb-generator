@@ -40,4 +40,14 @@ describe('printability analysis', () => {
 
     expect(report.issues.map((issue) => issue.code)).toContain('large_side_opening');
   });
+
+  it('adds magnetic closure polarity guidance without blocking printability', () => {
+    const project = structuredClone(defaultProject);
+    project.enclosure.fastenerProfileId = 'd6x2_magnet_closure';
+
+    const report = analyzePrintability(project);
+
+    expect(report.overall).toBe('ready');
+    expect(report.issues.map((issue) => issue.code)).toContain('magnet_polarity_check');
+  });
 });

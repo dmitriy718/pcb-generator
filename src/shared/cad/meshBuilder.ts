@@ -129,6 +129,40 @@ export class MeshBuilder {
     }
   }
 
+  addBlindSocketCylinder(
+    center: Vec3,
+    outerRadius: number,
+    socketRadius: number,
+    height: number,
+    socketDepth: number,
+    segments: number,
+  ): void {
+    const z0 = center.z;
+    const z1 = center.z + height;
+    const zSocketBottom = Math.max(z0, z1 - Math.min(Math.max(0, socketDepth), height));
+    const bottomCenter = { x: center.x, y: center.y, z: z0 };
+    const socketBottomCenter = { x: center.x, y: center.y, z: zSocketBottom };
+
+    for (let i = 0; i < segments; i += 1) {
+      const a0 = (Math.PI * 2 * i) / segments;
+      const a1 = (Math.PI * 2 * (i + 1)) / segments;
+      const outer0Bottom = radialPoint(center, outerRadius, a0, z0);
+      const outer1Bottom = radialPoint(center, outerRadius, a1, z0);
+      const outer0Top = radialPoint(center, outerRadius, a0, z1);
+      const outer1Top = radialPoint(center, outerRadius, a1, z1);
+      const socket0Bottom = radialPoint(center, socketRadius, a0, zSocketBottom);
+      const socket1Bottom = radialPoint(center, socketRadius, a1, zSocketBottom);
+      const socket0Top = radialPoint(center, socketRadius, a0, z1);
+      const socket1Top = radialPoint(center, socketRadius, a1, z1);
+
+      this.addQuad(outer0Bottom, outer1Bottom, outer1Top, outer0Top);
+      this.addTriangle(bottomCenter, outer1Bottom, outer0Bottom);
+      this.addQuad(outer0Top, outer1Top, socket1Top, socket0Top);
+      this.addQuad(socket1Bottom, socket0Bottom, socket0Top, socket1Top);
+      this.addTriangle(socketBottomCenter, socket0Bottom, socket1Bottom);
+    }
+  }
+
   addSteppedTube(
     center: Vec3,
     outerRadius: number,

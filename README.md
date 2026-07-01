@@ -17,7 +17,8 @@ documentation, and CI foundation with a usable manual PCB workflow.
 - Built-in board profiles for Raspberry Pi, Arduino, and ESP32 starter enclosures.
 - Custom `.pcbboard.json` board profile import/export.
 - Manual rectangular connector cutouts on enclosure side walls with generated printable openings.
-- Built-in fastener profiles for self-tapping screws and heat-set inserts that drive generated boss geometry.
+- Built-in fastener profiles for self-tapping screws, heat-set inserts, and magnetic
+  closures that drive generated boss and pocket geometry.
 - Rectangular lid ventilation regions with generated through-slot openings.
 - Printability analysis with dimensions, material guidance, and FDM review warnings.
 - Versioned `.pcbenc.json` project save/open for full parametric projects.
@@ -26,8 +27,8 @@ documentation, and CI foundation with a usable manual PCB workflow.
 - Three.js real-time preview.
 - Validation with actionable user-facing errors and grouped repeated issue messages.
 - OpenCascade.js-backed STEP, STL, OBJ, GLTF, and 3MF export for base shell, lid,
-  standoffs, screw bosses, connector cutouts, rectangular vents, editable chamfers,
-  and selective outer fillets when chamfers are disabled.
+  standoffs, screw bosses, magnet pockets, connector cutouts, rectangular vents,
+  editable chamfers, and selective outer fillets when chamfers are disabled.
 - SVG drawing, DXF drawing, and BOM CSV export plus MakerWorld metadata JSON.
 - Strict TypeScript, ESLint, Prettier, Vitest, Docker development environment, and GitHub Actions CI/release workflows.
 - Versioned plugin manifest API plus declarative JSON package loading for approved
@@ -208,11 +209,13 @@ span or below the floor.
 
 ## Fastener Profiles
 
-Built-in fastener profiles include M2, M2.5, and M3 self-tapping screws plus M2.5 and
-M3 heat-set insert starter dimensions and short/long insert presets. Selecting a
-profile updates standoff diameter, standoff pilot hole, boss diameter, screw hole,
-insert socket dimensions, lead-in relief dimensions, and recommended standoff height.
-Profiles are validated against minimum radial wall requirements.
+Built-in fastener profiles include M2, M2.5, and M3 self-tapping screws, M2.5 and M3
+heat-set insert starter dimensions, short/long insert presets, and a 6 x 2 mm magnetic
+closure profile. Selecting a profile updates standoff diameter, standoff pilot hole,
+boss diameter, screw hole, insert socket dimensions, magnet pocket dimensions,
+lead-in relief dimensions, and recommended standoff height. Profiles are validated
+against minimum radial wall requirements. Magnetic closure pockets currently use the
+PCB mounting-hole centers as the matched base/lid pocket locations.
 
 ## Ventilation
 
@@ -254,10 +257,10 @@ project.
 STEP export uses OpenCascade.js to generate validated B-rep solids for the base shell,
 interior cavity, cylindrical standoffs, cylindrical screw bosses, rectangular connector
 openings, lid plate, rectangular lid vent cutouts, lid design feature cut/recess/emboss
-geometry, heat-set insert sockets with material-compensated lead-in reliefs, editable
-chamfers, and selective outer fillets. Fillets are applied only to blank outer base/lid
-bodies before cutouts and feature booleans, keeping functional openings sharp and easier
-to print.
+geometry, heat-set insert sockets with material-compensated lead-in reliefs, magnetic
+closure pockets with material-compensated socket diameter, editable chamfers, and
+selective outer fillets. Fillets are applied only to blank outer base/lid bodies before
+cutouts and feature booleans, keeping functional openings sharp and easier to print.
 
 OpenCascade.js is bundled as an offline WebAssembly dependency under LGPL-2.1-only.
 Generated user models are not licensed by the dependency.
@@ -272,7 +275,8 @@ entities into layers for downstream CAD review.
 ## BOM Export
 
 BOM CSV export includes printed enclosure parts, primary filament, selected fastener
-hardware, heat-set inserts when applicable, and connector-opening finishing steps.
+hardware, heat-set inserts or paired magnets when applicable, polarity checks, and
+connector-opening finishing steps.
 Quantities are derived from the current mounting-hole and connector-cutout parameters.
 
 ## Printability Analysis

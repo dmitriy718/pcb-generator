@@ -120,6 +120,9 @@ tested, documented, and usable before moving on.
 62. DIN-rail backplate starter template added with editable raised rail-rib features,
     palette access, project-file schema support, and OpenCascade topology regression
     coverage.
+63. Magnetic closure profile added with validated base/lid magnet pocket geometry,
+    material-compensated OpenCascade exports, BOM polarity guidance, printability
+    guidance, and regression coverage.
 
 ## Next Milestones
 

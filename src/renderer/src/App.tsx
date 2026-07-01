@@ -598,6 +598,10 @@ export function App(): ReactElement {
         standoffHeight: profile.recommendedStandoffHeight,
         screwBossDiameter: profile.screwBossDiameter,
         screwHoleDiameter: profile.screwHoleDiameter,
+        lidThickness:
+          profile.kind === 'magnetic_closure' && profile.magnetDepth
+            ? Math.max(current.enclosure.lidThickness, profile.magnetDepth + 0.6)
+            : current.enclosure.lidThickness,
       },
     }));
     setImportWarnings([profile.notes]);

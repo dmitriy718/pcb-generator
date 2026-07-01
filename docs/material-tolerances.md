@@ -12,5 +12,5 @@ These defaults are conservative FDM starting points:
 - Carbon Fiber PLA: hardened-nozzle profile with modest clearance increase.
 - Nylon: dried-filament profile with larger clearance for shrinkage and toughness.
 
-Always validate critical screw, insert, and snap-fit dimensions with a small calibration
-coupon before production batches.
+Always validate critical screw, insert, magnet-pocket, and snap-fit dimensions with a
+small calibration coupon before production batches.

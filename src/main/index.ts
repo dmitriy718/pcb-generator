@@ -14,6 +14,7 @@ import type { BoardProfile, EnclosureProject, ExportFormat, GeneratedEnclosure, 
 import { validateProject } from '../shared/domain';
 import {
   exportBomCsv,
+  exportAssemblySvgDrawing,
   exportAsciiStl,
   exportDxfDrawing,
   exportGltf,
@@ -409,6 +410,9 @@ function extensionForFormat(format: ExportFormat): string {
   if (format === 'bom') {
     return 'csv';
   }
+  if (format === 'assembly-svg') {
+    return 'svg';
+  }
   return format;
 }
 
@@ -445,6 +449,12 @@ function exportTextFormat(
   }
   if (format === 'svg') {
     return Promise.resolve({ contents: exportSvgDrawing(project), generated });
+  }
+  if (format === 'assembly-svg') {
+    return Promise.resolve({
+      contents: exportAssemblySvgDrawing(project, generated.metadata),
+      generated,
+    });
   }
   if (format === 'bom') {
     return Promise.resolve({ contents: exportBomCsv(project), generated });

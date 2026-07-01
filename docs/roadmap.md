@@ -126,6 +126,9 @@ tested, documented, and usable before moving on.
 64. Machine-screw clearance profiles added for M2.5 and M3 hardware, including
     validated geometry parameters, matching receiver BOM guidance, and regression
     coverage.
+65. Assembly SVG drawing export added with base/PCB/lid layout, closure callouts,
+    connector checks, material/print settings, manufacturing checklist text, GUI
+    access, and regression coverage.
 
 ## Next Milestones
 

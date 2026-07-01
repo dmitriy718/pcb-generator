@@ -1946,6 +1946,13 @@ export function App(): ReactElement {
               <button
                 type="button"
                 disabled={!validation.ok}
+                onClick={() => void exportProject('assembly-svg')}
+              >
+                <FileType size={16} aria-hidden="true" /> Export assembly SVG
+              </button>
+              <button
+                type="button"
+                disabled={!validation.ok}
                 onClick={() => void exportProject('dxf')}
               >
                 <FileType size={16} aria-hidden="true" /> Export DXF drawing

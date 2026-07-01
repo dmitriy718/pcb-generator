@@ -29,7 +29,8 @@ documentation, and CI foundation with a usable manual PCB workflow.
 - OpenCascade.js-backed STEP, STL, OBJ, GLTF, and 3MF export for base shell, lid,
   standoffs, screw bosses, magnet pockets, connector cutouts, rectangular vents,
   editable chamfers, and selective outer fillets when chamfers are disabled.
-- SVG drawing, DXF drawing, and BOM CSV export plus MakerWorld metadata JSON.
+- SVG drawing, DXF drawing, assembly SVG drawing, and BOM CSV export plus MakerWorld
+  metadata JSON.
 - Strict TypeScript, ESLint, Prettier, Vitest, Docker development environment, and GitHub Actions CI/release workflows.
 - Versioned plugin manifest API plus declarative JSON package loading for approved
   board-library and enclosure-template contributions.
@@ -102,8 +103,9 @@ Docker development details.
 2. Import a KiCad `.kicad_pcb`, SVG, DXF, STL, or STEP file, or edit PCB dimensions, mounting holes, connector cutouts, material, and enclosure dimensions.
 3. Resolve validation issues.
 4. Save the editable project as `.pcbenc.json` when needed.
-5. Export STEP, 3MF, STL, OBJ, GLTF, SVG drawing, DXF drawing, or BOM CSV. STEP and
-   mesh manufacturing exports are generated from validated OpenCascade solids.
+5. Export STEP, 3MF, STL, OBJ, GLTF, SVG drawing, assembly SVG drawing, DXF drawing,
+   or BOM CSV. STEP and mesh manufacturing exports are generated from validated
+   OpenCascade solids.
 6. The app writes a matching `.makerworld.json` file containing print recommendations,
    orientation, material, support status, and assembly guidance.
 
@@ -272,7 +274,9 @@ Generated user models are not licensed by the dependency.
 SVG and DXF exports include a top view with enclosure, PCB, mounting-hole geometry,
 lid ventilation slots, and editable lid-feature footprints plus a front elevation with
 front-wall connector cutouts. DXF output uses millimeter units and separates major
-entities into layers for downstream CAD review.
+entities into layers for downstream CAD review. Assembly SVG export adds a separate
+base/PCB/lid layout, closure callouts, connector checks, material settings, print
+orientation, and assembly checklist text from generated manufacturing metadata.
 
 ## BOM Export
 

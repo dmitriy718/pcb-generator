@@ -4,6 +4,7 @@ import { generateTwoPieceScrewCase } from '../src/shared/cad';
 import { defaultProject } from '../src/shared/domain';
 import { enclosureTemplateById } from '../src/shared/enclosureTemplates';
 import {
+  exportAssemblySvgDrawing,
   exportAsciiStl,
   buildBillOfMaterials,
   exportBomCsv,
@@ -130,6 +131,19 @@ describe('exporters', () => {
     expect(dxf).toContain('LID_FEATURES');
     expect(dxf).toContain('Battery tray recess');
     expect(dxf).toContain('Battery cable exit');
+  });
+
+  it('exports an assembly SVG drawing with parts, closure callouts, and checklist text', () => {
+    const generated = generateTwoPieceScrewCase(defaultProject);
+    const svg = exportAssemblySvgDrawing(defaultProject, generated.metadata);
+
+    expect(svg).toContain('assembly drawing');
+    expect(svg).toContain('Base + PCB');
+    expect(svg).toContain('Lid underside / closure points');
+    expect(svg).toContain('Assembly checklist');
+    expect(svg).toContain('Install the PCB on the standoffs using M2.5 self-tapping screw.');
+    expect(svg).toContain('USB-C');
+    expect(svg).toContain('class="hardware"');
   });
 
   it('exports module-based lid feature footprints in technical drawings', () => {

@@ -205,7 +205,16 @@ export interface ManufacturingMetadata {
   printability: PrintabilityReport;
 }
 
-export type ExportFormat = 'stl' | 'obj' | '3mf' | 'step' | 'svg' | 'dxf' | 'gltf' | 'bom';
+export type ExportFormat =
+  | 'stl'
+  | 'obj'
+  | '3mf'
+  | 'step'
+  | 'svg'
+  | 'dxf'
+  | 'gltf'
+  | 'bom'
+  | 'assembly-svg';
 
 export type PrintabilitySeverity = 'info' | 'warning' | 'error';
 

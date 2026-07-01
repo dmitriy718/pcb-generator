@@ -1,5 +1,11 @@
 import { designFeatureFootprints } from '../cad/designFeatureGeometry';
-import type { ConnectorCutout, DesignFeature, EnclosureProject, VentilationRegion } from '../domain';
+import type {
+  ConnectorCutout,
+  DesignFeature,
+  EnclosureProject,
+  ManufacturingMetadata,
+  VentilationRegion,
+} from '../domain';
 
 interface DrawingDimensions {
   internalWidth: number;
@@ -167,6 +173,105 @@ export function exportDxfDrawing(project: EnclosureProject): string {
 
   lines.push('0', 'ENDSEC', '0', 'EOF');
   return `${lines.join('\n')}\n`;
+}
+
+export function exportAssemblySvgDrawing(
+  project: EnclosureProject,
+  metadata: ManufacturingMetadata,
+): string {
+  const dims = drawingDimensions(project);
+  const margin = 12;
+  const partGap = 22;
+  const textColumnWidth = 92;
+  const width = dims.outerWidth * 2 + partGap + textColumnWidth + margin * 2;
+  const height = Math.max(dims.outerHeight + 62, 118);
+  const baseOrigin = { x: margin, y: 34 };
+  const lidOrigin = { x: margin + dims.outerWidth + partGap, y: 34 };
+  const textOrigin = { x: lidOrigin.x + dims.outerWidth + partGap, y: 18 };
+  const fastenerLabel = metadata.assemblyInstructions[0] ?? 'Install closure hardware.';
+
+  const hardwareCallouts = project.pcb.mountingHoles
+    .map((hole, index) => {
+      const baseX = baseOrigin.x + dims.pcbOriginX + hole.x;
+      const baseY = baseOrigin.y + dims.pcbOriginY + hole.y;
+      const lidX = lidOrigin.x + dims.pcbOriginX + hole.x;
+      const lidY = lidOrigin.y + dims.pcbOriginY + hole.y;
+      return [
+        `  <circle class="hardware" cx="${format(baseX)}" cy="${format(baseY)}" r="${format(project.enclosure.standoffDiameter / 2)}" />`,
+        `  <circle class="hardware" cx="${format(lidX)}" cy="${format(lidY)}" r="${format(project.enclosure.screwBossDiameter / 2)}" />`,
+        `  <text class="tiny" x="${format(lidX + 3)}" y="${format(lidY - 3)}">H${index + 1}</text>`,
+      ].join('\n');
+    })
+    .join('\n');
+  const cutoutLabels = project.pcb.connectorCutouts
+    .map((cutout, index) => {
+      const y = textOrigin.y + 57 + index * 5;
+      return `  <text class="tiny" x="${format(textOrigin.x)}" y="${format(y)}">${escapeXml(
+        `${cutout.label}: ${cutout.side} side, offset ${format(cutout.offset)} mm`,
+      )}</text>`;
+    })
+    .join('\n');
+  const assemblySteps = metadata.assemblyInstructions
+    .slice(0, 5)
+    .map((step, index) => {
+      const y = textOrigin.y + 82 + index * 6;
+      return `  <text class="tiny" x="${format(textOrigin.x)}" y="${format(y)}">${escapeXml(
+        `${index + 1}. ${step}`,
+      )}</text>`;
+    })
+    .join('\n');
+
+  return `${[
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${format(width)}mm" height="${format(height)}mm" viewBox="0 0 ${format(
+      width,
+    )} ${format(height)}">`,
+    '  <style>',
+    '    .part{fill:#f8fafc;stroke:#111827;stroke-width:0.35}',
+    '    .cavity{fill:none;stroke:#64748b;stroke-width:0.25;stroke-dasharray:2 1}',
+    '    .pcb{fill:#d9f99d;stroke:#3f6212;stroke-width:0.25}',
+    '    .hardware{fill:none;stroke:#7c2d12;stroke-width:0.25}',
+    '    .arrow{stroke:#256d85;stroke-width:0.35;marker-end:url(#arrow)}',
+    '    .label{font-family:Arial,sans-serif;font-size:3px;font-weight:bold;fill:#111827}',
+    '    .tiny{font-family:Arial,sans-serif;font-size:2.6px;fill:#1f2937}',
+    '  </style>',
+    '  <defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#256d85" /></marker></defs>',
+    `  <text class="label" x="${margin}" y="9">${escapeXml(project.name)} - assembly drawing - units mm</text>`,
+    `  <text class="tiny" x="${margin}" y="15">${escapeXml(metadata.layout.modelArrangement)}</text>`,
+    `  <rect class="part" x="${format(baseOrigin.x)}" y="${format(baseOrigin.y)}" width="${format(dims.outerWidth)}" height="${format(dims.outerHeight)}" />`,
+    `  <rect class="cavity" x="${format(baseOrigin.x + project.enclosure.wallThickness)}" y="${format(
+      baseOrigin.y + project.enclosure.wallThickness,
+    )}" width="${format(dims.internalWidth)}" height="${format(dims.internalHeight)}" />`,
+    `  <rect class="pcb" x="${format(baseOrigin.x + dims.pcbOriginX)}" y="${format(
+      baseOrigin.y + dims.pcbOriginY,
+    )}" width="${format(project.pcb.width)}" height="${format(project.pcb.height)}" />`,
+    `  <text class="label" x="${format(baseOrigin.x)}" y="${format(baseOrigin.y - 4)}">Base + PCB</text>`,
+    `  <rect class="part" x="${format(lidOrigin.x)}" y="${format(lidOrigin.y)}" width="${format(dims.outerWidth)}" height="${format(dims.outerHeight)}" />`,
+    `  <text class="label" x="${format(lidOrigin.x)}" y="${format(lidOrigin.y - 4)}">Lid underside / closure points</text>`,
+    hardwareCallouts,
+    `  <line class="arrow" x1="${format(baseOrigin.x + dims.outerWidth + 5)}" y1="${format(
+      baseOrigin.y + dims.outerHeight / 2,
+    )}" x2="${format(lidOrigin.x - 5)}" y2="${format(lidOrigin.y + dims.outerHeight / 2)}" />`,
+    `  <text class="label" x="${format(textOrigin.x)}" y="${format(textOrigin.y)}">Assembly checklist</text>`,
+    `  <text class="tiny" x="${format(textOrigin.x)}" y="${format(textOrigin.y + 8)}">${escapeXml(fastenerLabel)}</text>`,
+    `  <text class="tiny" x="${format(textOrigin.x)}" y="${format(textOrigin.y + 16)}">Material: ${escapeXml(
+      metadata.material.name,
+    )}, ${format(metadata.layerHeight)} mm layers, ${metadata.infillPercent}% infill</text>`,
+    `  <text class="tiny" x="${format(textOrigin.x)}" y="${format(textOrigin.y + 24)}">Print: ${escapeXml(
+      metadata.printOrientation,
+    )}</text>`,
+    `  <text class="tiny" x="${format(textOrigin.x)}" y="${format(textOrigin.y + 32)}">Parts: ${escapeXml(
+      metadata.layout.printableParts.join(', '),
+    )}</text>`,
+    `  <text class="label" x="${format(textOrigin.x)}" y="${format(textOrigin.y + 49)}">Connector checks</text>`,
+    cutoutLabels ||
+      `  <text class="tiny" x="${format(textOrigin.x)}" y="${format(textOrigin.y + 57)}">No connector cutouts defined.</text>`,
+    `  <text class="label" x="${format(textOrigin.x)}" y="${format(textOrigin.y + 74)}">Steps</text>`,
+    assemblySteps,
+    '</svg>',
+  ]
+    .filter(Boolean)
+    .join('\n')}\n`;
 }
 
 interface Footprint {

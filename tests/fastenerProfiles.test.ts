@@ -13,6 +13,7 @@ describe('fastener profiles', () => {
 
   it('resolves profiles by id', () => {
     expect(fastenerProfileById('m3_heat_set_insert')?.name).toBe('M3 heat-set insert');
+    expect(fastenerProfileById('m3_machine_screw_clearance')?.kind).toBe('machine_screw');
   });
 
   it('can drive valid enclosure dimensions for every built-in profile', () => {
@@ -50,6 +51,17 @@ describe('fastener profiles', () => {
       expect((profile.screwBossDiameter - (profile.insertLeadInDiameter ?? 0)) / 2, profile.id).toBeGreaterThan(
         0.4,
       );
+    }
+  });
+
+  it('defines machine screw clearance profiles with matching receiver guidance', () => {
+    const machineProfiles = builtInFastenerProfiles.filter((profile) => profile.kind === 'machine_screw');
+
+    expect(machineProfiles.length).toBeGreaterThan(0);
+    for (const profile of machineProfiles) {
+      expect(profile.screwHoleDiameter, profile.id).toBeGreaterThan(Number(profile.nominalSize.replace('M', '')));
+      expect(profile.vendorStyle, profile.id).toContain('machine screw');
+      expect(profile.notes, profile.id).toContain('Clearance-hole');
     }
   });
 

@@ -210,12 +210,14 @@ span or below the floor.
 ## Fastener Profiles
 
 Built-in fastener profiles include M2, M2.5, and M3 self-tapping screws, M2.5 and M3
-heat-set insert starter dimensions, short/long insert presets, and a 6 x 2 mm magnetic
-closure profile. Selecting a profile updates standoff diameter, standoff pilot hole,
-boss diameter, screw hole, insert socket dimensions, magnet pocket dimensions,
-lead-in relief dimensions, and recommended standoff height. Profiles are validated
-against minimum radial wall requirements. Magnetic closure pockets currently use the
-PCB mounting-hole centers as the matched base/lid pocket locations.
+machine-screw clearance profiles, M2.5 and M3 heat-set insert starter dimensions,
+short/long insert presets, and a 6 x 2 mm magnetic closure profile. Selecting a profile
+updates standoff diameter, standoff pilot hole, boss diameter, screw hole, insert
+socket dimensions, magnet pocket dimensions, lead-in relief dimensions, and recommended
+standoff height. Profiles are validated against minimum radial wall requirements.
+Machine-screw profiles model clearance holes and add matching receiver hardware to the
+BOM. Magnetic closure pockets currently use the PCB mounting-hole centers as the
+matched base/lid pocket locations.
 
 ## Ventilation
 

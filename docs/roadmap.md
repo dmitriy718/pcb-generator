@@ -123,6 +123,9 @@ tested, documented, and usable before moving on.
 63. Magnetic closure profile added with validated base/lid magnet pocket geometry,
     material-compensated OpenCascade exports, BOM polarity guidance, printability
     guidance, and regression coverage.
+64. Machine-screw clearance profiles added for M2.5 and M3 hardware, including
+    validated geometry parameters, matching receiver BOM guidance, and regression
+    coverage.
 
 ## Next Milestones
 

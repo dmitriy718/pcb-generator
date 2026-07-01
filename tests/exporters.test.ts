@@ -231,6 +231,16 @@ describe('exporters', () => {
     expect(csv).toContain('5 mm lead-in x 0.7 mm');
   });
 
+  it('includes matching receiver hardware for machine screw clearance profiles', () => {
+    const project = structuredClone(defaultProject);
+    project.enclosure.fastenerProfileId = 'm3_machine_screw_clearance';
+
+    const csv = exportBomCsv(project);
+
+    expect(csv).toContain('M3 machine screw clearance,hardware,4,piece');
+    expect(csv).toContain('M3 nuts or threaded receivers,hardware,4,piece');
+  });
+
   it('includes magnetic closure hardware and polarity process guidance in BOM output', () => {
     const project = structuredClone(defaultProject);
     project.enclosure.fastenerProfileId = 'd6x2_magnet_closure';

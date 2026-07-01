@@ -65,6 +65,17 @@ export function buildBillOfMaterials(project: EnclosureProject): BomItem[] {
     });
   }
 
+  if (fastener.kind === 'machine_screw') {
+    items.push({
+      item: `${fastener.nominalSize} nuts or threaded receivers`,
+      category: 'hardware',
+      quantity: closureCount,
+      unit: 'piece',
+      specification: `${fastener.nominalSize}, matching machine screw thread`,
+      notes: 'Use matching nuts, threaded inserts, or a tapped metal part; printed plastic holes are modeled as clearance holes.',
+    });
+  }
+
   if (fastener.kind === 'magnetic_closure') {
     items.push({
       item: 'Magnet installation',
